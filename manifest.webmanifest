@@ -1,0 +1,10 @@
+{
+  "name": "STOIC — Discipline Journal",
+  "short_name": "STOIC",
+  "description": "Keep the promises you make to yourself.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#151515",
+  "theme_color": "#151515",
+  "icons": []
+}

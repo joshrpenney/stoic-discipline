@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Every signed-in user can access only their own profile and personal records.
+    match /users/{userId} {
+      allow read, create, update, delete: if request.auth != null
+        && request.auth.uid == userId;
+
+      match /{document=**} {
+        allow read, create, update, delete: if request.auth != null
+          && request.auth.uid == userId;
+      }
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
