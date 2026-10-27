@@ -4,12 +4,12 @@ import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   // Paste your Firebase web configuration values here.
-  apiKey: "PASTE_API_KEY",
-  authDomain: "PASTE_AUTH_DOMAIN",
+  apiKey: "AIzaSyAxYHTa6OXIOoHvIHLX5BrKQbSOCSVDFqk",
+  authDomain: "stoic-discipline.firebaseapp.com",
   projectId: "stoic-discipline",
-  storageBucket: "PASTE_STORAGE_BUCKET",
+  storageBucket: "stoic-discipline.firebasestorage.app",
   messagingSenderId: "57139339211",
-  appId: "PASTE_APP_ID"
+  appId: "1:571393339211:web:0455dbd2d0f94f428302ce"
 };
 
 const app = initializeApp(firebaseConfig);
