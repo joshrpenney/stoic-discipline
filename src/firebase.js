@@ -8,7 +8,7 @@ const firebaseConfig = {
   authDomain: "stoic-discipline.firebaseapp.com",
   projectId: "stoic-discipline",
   storageBucket: "stoic-discipline.firebasestorage.app",
-  messagingSenderId: "57139339211",
+  messagingSenderId: "571393339211",
   appId: "1:571393339211:web:0455dbd2d0f94f428302ce"
 };
 
