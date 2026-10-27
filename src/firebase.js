@@ -2,18 +2,18 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+const firebaseConfig = {
+  // Paste your Firebase web configuration values here.
+  apiKey: "PASTE_API_KEY",
+  authDomain: "PASTE_AUTH_DOMAIN",
+  projectId: "stoic-discipline",
+  storageBucket: "PASTE_STORAGE_BUCKET",
+  messagingSenderId: "57139339211",
+  appId: "PASTE_APP_ID"
 };
 
-const configured = Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
-const app = configured ? initializeApp(config) : null;
+const app = initializeApp(firebaseConfig);
 
-export const firebaseConfigured = configured;
-export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+export const firebaseConfigured = true;
+export const auth = getAuth(app);
+export const db = getFirestore(app);
