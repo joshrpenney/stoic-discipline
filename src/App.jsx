@@ -55,7 +55,12 @@ export default function App() {
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
   const [newTarget, setNewTarget] = useState("");
-  const [newNonNegotiable, setNewNonNegotiable] = useState(true);\n  const [editingHabitId, setEditingHabitId] = useState(null);\n  const [editingTitle, setEditingTitle] = useState("");\n  const [editingCategory, setEditingCategory] = useState("Mindset");\n  const [editingTarget, setEditingTarget] = useState("");\n  const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
+  const [newNonNegotiable, setNewNonNegotiable] = useState(true);
+  const [editingHabitId, setEditingHabitId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [editingCategory, setEditingCategory] = useState("Mindset");
+  const [editingTarget, setEditingTarget] = useState("");
+  const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
