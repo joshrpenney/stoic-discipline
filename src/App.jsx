@@ -110,6 +110,9 @@ export default function App() {
   const isDueOn = (habit, date) => { const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
   const dueHabits = activeHabits.filter(h => isDueOn(h, new Date()));
   const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
+  const doneNonNegotiables = dueNonNegotiables.filter(h => checks[h.id]).length;
+  const nonNegotiablePercent = dueNonNegotiables.length ? Math.round(doneNonNegotiables / dueNonNegotiables.length * 100) : 100;
+  const allNonNegotiablesKept = dueNonNegotiables.length > 0 && doneNonNegotiables === dueNonNegotiables.length;
   const doneCount = dueHabits.filter((h) => checks[h.id]).length;
   const percent = dueHabits.length ? Math.round(doneCount / dueHabits.length * 100) : 100;
   const nonNegotiableToday = dueHabits.filter(h => h.nonNegotiable);
@@ -137,16 +140,28 @@ export default function App() {
     return {days, monthLabel:now.toLocaleDateString("en-GB",{month:"long",year:"numeric"})};
   }, [dailyLogs]);  const streak = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
-    const hasShownUp = date => {
-      const log = logs.get(dayKey(date));
-      return !!log && Object.values(log.completed || {}).some(Boolean);
+    const scheduledNonNegotiables = date => activeHabits.filter(h => h.nonNegotiable && isDueOn(h, date)).map(h => h.id);
+    const dayStatus = date => {
+      const key = dayKey(date), log = logs.get(key);
+      const dueIds = Array.isArray(log?.dueNonNegotiableIds) ? log.dueNonNegotiableIds : scheduledNonNegotiables(date);
+      if (!dueIds.length) return "skip";
+      if (!log) return "missed";
+      const completed = log.completed || {};
+      return dueIds.every(id => completed[id] === true) ? "kept" : "missed";
     };
     const cursor = new Date(); cursor.setHours(12,0,0,0);
-    if (!hasShownUp(cursor)) cursor.setDate(cursor.getDate()-1);
+    // Today's unfinished promises are still recoverable until the day ends.
+    if (dayStatus(cursor) !== "kept") cursor.setDate(cursor.getDate()-1);
     let count = 0;
-    while (hasShownUp(cursor)) { count++; cursor.setDate(cursor.getDate()-1); }
+    while (true) {
+      const status = dayStatus(cursor);
+      if (status === "skip") { cursor.setDate(cursor.getDate()-1); continue; }
+      if (status !== "kept") break;
+      count++;
+      cursor.setDate(cursor.getDate()-1);
+    }
     return count;
-  }, [dailyLogs]);
+  }, [dailyLogs, activeHabits]);
   const levelInfo = useMemo(() => {
     const xp = Math.max(0, Number(progression.totalXp) || 0);
     const levels = [{level:1,name:"Initiate",xp:0},{level:2,name:"Disciple",xp:100},{level:3,name:"Practitioner",xp:300},{level:4,name:"Stoic",xp:600},{level:5,name:"Sentinel",xp:1000},{level:6,name:"Guardian",xp:1500},{level:7,name:"Exemplar",xp:2200},{level:8,name:"Virtuoso",xp:3000},{level:9,name:"Philosopher",xp:4000},{level:10,name:"Sage",xp:5200}];
@@ -270,6 +285,7 @@ export default function App() {
     setError(""); setNotice("");
     const logRef=doc(db,"users",user.uid,"dailyLogs",todayKey());
     const dueHabitIds=dueHabits.map(h=>h.id);
+    const dueNonNegotiableIds=dueNonNegotiables.map(h=>h.id);
     const progressionRef=doc(db,"users",user.uid,"progression","summary");
     try { let earned=0, completing=false;
       await runTransaction(db, async (transaction) => {
@@ -278,7 +294,7 @@ export default function App() {
         completing=!completed[habit.id]; completed[habit.id]=completing;
         const p=pSnap.exists()?pSnap.data():{totalXp:0,totalActions:0}; let totalXp=Number(p.totalXp)||0; let totalActions=Number(p.totalActions)||0;
         if(completing&&!xpAwarded[habit.id]) { earned=10; xpAwarded[habit.id]=true; totalXp+=earned; totalActions++; }
-        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds,updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds,dueNonNegotiableIds,updatedAt:serverTimestamp()},{merge:true});
         transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
       });
       setNotice(completing?(earned?`Promise kept. +${earned} XP earned.`:"Promise kept. XP for this commitment was already earned today."):"Record updated. Earned XP is kept.");
@@ -387,9 +403,14 @@ export default function App() {
       <p className="muted">Welcome back{user.displayName ? `, ${user.displayName}` : ""}. Focus on the actions within your control.</p>
     </section>
     <section className="progress-card">
-      <div className="progress-heading"><div><p className="eyebrow">TODAY'S DISCIPLINE</p><h2>{doneCount} <span>/ {dueHabits.length}</span></h2></div><div className="streak"><Flame size={19}/><div><strong>{streak} day</strong><small>current streak*</small></div></div></div>
+      <div className="progress-heading"><div><p className="eyebrow">ALL COMMITMENTS</p><h2>{doneCount} <span>/ {dueHabits.length}</span></h2></div><div className="streak"><Flame size={19}/><div><strong>{streak}-day streak</strong><small>non-negotiables kept</small></div></div></div>
       <div className="progress-track"><div style={{width:`${percent}%`}}/></div>
-      <div className="progress-foot"><span>{percent}% complete</span><span>{dueHabits.length===0 ? "Rest day — no commitments scheduled." : percent===100 ? "Promises kept for today." : "Small actions. Repeated daily."}</span></div>
+      <div className="progress-foot"><span>{percent}% complete</span><span>{dueHabits.length===0 ? "No commitments scheduled today." : percent===100 ? "All promises kept today." : "Keep going, one action at a time."}</span></div>
+    </section>
+    <section className="nonneg-progress-card">
+      <div className="nonneg-progress-top"><div className="nonneg-progress-icon"><ShieldCheck size={19}/></div><div className="nonneg-progress-copy"><p className="eyebrow">YOUR DAILY STANDARD</p><h2>Non-negotiables <span>{doneNonNegotiables}/{dueNonNegotiables.length}</span></h2></div><strong className="nonneg-percent">{dueNonNegotiables.length ? nonNegotiablePercent+"%" : "REST"}</strong></div>
+      <div className="nonneg-progress-track"><div style={{width:`${nonNegotiablePercent}%`}}/></div>
+      <p>{dueNonNegotiables.length===0 ? "No non-negotiables scheduled today. Your streak is safe." : allNonNegotiablesKept ? "Standard upheld. You've kept every promise scheduled for today." : `${dueNonNegotiables.length-doneNonNegotiables} promise${dueNonNegotiables.length-doneNonNegotiables===1?"":"s"} remaining. Complete them today to keep your streak alive.`}</p>
     </section>
     <section className="level-card">
       <div className="level-top"><div className="level-emblem"><ShieldCheck size={24}/></div><div className="level-copy"><p className="eyebrow">YOUR PATH</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} XP earned</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div>
