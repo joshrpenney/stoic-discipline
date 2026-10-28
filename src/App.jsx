@@ -50,6 +50,7 @@ export default function App() {
   const [bookAuthor, setBookAuthor] = useState("");
   const [bookStarted, setBookStarted] = useState(todayKey());
   const [bookFinished, setBookFinished] = useState("");
+  const [bookPage, setBookPage] = useState("1");
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -143,9 +144,17 @@ export default function App() {
     if (!user || !db || !bookInput.trim()) return;
     try {
       await addDoc(collection(db, "users", user.uid, "booksRead"), {
-        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", createdAt: serverTimestamp()
+        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", currentPage: Math.max(1, Number(bookPage) || 1), createdAt: serverTimestamp()
       });
-      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setNotice("Book added to your reading library.");
+      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setNotice(bookFinished ? "Book added to completed books." : "Book added to Currently reading.");
+    } catch (e) { setError(e.message); }
+  }
+
+  async function updateBook(book, changes) {
+    if (!user || !db) return;
+    try {
+      await updateDoc(doc(db, "users", user.uid, "booksRead", book.id), changes);
+      setNotice(changes.finishedAt ? "Book marked as completed." : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
     } catch (e) { setError(e.message); }
   }
 
@@ -251,15 +260,22 @@ export default function App() {
     {activeTab !== "Today" && <section className="tab-page">
       {activeTab === "Reading" && <>
         <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
-        <p className="muted">Keep a tidy record of every book: who wrote it, when you started, and when you finished.</p>
+        <p className="muted">Track your progress as you read, then move finished books into your completed library.</p>
         <form className="book-form" onSubmit={addBook}>
           <label>Book title<input required maxLength="140" value={bookInput} onChange={e=>setBookInput(e.target.value)} placeholder="Title of the book"/></label>
           <label>Author<input maxLength="100" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label>
           <div className="book-date-grid"><label>Started reading<input type="date" required value={bookStarted} onChange={e=>setBookStarted(e.target.value)}/></label><label>Finished reading <span className="optional-label">(optional)</span><input type="date" min={bookStarted || undefined} value={bookFinished} onChange={e=>setBookFinished(e.target.value)}/></label></div>
+          {!bookFinished && <label>Current page<input type="number" min="1" max="100000" required value={bookPage} onChange={e=>setBookPage(e.target.value)}/></label>}
           <button className="primary">Add book <Plus size={16}/></button>
         </form>
-        <div className="reading-list-heading"><div><p className="eyebrow">YOUR LIBRARY</p><h2>{books.length} {books.length===1?"book":"books"}</h2></div><span className="book-count-finished">{books.filter(b=>b.finishedAt).length} finished</span></div>
-        <div className="book-list">{books.map((book,i)=><article className="book-item" key={book.id}><div className="book-cover"><BookOpen size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>FINISHED</small>{book.finishedAt ? new Date(book.finishedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "In progress"}</span></div></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.length&&<div className="empty"><BookOpen size={30}/><h3>Your reading journey starts here</h3><p>Add a book with its start date, then add the finish date when you complete it.</p></div>}</div>
+        <section className="book-section">
+          <div className="reading-list-heading"><div><p className="eyebrow">IN PROGRESS</p><h2>Currently reading</h2></div><span className="book-count-finished">{books.filter(b=>!b.finishedAt).length} books</span></div>
+          <div className="book-list">{books.filter(b=>!b.finishedAt).map((book,i)=><article className="book-item book-progress-item" key={book.id}><div className="book-cover"><BookOpen size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>CURRENT PAGE</small><label className="page-input-label"><input aria-label={"Current page for "+book.title} type="number" min="1" max="100000" defaultValue={book.currentPage || 1} onBlur={e=>{const n=Math.max(1,Number(e.target.value)||1);if(n!==Number(book.currentPage||1))updateBook(book,{currentPage:n});}}/> <span>page</span></label></span></div><label className="finish-date-label">Finished reading<input aria-label={"Finish date for "+book.title} type="date" min={book.startedAt||undefined} value={book.finishedAt||""} onChange={e=>{if(e.target.value)updateBook(book,{finishedAt:e.target.value});}}/></label></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!b.finishedAt)&&<div className="empty"><BookOpen size={30}/><h3>No books in progress</h3><p>Add a book above and it will appear here until you finish it.</p></div>}</div>
+        </section>
+        <section className="book-section completed-book-section">
+          <div className="reading-list-heading"><div><p className="eyebrow">A LIBRARY OF FINISHED IDEAS</p><h2>Completed books</h2></div><span className="book-count-finished">{books.filter(b=>!!b.finishedAt).length} finished</span></div>
+          <div className="book-list">{books.filter(b=>!!b.finishedAt).map((book,i)=><article className="book-item completed-book-item" key={book.id}><div className="book-cover completed-cover"><Check size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>FINISHED</small>{new Date(book.finishedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span></div><button className="reopen-book" onClick={()=>updateBook(book,{finishedAt:""})}>Move back to reading</button></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!!b.finishedAt)&&<div className="empty"><Trophy size={30}/><h3>Your finished books will live here</h3><p>Choose a finish date on a book above and it will move into this section automatically.</p></div>}</div>
+        </section>
       </>}
       {activeTab === "Non-negotiables" && <>
         <p className="eyebrow">YOUR PERSONAL STANDARD</p><h1 className="tab-title">Non-negotiables</h1><p className="muted">The promises you choose to keep, even when motivation is low. Complete each one to earn XP.</p>
