@@ -5,9 +5,9 @@ import {
 } from "firebase/auth";
 import {
   addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query,
-  serverTimestamp, setDoc, updateDoc
+  serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2 } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 
 const starterHabits = [
@@ -42,6 +42,8 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [habits, setHabits] = useState([]);
   const [checks, setChecks] = useState({});
+  const [progression, setProgression] = useState({ totalXp: 0, totalActions: 0 });
+  const [dailyLogs, setDailyLogs] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -55,7 +57,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) { setHabits([]); setChecks({}); return; }
+    if (!user || !db) { setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); return; }
     const habitQuery = query(collection(db, "users", user.uid, "habits"), orderBy("createdAt", "asc"));
     const stopHabits = onSnapshot(habitQuery, async (snapshot) => {
       if (snapshot.empty) {
@@ -71,17 +73,27 @@ export default function App() {
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
     const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
-    return () => { stopHabits(); stopChecks(); };
+    const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }), (e) => setError(e.message));
+    const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
+    return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); };
   }, [user]);
 
   const activeHabits = habits.filter((h) => h.active !== false);
   const doneCount = activeHabits.filter((h) => checks[h.id]).length;
   const percent = activeHabits.length ? Math.round(doneCount / activeHabits.length * 100) : 0;
   const streak = useMemo(() => {
-    // Count consecutive calendar days on which every currently active habit was completed.
-    // This is calculated from saved daily logs; detailed historical streaks are added next.
-    return doneCount === activeHabits.length && activeHabits.length > 0 ? 1 : 0;
-  }, [doneCount, activeHabits.length]);
+    const days = new Set(dailyLogs.filter(log => Object.values(log.completed || {}).some(Boolean)).map(log => log.date || log.id));
+    let count = 0; const d = new Date();
+    while (true) { const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; if (!days.has(key)) break; count++; d.setDate(d.getDate()-1); }
+    return count;
+  }, [dailyLogs]);
+  const levelInfo = useMemo(() => {
+    const xp = Math.max(0, Number(progression.totalXp) || 0);
+    const levels = [{level:1,name:"Initiate",xp:0},{level:2,name:"Disciple",xp:100},{level:3,name:"Practitioner",xp:300},{level:4,name:"Stoic",xp:600},{level:5,name:"Sentinel",xp:1000},{level:6,name:"Guardian",xp:1500},{level:7,name:"Exemplar",xp:2200},{level:8,name:"Virtuoso",xp:3000},{level:9,name:"Philosopher",xp:4000},{level:10,name:"Sage",xp:5200}];
+    let current=levels[0], next=null; for (const item of levels) { if (xp>=item.xp) current=item; else {next=item;break;} }
+    return {level:current.level,name:current.name,xp,next,progress:next?Math.round((xp-current.xp)/(next.xp-current.xp)*100):100,remaining:next?next.xp-xp:0};
+  }, [progression.totalXp]);
+  const achievements = useMemo(() => { const n=Number(progression.totalActions)||0; return [{title:"First Promise",detail:"Complete your first commitment",unlocked:n>=1,icon:Star},{title:"Seven in Motion",detail:"Reach a 7-day streak",unlocked:streak>=7,icon:Flame},{title:"A Hundred Deeds",detail:"Complete 100 commitments",unlocked:n>=100,icon:Award},{title:"A Month of Resolve",detail:"Reach a 30-day streak",unlocked:streak>=30,icon:Trophy}]; }, [progression.totalActions,streak]);
 
   async function handleAuth(e) {
     e.preventDefault(); setError(""); setBusy(true);
@@ -103,13 +115,20 @@ export default function App() {
   async function toggleHabit(habit) {
     if (!user || !db) return;
     setError(""); setNotice("");
-    const next = { ...checks, [habit.id]: !checks[habit.id] };
-    try {
-      await setDoc(doc(db, "users", user.uid, "dailyLogs", todayKey()), {
-        date: todayKey(), completed: next, updatedAt: serverTimestamp()
-      }, { merge: true });
-      setNotice(next[habit.id] ? "Promise kept. One deliberate action at a time." : "Updated today's record.");
-    } catch (e) { setError(e.message); }
+    const logRef=doc(db,"users",user.uid,"dailyLogs",todayKey());
+    const progressionRef=doc(db,"users",user.uid,"progression","summary");
+    try { let earned=0, completing=false;
+      await runTransaction(db, async (transaction) => {
+        const logSnap=await transaction.get(logRef); const pSnap=await transaction.get(progressionRef);
+        const log=logSnap.exists()?logSnap.data():{}; const completed={...(log.completed||{})}; const xpAwarded={...(log.xpAwarded||{})};
+        completing=!completed[habit.id]; completed[habit.id]=completing;
+        const p=pSnap.exists()?pSnap.data():{totalXp:0,totalActions:0}; let totalXp=Number(p.totalXp)||0; let totalActions=Number(p.totalActions)||0;
+        if(completing&&!xpAwarded[habit.id]) { earned=10; xpAwarded[habit.id]=true; totalXp+=earned; totalActions++; }
+        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
+      });
+      setNotice(completing?(earned?`Promise kept. +${earned} XP earned.`:"Promise kept. XP for this commitment was already earned today."):"Record updated. Earned XP is kept.");
+    } catch(e) { setError(e.message); }
   }
 
   async function addHabit(e) {
@@ -172,6 +191,12 @@ export default function App() {
       <div className="progress-track"><div style={{width:`${percent}%`}}/></div>
       <div className="progress-foot"><span>{percent}% complete</span><span>{percent===100 && activeHabits.length ? "Promises kept for today." : "Small actions. Repeated daily."}</span></div>
     </section>
+    <section className="level-card">
+      <div className="level-top"><div className="level-emblem"><ShieldCheck size={24}/></div><div className="level-copy"><p className="eyebrow">YOUR PATH</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} XP earned</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div>
+      <div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div>
+      <div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising to honour the work."}</span><span>{levelInfo.progress}%</span></div>
+      <div className="stats-row"><div><Flame size={16}/><strong>{streak}</strong><span>day streak</span></div><div><Target size={16}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions</span></div><div><Trophy size={16}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>badges</span></div></div>
+    </section>
     <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2></div><button className="add-button" onClick={()=>setShowAdd(v=>!v)}><Plus size={17}/><span>Add</span></button></section>
     {showAdd && <form className="add-form" onSubmit={addHabit}>
       <label>Commitment<input autoFocus required maxLength="80" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Walk for 20 minutes"/></label>
@@ -190,8 +215,12 @@ export default function App() {
       </article>;})}
       {!activeHabits.length && <div className="empty"><Target size={30}/><h3>Choose your commitments</h3><p>Add a few small actions you can realistically repeat.</p></div>}
     </div>
+    <section className="achievements-section">
+      <div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div>
+      <div className="achievement-grid">{achievements.map((a)=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>;})}</div>
+    </section>
     <section className="principle-card"><div className="quote-mark">“</div><p>You have power over your mind — not outside events. Realise this, and you will find strength.</p><span>— Marcus Aurelius, <i>Meditations</i> (paraphrased)</span></section>
     <nav className="bottom-nav"><div className="nav-item active"><Target size={19}/><span>Today</span></div><div className="nav-item muted-nav"><Dumbbell size={19}/><span>Training</span></div><div className="nav-item muted-nav"><BookOpen size={19}/><span>Reading</span></div><div className="nav-item muted-nav"><Moon size={19}/><span>Reflect</span></div></nav>
-    <p className="footnote">*The streak counter is a foundation preview and currently reflects today's completion only. Historical streak calculation will be added with the next iteration.</p>
+    <p className="footnote">XP is awarded once per commitment each day. Unticking a commitment does not remove earned XP. Your progress is saved to your private Firebase account.</p>
   </main>;
 }
