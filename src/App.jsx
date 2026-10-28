@@ -45,6 +45,9 @@ export default function App() {
   const [progression, setProgression] = useState({ totalXp: 0, totalActions: 0 });
   const [dailyLogs, setDailyLogs] = useState([]);
   const [activeTab, setActiveTab] = useState("Today");
+  const [books, setBooks] = useState([]);
+  const [bookInput, setBookInput] = useState("");
+  const [bookAuthor, setBookAuthor] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -58,7 +61,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) { setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); return; }
+    if (!user || !db) { setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); setBooks([]); return; }
     const habitQuery = query(collection(db, "users", user.uid, "habits"), orderBy("createdAt", "asc"));
     const stopHabits = onSnapshot(habitQuery, async (snapshot) => {
       if (snapshot.empty) {
@@ -76,7 +79,8 @@ export default function App() {
     const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
     const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }), (e) => setError(e.message));
     const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
-    return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); };
+    const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))), (e) => setError(e.message));
+    return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); stopBooks(); };
   }, [user]);
 
   const activeHabits = habits.filter((h) => h.active !== false);
@@ -132,7 +136,7 @@ export default function App() {
     } catch(e) { setError(e.message); }
   }
 
-  async function addHabit(e) {
+  async function addBook(e) {\n    e.preventDefault(); if (!user || !db || !bookInput.trim()) return;\n    try { await addDoc(collection(db, "users", user.uid, "booksRead"), { title: bookInput.trim(), author: bookAuthor.trim(), createdAt: serverTimestamp() }); setBookInput(""); setBookAuthor(""); setNotice("Book added to your read list."); } catch (e) { setError(e.message); }\n  }\n\n  async function removeBook(book) {\n    if (!user || !db) return;\n    try { await deleteDoc(doc(db, "users", user.uid, "booksRead", book.id)); setNotice("Book removed from your list."); } catch (e) { setError(e.message); }\n  }\n\n  async function addHabit(e) {
     e.preventDefault();
     if (!newTitle.trim() || !user || !db) return;
     try {
@@ -224,16 +228,32 @@ export default function App() {
     <section className="principle-card"><div className="quote-mark">“</div><p>You have power over your mind — not outside events. Realise this, and you will find strength.</p><span>— Marcus Aurelius, <i>Meditations</i> (paraphrased)</span></section>
     </>}
     {activeTab !== "Today" && <section className="tab-page">
-      <p className="eyebrow">{activeTab === "Training" ? "BUILD CAPACITY" : activeTab === "Reading" ? "TRAIN THE MIND" : "EXAMINE THE DAY"}</p>
-      <h1 className="tab-title">{activeTab === "Training" ? "Training" : activeTab === "Reading" ? "Reading" : "Reflect"}</h1>
-      <p className="muted">{activeTab === "Training" ? "Keep your training commitments visible and record each session by completing the relevant habit below." : activeTab === "Reading" ? "Make deliberate time for books. Complete your reading habits and add a reading commitment if you need one." : "Review the day honestly, without judgement. Complete your reflection habits and keep your promises to yourself."}</p>
-      <div className="tab-summary"><div><strong>{activeTab === "Training" ? "Training focus" : activeTab === "Reading" ? "Reading focus" : "Mindset focus"}</strong><span>Completed commitments still earn XP and count toward your progress.</span></div><button className="add-button" onClick={() => {setShowAdd(true);setNewCategory(activeTab === "Training" ? "Training" : activeTab === "Reading" ? "Reading" : "Mindset");setActiveTab("Today");}}>+ Add habit</button></div>
-      <div className="habit-list">{activeHabits.filter(h => activeTab === "Training" ? ["Training","Running","Walking","Movement"].includes(h.category) : activeTab === "Reading" ? h.category === "Reading" : ["Mindset","Morning","Evening"].includes(h.category)).map(h => {const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={() => toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={() => toggleHabit(h)}><strong>{h.title}</strong><span>{h.target || h.category}{h.nonNegotiable?" · NON-NEGOTIABLE":""}</span></button><button className="remove-button" onClick={() => removeHabit(h)} aria-label={"Archive "+h.title}><Trash2 size={16}/></button></article>;})}
-      {!activeHabits.some(h => activeTab === "Training" ? ["Training","Running","Walking","Movement"].includes(h.category) : activeTab === "Reading" ? h.category === "Reading" : ["Mindset","Morning","Evening"].includes(h.category)) && <div className="empty"><Target size={30}/><h3>No {activeTab.toLowerCase()} habits yet</h3><p>Add a commitment for this area to track it here.</p><button className="primary" onClick={() => {setShowAdd(true);setNewCategory(activeTab === "Training" ? "Training" : activeTab === "Reading" ? "Reading" : "Mindset");setActiveTab("Today");}}>Add a habit</button></div>}
-      </div>
-      <section className="principle-card"><div className="quote-mark">“</div><p>{activeTab === "Training" ? "The body is strengthened by effort; the mind by deliberate practice." : activeTab === "Reading" ? "Do not merely say you have read books. Show that through the principles you live by." : "Ask yourself: what did I do well, and what can I do better tomorrow?"}</p><span>STOIC PRACTICE</span></section>
+      {activeTab === "Reading" && <>
+        <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Books I've read</h1>
+        <p className="muted">Keep a personal record of the books you finish. Build a library of ideas worth returning to.</p>
+        <form className="book-form" onSubmit={addBook}><label>Book title<input required maxLength="140" value={bookInput} onChange={e=>setBookInput(e.target.value)} placeholder="Title of the book"/></label><label>Author (optional)<input maxLength="100" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label><button className="primary">Add to read list <Plus size={16}/></button></form>
+        <div className="reading-list-heading"><div><p className="eyebrow">YOUR LIBRARY</p><h2>{books.length} {books.length===1?"book":"books"} read</h2></div></div>
+        <div className="book-list">{books.map((book,i)=><article className="book-item" key={book.id}><div className="book-cover"><BookOpen size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><small>Added {book.createdAt?.seconds ? new Date(book.createdAt.seconds*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "just now"}</small></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.length&&<div className="empty"><BookOpen size={30}/><h3>Your reading journey starts here</h3><p>Add books as you finish them and build your own library.</p></div>}</div>
+      </>}
+      {activeTab === "Non-negotiables" && <>
+        <p className="eyebrow">YOUR PERSONAL STANDARD</p><h1 className="tab-title">Non-negotiables</h1><p className="muted">The promises you choose to keep, even when motivation is low. Complete each one to earn XP.</p>
+        <div className="tab-summary"><div><strong>{habits.filter(h=>h.active!==false&&h.nonNegotiable).filter(h=>checks[h.id]).length} of {habits.filter(h=>h.active!==false&&h.nonNegotiable).length} kept today</strong><span>Consistency over perfection. Begin again whenever you need to.</span></div><button className="add-button" onClick={()=>{setNewNonNegotiable(true);setNewCategory("Mindset");setShowAdd(true);setActiveTab("Today");}}>+ Add</button></div>
+        <div className="habit-list">{activeHabits.filter(h=>h.nonNegotiable).map(h=>{const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category} · NON-NEGOTIABLE</span></button></article>})}{!activeHabits.some(h=>h.nonNegotiable)&&<div className="empty"><ShieldCheck size={30}/><h3>Set your standards</h3><p>Add commitments and mark them as non-negotiable.</p><button className="primary" onClick={()=>{setNewNonNegotiable(true);setShowAdd(true);setActiveTab("Today");}}>Create a commitment</button></div>}</div>
+      </>}
+      {activeTab === "Training" && <>
+        <p className="eyebrow">BUILD CAPACITY</p><h1 className="tab-title">Training</h1><p className="muted">A focused home for the physical work that builds strength and endurance.</p>
+        <div className="tab-summary"><div><strong>{activeHabits.filter(h=>["Training","Running","Walking","Movement"].includes(h.category)).filter(h=>checks[h.id]).length} sessions and habits completed today</strong><span>Strength, running, walking and movement commitments.</span></div><button className="add-button" onClick={()=>{setNewCategory("Training");setShowAdd(true);setActiveTab("Today");}}>+ Add</button></div>
+        <div className="habit-list">{activeHabits.filter(h=>["Training","Running","Walking","Movement"].includes(h.category)).map(h=>{const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category}</span></button></article>})}{!activeHabits.some(h=>["Training","Running","Walking","Movement"].includes(h.category))&&<div className="empty"><Dumbbell size={30}/><h3>Build your training plan</h3><p>Add training, running or walking habits to see them here.</p><button className="primary" onClick={()=>{setNewCategory("Training");setShowAdd(true);setActiveTab("Today");}}>Add training habit</button></div>}</div>
+      </>}
+      {activeTab === "Profile" && <>
+        <p className="eyebrow">THE WORK YOU'VE PUT IN</p><h1 className="tab-title">Your profile</h1><p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
+        <section className="level-card profile-level"><div className="level-top"><div className="level-emblem"><ShieldCheck size={25}/></div><div className="level-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} total XP</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div><div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div><div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising every day"}</span><span>{levelInfo.progress}%</span></div></section>
+        <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
+        <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
+        <button className="secondary profile-signout" onClick={()=>signOut(auth)}><LogOut size={16}/> Sign out</button>
+      </>}
     </section>}
-    <nav className="bottom-nav">{[["Today",Target],["Training",Dumbbell],["Reading",BookOpen],["Reflect",Moon]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""}`} onClick={() => {setActiveTab(label);setError("");setNotice("");}}><Icon size={19}/><span>{label}</span></button>)}</nav>
+    <nav className="bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Training",Dumbbell],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""} ${label==="Today"?"nav-today":""}`} onClick={() => {setActiveTab(label);setError("");setNotice("");}}><span className="nav-icon-wrap"><Icon size={label==="Today"?23:19}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
     <p className="footnote">XP is awarded once per commitment each day. Unticking a commitment does not remove earned XP. Your progress is saved to your private Firebase account.</p>
   </main>;
 }
