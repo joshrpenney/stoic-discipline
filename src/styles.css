@@ -63,3 +63,6 @@
 .community-back{display:flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--muted);padding:0 0 20px}.community-back svg{transform:rotate(180deg)}
 .community-actions{display:grid;gap:13px;margin:22px 0}.community-action-card{display:flex;align-items:center;gap:15px;text-align:left;padding:18px 15px;border:1px solid var(--line);border-radius:13px;background:var(--panel);color:var(--text);min-height:86px}.community-action-icon{width:45px;height:45px;flex:0 0 45px;display:grid;place-items:center;border-radius:11px;background:var(--panel2);color:var(--gold)}.community-action-card>span:nth-child(2){display:grid;gap:5px;flex:1}.community-action-card strong{font-size:15px}.community-action-card small{font-size:11px;color:var(--muted);line-height:1.45}.community-action-arrow{color:var(--muted);transform:rotate(180deg)}
 :root[data-theme="light"] .profile-social-stats button,:root[data-theme="light"] .profile-add-friends,:root[data-theme="light"] .community-action-card{background:#fffdf7;border-color:#ded6c5}
+
+/* Four primary destinations after folding training into commitments */
+.bottom-nav{grid-template-columns:repeat(4,minmax(0,1fr))}
