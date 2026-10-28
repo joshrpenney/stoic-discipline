@@ -237,7 +237,7 @@ export default function App() {
   return <main className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
-      <button className="icon-button" title="Sign out" onClick={() => signOut(auth)}><LogOut size={18}/></button>
+      <div className="topbar-actions"><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
     </header>
     {activeTab === "Today" && <>
     <section className="welcome">
@@ -330,7 +330,7 @@ export default function App() {
         <section className="level-card profile-level"><div className="level-top"><div className="level-emblem"><ShieldCheck size={25}/></div><div className="level-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} total XP</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div><div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div><div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising every day"}</span><span>{levelInfo.progress}%</span></div></section>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
-        <div className="profile-account-actions"><button className="quiet-account-button" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={13}/> Settings</button><button className="quiet-account-button" onClick={()=>signOut(auth)}><LogOut size={13}/> Sign out</button></div>
+        
       </>}
       {activeTab === "Settings" && <>
         <button className="settings-back" onClick={()=>{setActiveTab("Profile");window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={16}/> Back to profile</button>
