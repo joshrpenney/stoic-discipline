@@ -153,11 +153,12 @@ export default function App() {
   }, [dailyLogs]);  const streak = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     let count = 0; const d = new Date();
-    while (true) { const key = dayKey(d); const log = logs.get(key); if (!log) break;
-      const dueIds = Array.isArray(log.dueHabitIds) ? log.dueHabitIds : null; const completed = log.completed || {};
-      const success = dueIds ? (dueIds.length === 0 || dueIds.every(id => completed[id] === true)) : Object.values(completed).some(Boolean);
-      if (!success) break; count++; d.setDate(d.getDate()-1);
-    } return count;
+    while (true) {
+      const log = logs.get(dayKey(d));
+      if (!log || !Object.values(log.completed || {}).some(Boolean)) break;
+      count++; d.setDate(d.getDate()-1);
+    }
+    return count;
   }, [dailyLogs]);
   const levelInfo = useMemo(() => {
     const xp = Math.max(0, Number(progression.totalXp) || 0);
