@@ -158,7 +158,8 @@ export default function App() {
     // Today's unfinished promises are still recoverable until the day ends.
     if (dayStatus(cursor) !== "kept") cursor.setDate(cursor.getDate()-1);
     let count = 0;
-    while (true) {
+    // Bound the scan so an account with no non-negotiables cannot loop forever.
+    for (let scanned = 0; scanned < 366; scanned++) {
       const status = dayStatus(cursor);
       if (status === "skip") { cursor.setDate(cursor.getDate()-1); continue; }
       if (status !== "kept") break;
