@@ -44,6 +44,7 @@ export default function App() {
   const [checks, setChecks] = useState({});
   const [progression, setProgression] = useState({ totalXp: 0, totalActions: 0 });
   const [dailyLogs, setDailyLogs] = useState([]);
+  const [activeTab, setActiveTab] = useState("Today");
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -181,6 +182,7 @@ export default function App() {
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
       <button className="icon-button" title="Sign out" onClick={() => signOut(auth)}><LogOut size={18}/></button>
     </header>
+    {activeTab === "Today" && <>
     <section className="welcome">
       <p className="eyebrow">{prettyDate.format(new Date()).toUpperCase()}</p>
       <h1>Do what matters.<br/><span>Leave the rest.</span></h1>
@@ -220,7 +222,18 @@ export default function App() {
       <div className="achievement-grid">{achievements.map((a)=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>;})}</div>
     </section>
     <section className="principle-card"><div className="quote-mark">“</div><p>You have power over your mind — not outside events. Realise this, and you will find strength.</p><span>— Marcus Aurelius, <i>Meditations</i> (paraphrased)</span></section>
-    <nav className="bottom-nav"><div className="nav-item active"><Target size={19}/><span>Today</span></div><div className="nav-item muted-nav"><Dumbbell size={19}/><span>Training</span></div><div className="nav-item muted-nav"><BookOpen size={19}/><span>Reading</span></div><div className="nav-item muted-nav"><Moon size={19}/><span>Reflect</span></div></nav>
+    </>}
+    {activeTab !== "Today" && <section className="tab-page">
+      <p className="eyebrow">{activeTab === "Training" ? "BUILD CAPACITY" : activeTab === "Reading" ? "TRAIN THE MIND" : "EXAMINE THE DAY"}</p>
+      <h1 className="tab-title">{activeTab === "Training" ? "Training" : activeTab === "Reading" ? "Reading" : "Reflect"}</h1>
+      <p className="muted">{activeTab === "Training" ? "Keep your training commitments visible and record each session by completing the relevant habit below." : activeTab === "Reading" ? "Make deliberate time for books. Complete your reading habits and add a reading commitment if you need one." : "Review the day honestly, without judgement. Complete your reflection habits and keep your promises to yourself."}</p>
+      <div className="tab-summary"><div><strong>{activeTab === "Training" ? "Training focus" : activeTab === "Reading" ? "Reading focus" : "Mindset focus"}</strong><span>Completed commitments still earn XP and count toward your progress.</span></div><button className="add-button" onClick={() => {setShowAdd(true);setNewCategory(activeTab === "Training" ? "Training" : activeTab === "Reading" ? "Reading" : "Mindset");setActiveTab("Today");}}>+ Add habit</button></div>
+      <div className="habit-list">{activeHabits.filter(h => activeTab === "Training" ? ["Training","Running","Walking","Movement"].includes(h.category) : activeTab === "Reading" ? h.category === "Reading" : ["Mindset","Morning","Evening"].includes(h.category)).map(h => {const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={() => toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={() => toggleHabit(h)}><strong>{h.title}</strong><span>{h.target || h.category}{h.nonNegotiable?" · NON-NEGOTIABLE":""}</span></button><button className="remove-button" onClick={() => removeHabit(h)} aria-label={"Archive "+h.title}><Trash2 size={16}/></button></article>;})}
+      {!activeHabits.some(h => activeTab === "Training" ? ["Training","Running","Walking","Movement"].includes(h.category) : activeTab === "Reading" ? h.category === "Reading" : ["Mindset","Morning","Evening"].includes(h.category)) && <div className="empty"><Target size={30}/><h3>No {activeTab.toLowerCase()} habits yet</h3><p>Add a commitment for this area to track it here.</p><button className="primary" onClick={() => {setShowAdd(true);setNewCategory(activeTab === "Training" ? "Training" : activeTab === "Reading" ? "Reading" : "Mindset");setActiveTab("Today");}}>Add a habit</button></div>}
+      </div>
+      <section className="principle-card"><div className="quote-mark">“</div><p>{activeTab === "Training" ? "The body is strengthened by effort; the mind by deliberate practice." : activeTab === "Reading" ? "Do not merely say you have read books. Show that through the principles you live by." : "Ask yourself: what did I do well, and what can I do better tomorrow?"}</p><span>STOIC PRACTICE</span></section>
+    </section>}
+    <nav className="bottom-nav">{[["Today",Target],["Training",Dumbbell],["Reading",BookOpen],["Reflect",Moon]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""}`} onClick={() => {setActiveTab(label);setError("");setNotice("");}}><Icon size={19}/><span>{label}</span></button>)}</nav>
     <p className="footnote">XP is awarded once per commitment each day. Unticking a commitment does not remove earned XP. Your progress is saved to your private Firebase account.</p>
   </main>;
 }
