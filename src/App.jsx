@@ -140,7 +140,12 @@ export default function App() {
     return {days, monthLabel:now.toLocaleDateString("en-GB",{month:"long",year:"numeric"})};
   }, [dailyLogs]);  const streak = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
-    const scheduledNonNegotiables = date => activeHabits.filter(h => h.nonNegotiable && isDueOn(h, date)).map(h => h.id);
+    const scheduledNonNegotiables = date => habits
+      .filter(h => h.active !== false && h.nonNegotiable)
+      .filter(h => {
+        const schedule = Array.isArray(h.daysOfWeek) && h.daysOfWeek.length ? h.daysOfWeek : [0,1,2,3,4,5,6];
+        return schedule.includes(date.getDay());
+      }).map(h => h.id);
     const dayStatus = date => {
       const key = dayKey(date), log = logs.get(key);
       const dueIds = Array.isArray(log?.dueNonNegotiableIds) ? log.dueNonNegotiableIds : scheduledNonNegotiables(date);
@@ -161,7 +166,7 @@ export default function App() {
       cursor.setDate(cursor.getDate()-1);
     }
     return count;
-  }, [dailyLogs, activeHabits]);
+  }, [dailyLogs, habits]);
   const levelInfo = useMemo(() => {
     const xp = Math.max(0, Number(progression.totalXp) || 0);
     const levels = [{level:1,name:"Initiate",xp:0},{level:2,name:"Disciple",xp:100},{level:3,name:"Practitioner",xp:300},{level:4,name:"Stoic",xp:600},{level:5,name:"Sentinel",xp:1000},{level:6,name:"Guardian",xp:1500},{level:7,name:"Exemplar",xp:2200},{level:8,name:"Virtuoso",xp:3000},{level:9,name:"Philosopher",xp:4000},{level:10,name:"Sage",xp:5200}];
