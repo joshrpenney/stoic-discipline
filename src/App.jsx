@@ -117,6 +117,21 @@ export default function App() {
   const nonNegotiableToday = dueHabits.filter(h => h.nonNegotiable);
   const trainingToday = dueHabits.filter(h => !h.nonNegotiable && ["Training","Running","Walking","Movement"].includes(h.category));
   const otherToday = dueHabits.filter(h => !h.nonNegotiable && !["Training","Running","Walking","Movement"].includes(h.category));
+  const monthlyReview = useMemo(() => {
+    const cutoff = new Date(); cutoff.setHours(12,0,0,0); cutoff.setDate(cutoff.getDate()-29);
+    const cutoffKey = dayKey(cutoff), today = todayKey();
+    const recent = dailyLogs.filter(log => (log.date || log.id) >= cutoffKey && (log.date || log.id) <= today);
+    let dueTotal = 0, doneTotal = 0;
+    const dueByHabit = {}, doneByHabit = {};
+    recent.forEach(log => {
+      const completed = log.completed || {};
+      const dueIds = Array.isArray(log.dueHabitIds) ? log.dueHabitIds : Object.keys(completed);
+      dueTotal += dueIds.length;
+      dueIds.forEach(id => { dueByHabit[id] = (dueByHabit[id] || 0) + 1; if (completed[id] === true) { doneTotal++; doneByHabit[id] = (doneByHabit[id] || 0) + 1; } });
+    });
+    const mostMissed = Object.keys(dueByHabit).map(id => ({id,missed:dueByHabit[id]-(doneByHabit[id]||0)})).sort((a,b)=>b.missed-a.missed)[0];
+    return { recordedDays:recent.length, completion:dueTotal?Math.round(doneTotal/dueTotal*100):0, completed:doneTotal, due:dueTotal, mostMissed:mostMissed ? habits.find(h=>h.id===mostMissed.id)?.title || "An older commitment" : null };
+  }, [dailyLogs, habits]);
   const consistencyDays = useMemo(() => {
     const byDate = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     const days = [];
@@ -492,6 +507,7 @@ export default function App() {
         <div className="profile-social-stats"><button onClick={()=>{setActiveTab("Community");setError("");window.scrollTo({top:0,behavior:"smooth"});}}><strong>{followingRecords.length}</strong><span>Following</span></button><button onClick={()=>{setActiveTab("Community");setError("");window.scrollTo({top:0,behavior:"smooth"});}}><strong>{followerRecords.length}</strong><span>Followers</span></button></div>
         <button className="profile-add-friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Users size={20}/> Add friends</button>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
+        <section className="monthly-review-card"><div className="section-heading"><div><p className="eyebrow">THE LAST 30 DAYS</p><h2>Monthly review</h2></div><span className="achievement-count">{monthlyReview.recordedDays} days recorded</span></div><div className="monthly-review-stats"><div><strong>{monthlyReview.completion}%</strong><span>completion rate</span></div><div><strong>{monthlyReview.completed}</strong><span>promises kept</span></div><div><strong>{monthlyReview.due}</strong><span>commitments due</span></div></div><p className="monthly-review-note">{monthlyReview.recordedDays===0?"Your review will take shape as you record your days.":monthlyReview.completion>=85?"Strong consistency. Keep your standards steady and sustainable.":monthlyReview.completion>=60?"You're building a foundation. Choose one small adjustment for the coming month.":"Use this as information, not a verdict. Reduce friction and recommit to the basics."}</p>{monthlyReview.mostMissed&&<p className="monthly-review-missed"><span>Most frequently missed</span><strong>{monthlyReview.mostMissed}</strong></p>}</section>
         <section className="consistency-card"><div className="section-heading"><div><p className="eyebrow">SHOWING UP</p><h2>Consistency calendar</h2></div><span className="achievement-count">Last 35 days</span></div><p className="muted">Each square shows the completion rate recorded for that day. Empty squares mean no record was saved.</p><div className="consistency-grid">{consistencyDays.map(day=><div key={day.key} title={`${day.weekday} ${day.label}: ${day.hasLog?day.rate+"% complete":"No record"}`} className={`consistency-day ${!day.hasLog?"no-record":day.rate===100?"full":day.rate>=50?"medium":"low"} ${day.isToday?"today":""}`}><span>{day.key.slice(-2)}</span></div>)}</div><div className="consistency-legend"><span><i className="no-record"/> No record</span><span><i className="low"/> Started</span><span><i className="medium"/> Halfway</span><span><i className="full"/> Complete</span></div></section>
     <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         
