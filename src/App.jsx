@@ -152,12 +152,14 @@ export default function App() {
     return {days, monthLabel:now.toLocaleDateString("en-GB",{month:"long",year:"numeric"})};
   }, [dailyLogs]);  const streak = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
-    let count = 0; const d = new Date();
-    while (true) {
-      const log = logs.get(dayKey(d));
-      if (!log || !Object.values(log.completed || {}).some(Boolean)) break;
-      count++; d.setDate(d.getDate()-1);
-    }
+    const hasShownUp = date => {
+      const log = logs.get(dayKey(date));
+      return !!log && Object.values(log.completed || {}).some(Boolean);
+    };
+    const cursor = new Date(); cursor.setHours(12,0,0,0);
+    if (!hasShownUp(cursor)) cursor.setDate(cursor.getDate()-1);
+    let count = 0;
+    while (hasShownUp(cursor)) { count++; cursor.setDate(cursor.getDate()-1); }
     return count;
   }, [dailyLogs]);
   const levelInfo = useMemo(() => {
