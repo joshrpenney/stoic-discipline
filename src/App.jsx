@@ -48,6 +48,8 @@ export default function App() {
   const [books, setBooks] = useState([]);
   const [bookInput, setBookInput] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
+  const [bookStarted, setBookStarted] = useState(todayKey());
+  const [bookFinished, setBookFinished] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -141,9 +143,9 @@ export default function App() {
     if (!user || !db || !bookInput.trim()) return;
     try {
       await addDoc(collection(db, "users", user.uid, "booksRead"), {
-        title: bookInput.trim(), author: bookAuthor.trim(), createdAt: serverTimestamp()
+        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", createdAt: serverTimestamp()
       });
-      setBookInput(""); setBookAuthor(""); setNotice("Book added to your read list.");
+      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setNotice("Book added to your reading library.");
     } catch (e) { setError(e.message); }
   }
 
@@ -248,11 +250,16 @@ export default function App() {
     </>}
     {activeTab !== "Today" && <section className="tab-page">
       {activeTab === "Reading" && <>
-        <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Books I've read</h1>
-        <p className="muted">Keep a personal record of the books you finish. Build a library of ideas worth returning to.</p>
-        <form className="book-form" onSubmit={addBook}><label>Book title<input required maxLength="140" value={bookInput} onChange={e=>setBookInput(e.target.value)} placeholder="Title of the book"/></label><label>Author (optional)<input maxLength="100" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label><button className="primary">Add to read list <Plus size={16}/></button></form>
-        <div className="reading-list-heading"><div><p className="eyebrow">YOUR LIBRARY</p><h2>{books.length} {books.length===1?"book":"books"} read</h2></div></div>
-        <div className="book-list">{books.map((book,i)=><article className="book-item" key={book.id}><div className="book-cover"><BookOpen size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><small>Added {book.createdAt?.seconds ? new Date(book.createdAt.seconds*1000).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "just now"}</small></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.length&&<div className="empty"><BookOpen size={30}/><h3>Your reading journey starts here</h3><p>Add books as you finish them and build your own library.</p></div>}</div>
+        <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
+        <p className="muted">Keep a tidy record of every book: who wrote it, when you started, and when you finished.</p>
+        <form className="book-form" onSubmit={addBook}>
+          <label>Book title<input required maxLength="140" value={bookInput} onChange={e=>setBookInput(e.target.value)} placeholder="Title of the book"/></label>
+          <label>Author<input maxLength="100" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label>
+          <div className="book-date-grid"><label>Started reading<input type="date" required value={bookStarted} onChange={e=>setBookStarted(e.target.value)}/></label><label>Finished reading <span className="optional-label">(optional)</span><input type="date" min={bookStarted || undefined} value={bookFinished} onChange={e=>setBookFinished(e.target.value)}/></label></div>
+          <button className="primary">Add book <Plus size={16}/></button>
+        </form>
+        <div className="reading-list-heading"><div><p className="eyebrow">YOUR LIBRARY</p><h2>{books.length} {books.length===1?"book":"books"}</h2></div><span className="book-count-finished">{books.filter(b=>b.finishedAt).length} finished</span></div>
+        <div className="book-list">{books.map((book,i)=><article className="book-item" key={book.id}><div className="book-cover"><BookOpen size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>FINISHED</small>{book.finishedAt ? new Date(book.finishedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "In progress"}</span></div></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.length&&<div className="empty"><BookOpen size={30}/><h3>Your reading journey starts here</h3><p>Add a book with its start date, then add the finish date when you complete it.</p></div>}</div>
       </>}
       {activeTab === "Non-negotiables" && <>
         <p className="eyebrow">YOUR PERSONAL STANDARD</p><h1 className="tab-title">Non-negotiables</h1><p className="muted">The promises you choose to keep, even when motivation is low. Complete each one to earn XP.</p>
