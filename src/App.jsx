@@ -136,7 +136,26 @@ export default function App() {
     } catch(e) { setError(e.message); }
   }
 
-  async function addBook(e) {\n    e.preventDefault(); if (!user || !db || !bookInput.trim()) return;\n    try { await addDoc(collection(db, "users", user.uid, "booksRead"), { title: bookInput.trim(), author: bookAuthor.trim(), createdAt: serverTimestamp() }); setBookInput(""); setBookAuthor(""); setNotice("Book added to your read list."); } catch (e) { setError(e.message); }\n  }\n\n  async function removeBook(book) {\n    if (!user || !db) return;\n    try { await deleteDoc(doc(db, "users", user.uid, "booksRead", book.id)); setNotice("Book removed from your list."); } catch (e) { setError(e.message); }\n  }\n\n  async function addHabit(e) {
+  async function addBook(e) {
+    e.preventDefault();
+    if (!user || !db || !bookInput.trim()) return;
+    try {
+      await addDoc(collection(db, "users", user.uid, "booksRead"), {
+        title: bookInput.trim(), author: bookAuthor.trim(), createdAt: serverTimestamp()
+      });
+      setBookInput(""); setBookAuthor(""); setNotice("Book added to your read list.");
+    } catch (e) { setError(e.message); }
+  }
+
+  async function removeBook(book) {
+    if (!user || !db) return;
+    try {
+      await deleteDoc(doc(db, "users", user.uid, "booksRead", book.id));
+      setNotice("Book removed from your list.");
+    } catch (e) { setError(e.message); }
+  }
+
+  async function addHabit(e) {
     e.preventDefault();
     if (!newTitle.trim() || !user || !db) return;
     try {
