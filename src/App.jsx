@@ -17,6 +17,12 @@ const starterHabits = [
   { title: "Evening reflection", category: "Mindset", target: "Review the day", nonNegotiable: true }
 ];
 const WEEKDAYS = [{label:"Mon",value:1},{label:"Tue",value:2},{label:"Wed",value:3},{label:"Thu",value:4},{label:"Fri",value:5},{label:"Sat",value:6},{label:"Sun",value:0}];
+const formatReadingTime = (pages, wordsPerPage, wpm) => {
+  const minutes = Math.max(0, Math.ceil((Math.max(0, Number(pages)||0) * (Number(wordsPerPage)||300)) / Math.max(1, Number(wpm)||163)));
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60), remaining = minutes % 60;
+  return remaining ? `${hours} hr ${remaining} min` : `${hours} hr`;
+};
 const dayKey = (date) => date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
 const todayKey = () => {
   const d = new Date();
@@ -53,6 +59,14 @@ export default function App() {
   const [bookStarted, setBookStarted] = useState(todayKey());
   const [bookFinished, setBookFinished] = useState("");
   const [bookPage, setBookPage] = useState("1");
+  const [bookPageCount, setBookPageCount] = useState("");
+  const [bookCover, setBookCover] = useState("");
+  const [bookSearchResults, setBookSearchResults] = useState([]);
+  const [bookSearchBusy, setBookSearchBusy] = useState(false);
+  const [bookSearchError, setBookSearchError] = useState("");
+  const [bookSearchOpen, setBookSearchOpen] = useState(false);
+  const [readingWpm, setReadingWpm] = useState(() => Number(localStorage.getItem("stoic-reading-wpm")) || 163);
+  const [wordsPerPage, setWordsPerPage] = useState(() => Number(localStorage.getItem("stoic-words-per-page")) || 300);
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -77,6 +91,29 @@ export default function App() {
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
+  useEffect(() => { localStorage.setItem("stoic-reading-wpm", String(readingWpm)); }, [readingWpm]);
+  useEffect(() => { localStorage.setItem("stoic-words-per-page", String(wordsPerPage)); }, [wordsPerPage]);
+  useEffect(() => {
+    const term = bookInput.trim();
+    if (term.length < 3 || !bookSearchOpen) { setBookSearchResults([]); setBookSearchBusy(false); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setBookSearchBusy(true); setBookSearchError("");
+      try {
+        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(term)}&maxResults=8&printType=books`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Book search is temporarily unavailable.");
+        const data = await response.json();
+        setBookSearchResults((data.items || []).map(item => {
+          const v = item.volumeInfo || {};
+          return { id:item.id, title:v.title || "", author:Array.isArray(v.authors)?v.authors.join(", "):"", pageCount:Number(v.pageCount)||0, cover:v.imageLinks?.thumbnail?.replace("http://","https://") || "", published:v.publishedDate || "", publisher:v.publisher || "" };
+        }).filter(item => item.title));
+      } catch (err) {
+        if (err.name !== "AbortError") { setBookSearchResults([]); setBookSearchError("Couldn't search books just now. You can still enter the details manually."); }
+      } finally { if (!controller.signal.aborted) setBookSearchBusy(false); }
+    }, 350);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [bookInput, bookSearchOpen]);
+
 
   useEffect(() => {
     if (!auth) { setAuthReady(true); return; }
@@ -311,10 +348,11 @@ export default function App() {
     e.preventDefault();
     if (!user || !db || !bookInput.trim()) return;
     try {
+      const pageCount = Math.max(0, Number(bookPageCount) || 0);
       await addDoc(collection(db, "users", user.uid, "booksRead"), {
-        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", currentPage: Math.max(1, Number(bookPage) || 1), createdAt: serverTimestamp()
+        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", currentPage: Math.max(1, Number(bookPage) || 1), pageCount, cover: bookCover || "", createdAt: serverTimestamp()
       });
-      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setNotice(bookFinished ? "Book added to completed books." : "Book added to Currently reading.");
+      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setBookPageCount(""); setBookCover(""); setBookSearchResults([]); setBookSearchOpen(false); setNotice(bookFinished ? "Book added to completed books." : "Book added to Currently reading.");
     } catch (e) { setError(e.message); }
   }
 
@@ -461,15 +499,32 @@ export default function App() {
         <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
         <p className="muted">Track your progress as you read, then move finished books into your completed library.</p>
         <form className="book-form" onSubmit={addBook}>
-          <label>Book title<input required maxLength="140" value={bookInput} onChange={e=>setBookInput(e.target.value)} placeholder="Title of the book"/></label>
-          <label>Author<input maxLength="100" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label>
+          <div className="book-search-wrap"><label>Find a book<input required maxLength="140" value={bookInput} onFocus={()=>setBookSearchOpen(true)} onChange={e=>{setBookInput(e.target.value);setBookSearchOpen(true);setBookCover("");}} placeholder="Start typing a title or author…"/></label>
+            {bookSearchOpen && bookInput.trim().length >= 3 && <div className="book-search-results">
+              {bookSearchBusy && <p className="book-search-message">Searching books…</p>}
+              {!bookSearchBusy && bookSearchResults.map(result=><button type="button" className="book-search-result" key={result.id} onClick={()=>{setBookInput(result.title);setBookAuthor(result.author);setBookPageCount(result.pageCount?String(result.pageCount):"");setBookCover(result.cover);setBookSearchResults([]);setBookSearchOpen(false);setBookPage("1");}}>
+                {result.cover ? <img src={result.cover} alt="" /> : <span className="book-search-placeholder"><BookOpen size={18}/></span>}
+                <span className="book-search-result-copy"><strong>{result.title}</strong><small>{result.author || "Author unknown"}{result.published ? " · "+result.published.slice(0,4) : ""}</small>{result.pageCount>0&&<small>{result.pageCount} pages</small>}</span>
+              </button>)}
+              {!bookSearchBusy && !bookSearchResults.length && !bookSearchError && <p className="book-search-message">No matches found. You can enter the details manually.</p>}
+              {bookSearchError && <p className="book-search-message">{bookSearchError}</p>}
+              <button type="button" className="book-search-close" onClick={()=>setBookSearchOpen(false)}>Close results</button>
+            </div>}
+            <small className="book-form-hint">Search the book database, or type the details yourself.</small>
+          </div>
+          <label>Author<input maxLength="160" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label>
           <div className="book-date-grid"><label>Started reading<input type="date" required value={bookStarted} onChange={e=>setBookStarted(e.target.value)}/></label><label>Finished reading <span className="optional-label">(optional)</span><input type="date" min={bookStarted || undefined} value={bookFinished} onChange={e=>setBookFinished(e.target.value)}/></label></div>
-          {!bookFinished && <label>Current page<input type="number" min="1" max="100000" required value={bookPage} onChange={e=>setBookPage(e.target.value)}/></label>}
+          <div className="book-date-grid"><label>Total pages<input type="number" min="1" max="100000" value={bookPageCount} onChange={e=>setBookPageCount(e.target.value)} placeholder="From book details"/></label>{!bookFinished && <label>Current page<input type="number" min="1" max="100000" required value={bookPage} onChange={e=>setBookPage(e.target.value)}/></label>}</div>
+          {bookPageCount && !bookFinished && <div className="reading-estimate-preview"><span><BookOpen size={16}/> Estimated reading time left</span><strong>{formatReadingTime(Math.max(0, Number(bookPageCount)-Math.max(1,Number(bookPage)||1)+1), wordsPerPage, readingWpm)}</strong><small>Based on {readingWpm} words/min and about {wordsPerPage} words per page.</small></div>}
           <button className="primary">Add book <Plus size={16}/></button>
         </form>
+        <section className="reading-calculator">
+          <div><p className="eyebrow">YOUR READING PACE</p><h2>Reading time calculator</h2><p>Estimates use page count × average words per page, so results vary by book layout.</p></div>
+          <div className="reading-calculator-fields"><label>Words per minute<input type="number" min="20" max="2000" value={readingWpm} onChange={e=>setReadingWpm(Math.max(20,Math.min(2000,Number(e.target.value)||20)))}/></label><label>Words per page<input type="number" min="50" max="1000" value={wordsPerPage} onChange={e=>setWordsPerPage(Math.max(50,Math.min(1000,Number(e.target.value)||50)))}/></label></div>
+        </section>
         <section className="book-section">
           <div className="reading-list-heading"><div><p className="eyebrow">IN PROGRESS</p><h2>Currently reading</h2></div><span className="book-count-finished">{books.filter(b=>!b.finishedAt).length} books</span></div>
-          <div className="book-list">{books.filter(b=>!b.finishedAt).map((book,i)=><article className="book-item book-progress-item" key={book.id}><div className="book-cover"><BookOpen size={21}/><span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>CURRENT PAGE</small><label className="page-input-label"><input aria-label={"Current page for "+book.title} type="number" min="1" max="100000" defaultValue={book.currentPage || 1} onBlur={e=>{const n=Math.max(1,Number(e.target.value)||1);if(n!==Number(book.currentPage||1))updateBook(book,{currentPage:n});}}/> <span>page</span></label></span></div><label className="finish-date-label">Finished reading<input aria-label={"Finish date for "+book.title} type="date" min={book.startedAt||undefined} value={book.finishedAt||""} onChange={e=>{if(e.target.value)updateBook(book,{finishedAt:e.target.value});}}/></label></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!b.finishedAt)&&<div className="empty"><BookOpen size={30}/><h3>No books in progress</h3><p>Add a book above and it will appear here until you finish it.</p></div>}</div>
+          <div className="book-list">{books.filter(b=>!b.finishedAt).map((book,i)=><article className="book-item book-progress-item" key={book.id}><div className="book-cover">{book.cover ? <img src={book.cover} alt="" /> : <BookOpen size={21}/>}<span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span>{book.pageCount>0&&<div className="book-time-estimate"><span>{book.pageCount} pages</span><span>~{formatReadingTime(Math.max(0,book.pageCount-Math.max(1,Number(book.currentPage)||1)+1),wordsPerPage,readingWpm)} left</span></div>}<div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>CURRENT PAGE</small><label className="page-input-label"><input aria-label={"Current page for "+book.title} type="number" min="1" max="100000" defaultValue={book.currentPage || 1} onBlur={e=>{const n=Math.max(1,Number(e.target.value)||1);if(n!==Number(book.currentPage||1))updateBook(book,{currentPage:n});}}/> <span>page</span></label></span></div><label className="finish-date-label">Finished reading<input aria-label={"Finish date for "+book.title} type="date" min={book.startedAt||undefined} value={book.finishedAt||""} onChange={e=>{if(e.target.value)updateBook(book,{finishedAt:e.target.value});}}/></label></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!b.finishedAt)&&<div className="empty"><BookOpen size={30}/><h3>No books in progress</h3><p>Add a book above and it will appear here until you finish it.</p></div>}</div>
         </section>
         <section className="book-section completed-book-section">
           <div className="reading-list-heading"><div><p className="eyebrow">A LIBRARY OF FINISHED IDEAS</p><h2>Completed books</h2></div><span className="book-count-finished">{books.filter(b=>!!b.finishedAt).length} finished</span></div>
