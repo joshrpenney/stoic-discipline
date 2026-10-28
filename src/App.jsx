@@ -211,7 +211,16 @@ export default function App() {
     } catch (e) { setError("Could not update your follow. Check that the Firestore rules have been published. " + e.message); }
   }
 
-  useEffect(() => { if (user && activeTab === "Community") refreshCommunity(); }, [user, activeTab]);
+  useEffect(() => { if (user && (activeTab === "Community" || activeTab === "Profile")) refreshCommunity(); }, [user, activeTab]);
+
+  async function shareInvite() {
+    const inviteText = "Join me on Stoic Discipline and let's keep each other accountable. My profile name is " + (accountName.trim() || user?.displayName || "Stoic member") + ".";
+    try {
+      if (navigator.share) await navigator.share({ title: "Join my accountability circle", text: inviteText, url: window.location.href });
+      else if (navigator.clipboard) { await navigator.clipboard.writeText(inviteText + " " + window.location.href); setNotice("Invite message copied. Send it to a friend."); }
+      else setNotice(inviteText + " " + window.location.href);
+    } catch (e) { if (e.name !== "AbortError") setError("Unable to open sharing on this device. Please copy the app link from your browser."); }
+  }
 
   async function handleAuth(e) {
     e.preventDefault(); setError(""); setBusy(true);
@@ -343,7 +352,7 @@ export default function App() {
   return <main className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
-      <div className="topbar-actions"><button className="topbar-quiet-button" title="Community" aria-label="Community" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Users size={16}/></button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
+      <div className="topbar-actions"><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
     </header>
     {activeTab === "Today" && <>
     <section className="welcome">
@@ -436,15 +445,23 @@ export default function App() {
       {activeTab === "Profile" && <>
         <p className="eyebrow">THE WORK YOU'VE PUT IN</p><h1 className="tab-title">{accountName.trim() || user.displayName || "Your profile"}</h1><p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
         <section className="level-card profile-level"><div className="level-top"><div className="level-emblem"><ShieldCheck size={25}/></div><div className="level-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} total XP</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div><div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div><div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising every day"}</span><span>{levelInfo.progress}%</span></div></section>
+        <div className="profile-social-stats"><button onClick={()=>{setActiveTab("Community");setError("");window.scrollTo({top:0,behavior:"smooth"});}}><strong>{followingRecords.length}</strong><span>Following</span></button><button onClick={()=>{setActiveTab("Community");setError("");window.scrollTo({top:0,behavior:"smooth"});}}><strong>{followerRecords.length}</strong><span>Followers</span></button></div>
+        <button className="profile-add-friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Users size={20}/> Add friends</button>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         
       </>}
       {activeTab === "Community" && <>
-        <p className="eyebrow">ACCOUNTABILITY, TOGETHER</p><h1 className="tab-title">Your circle</h1>
-        <p className="muted">Find people by account name, follow their progress, and help each other keep showing up. Your private habits, books and daily notes are never shared.</p>
+        <button className="community-back" onClick={()=>setActiveTab("Profile")}><ArrowLeft size={18}/> Profile</button>
+        <p className="eyebrow">ACCOUNTABILITY, TOGETHER</p><h1 className="tab-title">Find your friends</h1>
+        <p className="muted">Follow people who help you stay consistent. When you follow each other, you can see each other's progress.</p>
+        <div className="community-actions">
+          <button className="community-action-card" onClick={()=>document.getElementById("community-search-input")?.focus()}><span className="community-action-icon"><Search size={25}/></span><span><strong>Search by name</strong><small>Find someone on Stoic Discipline</small></span><ArrowLeft className="community-action-arrow" size={17}/></button>
+          <button className="community-action-card" onClick={shareInvite}><span className="community-action-icon"><UserPlus size={25}/></span><span><strong>Choose from contacts</strong><small>Invite friends using your phone's share menu</small></span><ArrowLeft className="community-action-arrow" size={17}/></button>
+          <button className="community-action-card" onClick={shareInvite}><span className="community-action-icon"><Users size={25}/></span><span><strong>Share follow link</strong><small>Send an invite to join your accountability circle</small></span><ArrowLeft className="community-action-arrow" size={17}/></button>
+        </div>
         <section className="community-search-card">
-          <form className="community-search-form" onSubmit={searchCommunity}><label>Find a person<input value={communitySearch} onChange={e=>setCommunitySearch(e.target.value)} placeholder="Search by account name" maxLength="60"/></label><button className="primary" disabled={communityBusy}><Search size={16}/> Search</button></form>
+          <form className="community-search-form" onSubmit={searchCommunity}><label>Find a person<input id="community-search-input" value={communitySearch} onChange={e=>setCommunitySearch(e.target.value)} placeholder="Search by account name" maxLength="60"/></label><button className="primary" disabled={communityBusy}><Search size={16}/> Search</button></form>
           <p className="community-hint">Search matches account names beginning with what you type. Ask friends to use a recognisable name in their profile settings.</p>
           {communityResults.length>0 && <div className="community-list">{communityResults.map(profile=><article className="community-person" key={profile.uid}><div className="community-avatar">{(profile.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{profile.displayName||"Stoic member"}</strong><span>Stoic Discipline member</span></div><button className={followingRecords.some(r=>r.followedUid===profile.uid)?"secondary community-follow-button":"primary community-follow-button"} onClick={()=>toggleFollow(profile)}>{followingRecords.some(r=>r.followedUid===profile.uid)?<><UserCheck size={15}/> Following</>:<><UserPlus size={15}/> Follow</>}</button></article>)}</div>}
         </section>
