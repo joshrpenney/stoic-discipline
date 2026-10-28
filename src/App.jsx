@@ -16,9 +16,11 @@ const starterHabits = [
   { title: "Move for at least 20 minutes", category: "Movement", target: "20 minutes", nonNegotiable: false },
   { title: "Evening reflection", category: "Mindset", target: "Review the day", nonNegotiable: true }
 ];
+const WEEKDAYS = [{label:"Mon",value:1},{label:"Tue",value:2},{label:"Wed",value:3},{label:"Thu",value:4},{label:"Fri",value:5},{label:"Sat",value:6},{label:"Sun",value:0}];
+const dayKey = (date) => date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");
 const todayKey = () => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return dayKey(d);
 };
 const prettyDate = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const categoryIcon = (category) => {
@@ -56,11 +58,13 @@ export default function App() {
   const [newCategory, setNewCategory] = useState("Mindset");
   const [newTarget, setNewTarget] = useState("");
   const [newNonNegotiable, setNewNonNegotiable] = useState(true);
+  const [newSchedule, setNewSchedule] = useState([0,1,2,3,4,5,6]);
   const [editingHabitId, setEditingHabitId] = useState(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [editingCategory, setEditingCategory] = useState("Mindset");
   const [editingTarget, setEditingTarget] = useState("");
   const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
+  const [editingSchedule, setEditingSchedule] = useState([0,1,2,3,4,5,6]);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -92,13 +96,19 @@ export default function App() {
   }, [user]);
 
   const activeHabits = habits.filter((h) => h.active !== false);
-  const doneCount = activeHabits.filter((h) => checks[h.id]).length;
-  const percent = activeHabits.length ? Math.round(doneCount / activeHabits.length * 100) : 0;
+  const isDueOn = (habit, date) => { const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
+  const dueHabits = activeHabits.filter(h => isDueOn(h, new Date()));
+  const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
+  const doneCount = dueHabits.filter((h) => checks[h.id]).length;
+  const percent = dueHabits.length ? Math.round(doneCount / dueHabits.length * 100) : 100;
   const streak = useMemo(() => {
-    const days = new Set(dailyLogs.filter(log => Object.values(log.completed || {}).some(Boolean)).map(log => log.date || log.id));
+    const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     let count = 0; const d = new Date();
-    while (true) { const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; if (!days.has(key)) break; count++; d.setDate(d.getDate()-1); }
-    return count;
+    while (true) { const key = dayKey(d); const log = logs.get(key); if (!log) break;
+      const dueIds = Array.isArray(log.dueHabitIds) ? log.dueHabitIds : null; const completed = log.completed || {};
+      const success = dueIds ? (dueIds.length === 0 || dueIds.every(id => completed[id] === true)) : Object.values(completed).some(Boolean);
+      if (!success) break; count++; d.setDate(d.getDate()-1);
+    } return count;
   }, [dailyLogs]);
   const levelInfo = useMemo(() => {
     const xp = Math.max(0, Number(progression.totalXp) || 0);
@@ -129,6 +139,7 @@ export default function App() {
     if (!user || !db) return;
     setError(""); setNotice("");
     const logRef=doc(db,"users",user.uid,"dailyLogs",todayKey());
+    const dueHabitIds=dueHabits.map(h=>h.id);
     const progressionRef=doc(db,"users",user.uid,"progression","summary");
     try { let earned=0, completing=false;
       await runTransaction(db, async (transaction) => {
@@ -137,7 +148,7 @@ export default function App() {
         completing=!completed[habit.id]; completed[habit.id]=completing;
         const p=pSnap.exists()?pSnap.data():{totalXp:0,totalActions:0}; let totalXp=Number(p.totalXp)||0; let totalActions=Number(p.totalActions)||0;
         if(completing&&!xpAwarded[habit.id]) { earned=10; xpAwarded[habit.id]=true; totalXp+=earned; totalActions++; }
-        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds,updatedAt:serverTimestamp()},{merge:true});
         transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
       });
       setNotice(completing?(earned?`Promise kept. +${earned} XP earned.`:"Promise kept. XP for this commitment was already earned today."):"Record updated. Earned XP is kept.");
@@ -177,9 +188,9 @@ export default function App() {
     try {
       await addDoc(collection(db, "users", user.uid, "habits"), {
         title: newTitle.trim(), category: newCategory, target: newTarget.trim(),
-        nonNegotiable: newNonNegotiable, active: true, createdAt: serverTimestamp()
+        nonNegotiable: newNonNegotiable, daysOfWeek: newSchedule, active: true, createdAt: serverTimestamp()
       });
-      setNewTitle(""); setNewTarget(""); setNewCategory("Mindset"); setNewNonNegotiable(true); setShowAdd(false);
+      setNewTitle(""); setNewTarget(""); setNewCategory("Mindset"); setNewNonNegotiable(true); setNewSchedule([0,1,2,3,4,5,6]); setShowAdd(false);
       setNotice("Commitment added.");
     } catch (e) { setError(e.message); }
   }
@@ -187,7 +198,7 @@ export default function App() {
   function beginEditHabit(habit) {
     setEditingHabitId(habit.id); setEditingTitle(habit.title || "");
     setEditingCategory(habit.category || "Mindset"); setEditingTarget(habit.target || "");
-    setEditingIsNonNegotiable(!!habit.nonNegotiable);
+    setEditingIsNonNegotiable(!!habit.nonNegotiable); setEditingSchedule(Array.isArray(habit.daysOfWeek)&&habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]);
   }
 
   async function saveHabitEdit(e) {
@@ -196,7 +207,7 @@ export default function App() {
     try {
       await updateDoc(doc(db, "users", user.uid, "habits", editingHabitId), {
         title: editingTitle.trim(), category: editingCategory, target: editingTarget.trim(),
-        nonNegotiable: editingIsNonNegotiable, updatedAt: serverTimestamp()
+        nonNegotiable: editingIsNonNegotiable, daysOfWeek: editingSchedule, updatedAt: serverTimestamp()
       });
       setEditingHabitId(null); setNotice("Commitment updated.");
     } catch (e) { setError(e.message); }
@@ -246,9 +257,9 @@ export default function App() {
       <p className="muted">Welcome back{user.displayName ? `, ${user.displayName}` : ""}. Focus on the actions within your control.</p>
     </section>
     <section className="progress-card">
-      <div className="progress-heading"><div><p className="eyebrow">TODAY'S DISCIPLINE</p><h2>{doneCount} <span>/ {activeHabits.length}</span></h2></div><div className="streak"><Flame size={19}/><div><strong>{streak} day</strong><small>current streak*</small></div></div></div>
+      <div className="progress-heading"><div><p className="eyebrow">TODAY'S DISCIPLINE</p><h2>{doneCount} <span>/ {dueHabits.length}</span></h2></div><div className="streak"><Flame size={19}/><div><strong>{streak} day</strong><small>current streak*</small></div></div></div>
       <div className="progress-track"><div style={{width:`${percent}%`}}/></div>
-      <div className="progress-foot"><span>{percent}% complete</span><span>{percent===100 && activeHabits.length ? "Promises kept for today." : "Small actions. Repeated daily."}</span></div>
+      <div className="progress-foot"><span>{percent}% complete</span><span>{dueHabits.length===0 ? "Rest day — no commitments scheduled." : percent===100 ? "Promises kept for today." : "Small actions. Repeated daily."}</span></div>
     </section>
     <section className="level-card">
       <div className="level-top"><div className="level-emblem"><ShieldCheck size={24}/></div><div className="level-copy"><p className="eyebrow">YOUR PATH</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} XP earned</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div>
@@ -261,18 +272,19 @@ export default function App() {
       <label>Commitment<input autoFocus required maxLength="80" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Walk for 20 minutes"/></label>
       <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
       <label className="check-label"><input type="checkbox" checked={newNonNegotiable} onChange={e=>setNewNonNegotiable(e.target.checked)}/> Mark as a non-negotiable</label>
+      <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>Choose one or more days.</small></div>
       <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save commitment</button></div>
     </form>}
     {error && <div className="error-banner">{error}</div>}
     {notice && <p className="notice">{notice}</p>}
     <div className="habit-list">
-      {activeHabits.map(h => {const Icon=categoryIcon(h.category); return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}>
+      {dueHabits.map(h => {const Icon=categoryIcon(h.category); return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}>
         <button className="habit-check" aria-label={checks[h.id]?"Mark incomplete":"Mark complete"} onClick={()=>toggleHabit(h)}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button>
         <div className="habit-icon"><Icon size={19}/></div>
         <button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target || h.category}{h.nonNegotiable ? " · NON-NEGOTIABLE" : ""}</span></button>
         <button className="remove-button" aria-label={`Archive ${h.title}`} onClick={()=>removeHabit(h)}><Trash2 size={16}/></button>
       </article>;})}
-      {!activeHabits.length && <div className="empty"><Target size={30}/><h3>Choose your commitments</h3><p>Add a few small actions you can realistically repeat.</p></div>}
+      {!dueHabits.length && <div className="empty"><Target size={30}/><h3>A clear day by design</h3><p>No commitments are scheduled for today. Enjoy the rest day or adjust your schedule in Settings.</p></div>}
     </div>
     <section className="achievements-section">
       <div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div>
@@ -304,8 +316,8 @@ export default function App() {
         <p className="eyebrow">YOUR PERSONAL STANDARD</p><h1 className="tab-title">Non-negotiables</h1>
         <p className="muted">Your baseline promises. Keep them small enough to repeat, important enough to matter.</p>
         <div className="nonneg-overview">
-          <div className="nonneg-overview-top"><div><span className="eyebrow">TODAY'S STANDARD</span><h2>{habits.filter(h=>h.active!==false&&h.nonNegotiable).filter(h=>checks[h.id]).length}<span> / {habits.filter(h=>h.active!==false&&h.nonNegotiable).length}</span></h2><p>commitments kept</p></div><div className="nonneg-ring" style={{"--completion":`${habits.filter(h=>h.active!==false&&h.nonNegotiable).length ? habits.filter(h=>h.active!==false&&h.nonNegotiable).filter(h=>checks[h.id]).length/habits.filter(h=>h.active!==false&&h.nonNegotiable).length*100 : 0}%`}}><strong>{habits.filter(h=>h.active!==false&&h.nonNegotiable).length ? Math.round(habits.filter(h=>h.active!==false&&h.nonNegotiable).filter(h=>checks[h.id]).length/habits.filter(h=>h.active!==false&&h.nonNegotiable).length*100) : 0}%</strong></div></div>
-          <div className="nonneg-progress"><div style={{width:`${habits.filter(h=>h.active!==false&&h.nonNegotiable).length ? habits.filter(h=>h.active!==false&&h.nonNegotiable).filter(h=>checks[h.id]).length/habits.filter(h=>h.active!==false&&h.nonNegotiable).length*100 : 0}%`}}/></div>
+          <div className="nonneg-overview-top"><div><span className="eyebrow">TODAY'S STANDARD</span><h2>{dueNonNegotiables.filter(h=>checks[h.id]).length}<span> / {dueNonNegotiables.length}</span></h2><p>commitments due today kept</p></div><div className="nonneg-ring" style={{"--completion":`${dueNonNegotiables.length ? dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100 : 0}%`}}><strong>{dueNonNegotiables.length ? Math.round(dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100) : 0}%</strong></div></div>
+          <div className="nonneg-progress"><div style={{width:`${dueNonNegotiables.length ? dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100 : 0}%`}}/></div>
           <p className="nonneg-quote">“First say to yourself what you would be; then do what you have to do.”</p>
         </div>
         <div className="nonneg-heading"><div><p className="eyebrow">THE PROMISES YOU KEEP</p><h2>Your commitments</h2></div><button className="add-button" onClick={()=>{setNewNonNegotiable(true);setNewCategory("Mindset");setShowAdd(v=>!v);}}><Plus size={16}/><span>{showAdd?"Close":"Add promise"}</span></button></div>
@@ -313,9 +325,10 @@ export default function App() {
           <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
           <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
           <label className="check-label"><input type="checkbox" checked={newNonNegotiable} onChange={e=>setNewNonNegotiable(e.target.checked)}/> Mark as a non-negotiable</label>
+      <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>Choose one or more days.</small></div>
           <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save commitment</button></div>
         </form>}
-        <div className="habit-list nonneg-habit-list">{activeHabits.filter(h=>h.nonNegotiable).map((h,i)=>{const Icon=categoryIcon(h.category);return <article className={`habit nonneg-habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category}</span></button><span className="promise-number">{String(i+1).padStart(2,"0")}</span></article>})}
+        <div className="habit-list nonneg-habit-list">{dueNonNegotiables.map((h,i)=>{const Icon=categoryIcon(h.category);return <article className={`habit nonneg-habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category}</span></button><span className="promise-number">{String(i+1).padStart(2,"0")}</span></article>})}
           {!activeHabits.some(h=>h.nonNegotiable)&&<div className="empty"><ShieldCheck size={30}/><h3>Set your standard</h3><p>Choose a few promises you can keep consistently. Start small and build from there.</p><button className="primary" onClick={()=>{setNewNonNegotiable(true);setShowAdd(true);}}>Create your first promise</button></div>}
         </div>
         <div className="nonneg-reminder"><ShieldCheck size={20}/><div><strong>Consistency over intensity</strong><p>Missing a day is information, not a verdict. Return to your commitments at the next opportunity.</p></div></div>
@@ -341,6 +354,7 @@ export default function App() {
           <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
           <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
           <label className="check-label"><input type="checkbox" checked={newNonNegotiable} onChange={e=>setNewNonNegotiable(e.target.checked)}/> Mark as a non-negotiable</label>
+      <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>Choose one or more days.</small></div>
           <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save commitment</button></div>
         </form>}
         <div className="settings-habit-list">{activeHabits.map(h=>{const Icon=categoryIcon(h.category);return <article className="settings-habit" key={h.id}>
@@ -348,6 +362,7 @@ export default function App() {
             <label>Commitment name<input required maxLength="100" value={editingTitle} onChange={e=>setEditingTitle(e.target.value)}/></label>
             <div className="form-row"><label>Category<select value={editingCategory} onChange={e=>setEditingCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target<input value={editingTarget} onChange={e=>setEditingTarget(e.target.value)} placeholder="Optional target"/></label></div>
             <label className="check-label"><input type="checkbox" checked={editingIsNonNegotiable} onChange={e=>setEditingIsNonNegotiable(e.target.checked)}/> Non-negotiable commitment</label>
+            <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(editingSchedule.includes(day.value)?"selected":"")} onClick={()=>setEditingSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>Choose one or more days.</small></div>
             <div className="form-actions"><button type="button" className="secondary" onClick={()=>setEditingHabitId(null)}>Cancel</button><button className="primary">Save changes</button></div>
           </form> : <><div className="settings-habit-main"><div className="habit-icon"><Icon size={18}/></div><div className="settings-habit-copy"><strong>{h.title}</strong><span>{h.target||h.category}</span><small>{h.nonNegotiable?"NON-NEGOTIABLE":"GENERAL HABIT"}</small></div><button className="quiet-icon-button" aria-label={"Edit "+h.title} onClick={()=>beginEditHabit(h)}><Pencil size={15}/></button><button className="quiet-icon-button danger" aria-label={"Remove "+h.title} onClick={()=>removeHabit(h)}><Trash2 size={15}/></button></div></>}
         </article>})}
