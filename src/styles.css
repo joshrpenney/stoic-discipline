@@ -20,3 +20,11 @@
 .bottom-nav .nav-item.nav-today .nav-icon-wrap{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,#e5ca8b,#b08c4c);box-shadow:0 3px 10px #0004;border:2px solid #24221d;color:#201d17}
 .bottom-nav .nav-item.nav-today span:last-child{color:var(--gold-bright);font-size:10px}
 @media(max-width:360px){.bottom-nav .nav-item{font-size:8px}.bottom-nav .nav-icon-wrap{width:34px;height:34px}.bottom-nav .nav-item.nav-today .nav-icon-wrap{width:40px;height:40px}}
+
+.book-form label{display:grid;gap:7px;color:#c9c1b1;font-size:11px;letter-spacing:.25px}
+.book-form input{width:100%;min-width:0;background:#171715;color:#eee8db;border:1px solid #454035;border-radius:7px;padding:12px;font:inherit;font-size:13px;color-scheme:dark}
+.book-date-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:0}
+.book-date-grid label{min-width:0}.optional-label{color:#777368;font-size:9px;letter-spacing:0}
+.reading-list-heading{display:flex;align-items:end;justify-content:space-between;gap:8px}.book-count-finished{font-size:10px;color:var(--gold-bright);padding-bottom:3px}
+.book-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:9px}.book-dates>span{font-size:10px;color:#c0b7a5;line-height:1.4}.book-dates small{display:block;font-size:8px;letter-spacing:1px;color:#93886f;margin-bottom:3px}
+@media(max-width:360px){.book-date-grid{grid-template-columns:1fr}.book-dates{gap:6px}.book-dates>span{font-size:9px}}
