@@ -134,20 +134,25 @@ export default function App() {
   }, [dailyLogs, habits]);
   const consistencyDays = useMemo(() => {
     const byDate = new Map(dailyLogs.map(log => [log.date || log.id, log]));
+    const now = new Date();
+    const year = now.getFullYear(), month = now.getMonth();
+    const firstDay = new Date(year, month, 1, 12);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const mondayOffset = (firstDay.getDay() + 6) % 7;
     const days = [];
-    for (let offset = 34; offset >= 0; offset--) {
-      const date = new Date(); date.setHours(12,0,0,0); date.setDate(date.getDate()-offset);
+    for (let blank = 0; blank < mondayOffset; blank++) days.push({key:"blank-"+blank, blank:true});
+    for (let number = 1; number <= daysInMonth; number++) {
+      const date = new Date(year, month, number, 12);
       const key = dayKey(date), log = byDate.get(key);
       const completed = log?.completed || {};
       const hasDueSnapshot = Array.isArray(log?.dueHabitIds);
       const due = hasDueSnapshot ? log.dueHabitIds : Object.keys(completed);
       const done = due.filter(id => completed[id] === true).length;
-      const rate = due.length ? Math.round(done / due.length * 100) : (hasDueSnapshot && log ? 100 : 0);
-      days.push({key, label:date.toLocaleDateString("en-GB",{day:"numeric",month:"short"}), weekday:date.toLocaleDateString("en-GB",{weekday:"short"}), rate, hasLog:!!log, isToday:key===todayKey()});
+      const isComplete = !!log && hasDueSnapshot && (due.length === 0 || done === due.length);
+      days.push({key, number, isComplete, isToday:key===todayKey(), future:key>todayKey()});
     }
-    return days;
-  }, [dailyLogs]);
-  const streak = useMemo(() => {
+    return {days, monthLabel:now.toLocaleDateString("en-GB",{month:"long",year:"numeric"})};
+  }, [dailyLogs]);  const streak = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     let count = 0; const d = new Date();
     while (true) { const key = dayKey(d); const log = logs.get(key); if (!log) break;
@@ -509,7 +514,7 @@ export default function App() {
         <button className="profile-add-friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Users size={20}/> Add friends</button>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="monthly-review-card"><div className="section-heading"><div><p className="eyebrow">THE LAST 30 DAYS</p><h2>Monthly review</h2></div><span className="achievement-count">{monthlyReview.recordedDays} days recorded</span></div><div className="monthly-review-stats"><div><strong>{monthlyReview.completion}%</strong><span>completion rate</span></div><div><strong>{monthlyReview.completed}</strong><span>promises kept</span></div><div><strong>{monthlyReview.due}</strong><span>commitments due</span></div></div><p className="monthly-review-note">{monthlyReview.recordedDays===0?"Your review will take shape as you record your days.":monthlyReview.completion>=85?"Strong consistency. Keep your standards steady and sustainable.":monthlyReview.completion>=60?"You're building a foundation. Choose one small adjustment for the coming month.":"Use this as information, not a verdict. Reduce friction and recommit to the basics."}</p>{monthlyReview.mostMissed&&<p className="monthly-review-missed"><span>Most frequently missed</span><strong>{monthlyReview.mostMissed}</strong></p>}</section>
-        <section className="consistency-card"><div className="section-heading"><div><p className="eyebrow">SHOWING UP</p><h2>Consistency calendar</h2></div><span className="achievement-count">Last 35 days</span></div><p className="muted">Each square shows the completion rate recorded for that day. Empty squares mean no record was saved.</p><div className="consistency-grid">{consistencyDays.map(day=><div key={day.key} title={`${day.weekday} ${day.label}: ${day.hasLog?day.rate+"% complete":"No record"}`} className={`consistency-day ${!day.hasLog?"no-record":day.rate===100?"full":day.rate>=50?"medium":"low"} ${day.isToday?"today":""}`}><span>{day.key.slice(-2)}</span></div>)}</div><div className="consistency-legend"><span><i className="no-record"/> No record</span><span><i className="low"/> Started</span><span><i className="medium"/> Halfway</span><span><i className="full"/> Complete</span></div></section>
+        <section className="consistency-card"><div className="section-heading"><div><p className="eyebrow">SHOWING UP</p><h2>Consistency calendar</h2></div><span className="achievement-count">{consistencyDays.monthLabel}</span></div><p className="muted">Your current month at a glance. Gold means every scheduled commitment was completed; darker squares are incomplete. The outlined square marks today.</p><div className="consistency-weekdays">{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=><span key={day}>{day}</span>)}</div><div className="consistency-grid">{consistencyDays.days.map(day=>day.blank?<div className="consistency-day blank" key={day.key} aria-hidden="true"/>:<div key={day.key} title={`${day.key}${day.isToday?" · Today":""}${day.future?" · Upcoming":day.isComplete?" · Complete":" · Incomplete"}`} className={`consistency-day ${day.isComplete?"full":"incomplete"} ${day.isToday?"today":""} ${day.future?"future":""}`} aria-label={`${day.key}${day.isToday?", today":""}: ${day.future?"upcoming":day.isComplete?"complete":"incomplete"}`}><span>{day.number}</span></div>)}</div><div className="consistency-legend"><span><i className="incomplete"/> Incomplete</span><span><i className="full"/> Complete</span><span><i className="today-key"/> Today</span></div></section>
     <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         
       </>}
