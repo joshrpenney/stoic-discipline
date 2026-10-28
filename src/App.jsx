@@ -66,6 +66,12 @@ export default function App() {
   const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
   const [editingSchedule, setEditingSchedule] = useState([0,1,2,3,4,5,6]);
   const [notice, setNotice] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [theme, setTheme] = useState(() => localStorage.getItem("stoic-theme") || "dark");
+  const [settingsSection, setSettingsSection] = useState("menu");
+
+  useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
+  useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
 
   useEffect(() => {
     if (!auth) { setAuthReady(true); return; }
@@ -117,6 +123,16 @@ export default function App() {
     return {level:current.level,name:current.name,xp,next,progress:next?Math.round((xp-current.xp)/(next.xp-current.xp)*100):100,remaining:next?next.xp-xp:0};
   }, [progression.totalXp]);
   const achievements = useMemo(() => { const n=Number(progression.totalActions)||0; return [{title:"First Promise",detail:"Complete your first commitment",unlocked:n>=1,icon:Star},{title:"Seven in Motion",detail:"Reach a 7-day streak",unlocked:streak>=7,icon:Flame},{title:"A Hundred Deeds",detail:"Complete 100 commitments",unlocked:n>=100,icon:Award},{title:"A Month of Resolve",detail:"Reach a 30-day streak",unlocked:streak>=30,icon:Trophy}]; }, [progression.totalActions,streak]);
+
+  async function saveAccountName(e) {
+    e.preventDefault(); const cleanName = accountName.trim();
+    if (!cleanName) { setError("Please enter a name for your profile."); return; }
+    setError(""); setNotice(""); setBusy(true);
+    try { await updateProfile(auth.currentUser, { displayName: cleanName });
+      if (db) await setDoc(doc(db, "users", user.uid), { displayName: cleanName, updatedAt: serverTimestamp() }, { merge: true });
+      setAccountName(cleanName); setNotice("Profile name updated.");
+    } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }
 
   async function handleAuth(e) {
     e.preventDefault(); setError(""); setBusy(true);
@@ -339,16 +355,25 @@ export default function App() {
         <div className="habit-list">{activeHabits.filter(h=>["Training","Running","Walking","Movement"].includes(h.category)).map(h=>{const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category}</span></button></article>})}{!activeHabits.some(h=>["Training","Running","Walking","Movement"].includes(h.category))&&<div className="empty"><Dumbbell size={30}/><h3>Build your training plan</h3><p>Add training, running or walking habits to see them here.</p><button className="primary" onClick={()=>{setNewCategory("Training");setShowAdd(true);setActiveTab("Today");}}>Add training habit</button></div>}</div>
       </>}
       {activeTab === "Profile" && <>
-        <p className="eyebrow">THE WORK YOU'VE PUT IN</p><h1 className="tab-title">Your profile</h1><p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
+        <p className="eyebrow">THE WORK YOU'VE PUT IN</p><h1 className="tab-title">{accountName.trim() || user.displayName || "Your profile"}</h1><p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
         <section className="level-card profile-level"><div className="level-top"><div className="level-emblem"><ShieldCheck size={25}/></div><div className="level-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} total XP</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div><div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div><div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising every day"}</span><span>{levelInfo.progress}%</span></div></section>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         
       </>}
       {activeTab === "Settings" && <>
-        <button className="settings-back" onClick={()=>{setActiveTab("Profile");window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={16}/> Back to profile</button>
+        <button className="settings-back" onClick={()=>{if(settingsSection!=="menu"){setSettingsSection("menu");}else{setActiveTab("Profile");}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={16}/> {settingsSection!=="menu"?"All settings":"Back to profile"}</button>
         <p className="eyebrow">PERSONALISE YOUR PRACTICE</p><h1 className="tab-title">Settings</h1>
-        <p className="muted">Manage your commitments here. Your Reading and Training pages stay as they are.</p>
+        <p className="muted">Choose a settings area below to personalise your journal.</p>
+        {settingsSection === "menu" && <div className="settings-menu-grid">
+          <button className="settings-menu-card" onClick={()=>setSettingsSection("appearance")}><span className="settings-menu-icon">◐</span><strong>Background colour</strong><span>Choose light or dark theme</span></button>
+          <button className="settings-menu-card" onClick={()=>setSettingsSection("account")}><span className="settings-menu-icon">♙</span><strong>Account holder name</strong><span>Change the name shown on your profile</span></button>
+          {["Reading","Non-negotiables","Today","Training","Profile"].map(page=><button key={page} className="settings-menu-card" onClick={()=>setSettingsSection(page)}><span className="settings-menu-icon">{page==="Reading"?"▤":page==="Non-negotiables"?"⬡":page==="Today"?"◎":page==="Training"?"⌁":"☆"}</span><strong>{page} settings</strong><span>Open settings for your {page.toLowerCase()} page</span></button>)}
+        </div>}
+        {settingsSection === "appearance" && <div className="settings-panel"><p className="eyebrow">DISPLAY</p><h2>Background colour</h2><p className="settings-description">Choose a theme for the journal. Your choice is saved on this device.</p><div className="theme-options"><button className={"theme-option "+(theme==="dark"?"selected":"")} onClick={()=>setTheme("dark")}><span className="theme-preview theme-preview-dark"/><strong>Dark theme</strong><span>Charcoal, bronze and gold</span></button><button className={"theme-option "+(theme==="light"?"selected":"")} onClick={()=>setTheme("light")}><span className="theme-preview theme-preview-light"/><strong>Light theme</strong><span>Warm ivory and muted gold</span></button></div></div>}
+        {settingsSection === "account" && <div className="settings-panel"><p className="eyebrow">ACCOUNT</p><h2>Profile name</h2><p className="settings-description">This name appears as the heading on your Profile page and in your welcome message.</p><form className="settings-edit-form" onSubmit={saveAccountName}><label>Account holder name<input required maxLength="60" value={accountName} onChange={e=>setAccountName(e.target.value)} placeholder="Enter your name"/></label><div className="form-actions"><button className="primary" disabled={busy}>{busy?"Saving…":"Save name"}</button></div></form></div>}
+        {["Reading","Non-negotiables","Today","Training","Profile"].includes(settingsSection) && <div className="settings-panel"><p className="eyebrow">PAGE SETTINGS</p><h2>{settingsSection} settings</h2><p className="settings-description">Manage the commitments and records used on this page. Existing data is preserved.</p>{settingsSection==="Reading"&&<p className="settings-description">Your reading library tracks books in progress and completed books. Add, update or remove books from the Reading page.</p>}{settingsSection==="Non-negotiables"&&<p className="settings-description">Your non-negotiables are controlled by the commitment list below. Edit a commitment and switch its non-negotiable option on or off.</p>}{settingsSection==="Today"&&<p className="settings-description">Today displays your daily checklist, completion progress, level and XP, streak and achievements.</p>}{settingsSection==="Training"&&<p className="settings-description">Training includes commitments categorised as Training, Running, Walking or Movement.</p>}{settingsSection==="Profile"&&<p className="settings-description">Your profile shows your rank, total XP, streak, completed actions and achievements.</p>}<button className="secondary settings-open-page" onClick={()=>{setActiveTab(settingsSection);setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Open {settingsSection} page <ArrowLeft size={14}/></button></div>}
+        {settingsSection === "menu" && <>
         <div className="settings-section-heading"><div><p className="eyebrow">YOUR DAILY STANDARD</p><h2>Manage commitments</h2></div><button className="quiet-account-button" onClick={()=>{setNewTitle("");setNewTarget("");setNewCategory("Mindset");setNewNonNegotiable(true);setShowAdd(v=>!v);setEditingHabitId(null);}}><Plus size={14}/> Add</button></div>
         {showAdd && <form className="add-form settings-add-form" onSubmit={addHabit}>
           <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
