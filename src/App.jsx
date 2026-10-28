@@ -4,10 +4,10 @@ import {
   signOut, updateProfile
 } from "firebase/auth";
 import {
-  addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query,
+  addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
   serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, Users, UserPlus, UserCheck, Search, RefreshCw } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 
 const starterHabits = [
@@ -69,6 +69,11 @@ export default function App() {
   const [accountName, setAccountName] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("stoic-theme") || "dark");
   const [settingsSection, setSettingsSection] = useState("menu");
+  const [communitySearch, setCommunitySearch] = useState("");
+  const [communityResults, setCommunityResults] = useState([]);
+  const [followingRecords, setFollowingRecords] = useState([]);
+  const [followerRecords, setFollowerRecords] = useState([]);
+  const [communityBusy, setCommunityBusy] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
@@ -133,6 +138,76 @@ export default function App() {
       setAccountName(cleanName); setNotice("Profile name updated.");
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
+
+
+  useEffect(() => {
+    if (!user || !db) return;
+    const publicName = (accountName.trim() || user.displayName || "").trim();
+    if (!publicName) return;
+    setDoc(doc(db, "publicProfiles", user.uid), { uid: user.uid, displayName: publicName, displayNameLower: publicName.toLowerCase(), updatedAt: serverTimestamp() }, { merge: true }).catch(e => setError(e.message));
+  }, [user, accountName]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    setDoc(doc(db, "userProgress", user.uid), {
+      uid: user.uid, displayName: accountName.trim() || user.displayName || "Stoic member",
+      totalXp: Number(progression.totalXp) || 0, totalActions: Number(progression.totalActions) || 0,
+      level: levelInfo.level, rank: levelInfo.name, streak,
+      todayCompleted: doneCount, todayDue: dueHabits.length, updatedAt: serverTimestamp()
+    }, { merge: true }).catch(e => setError(e.message));
+  }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length]);
+
+  async function refreshCommunity() {
+    if (!user || !db) return;
+    setCommunityBusy(true);
+    try {
+      const [followingSnap, followersSnap] = await Promise.all([
+        getDocs(query(collection(db, "follows"), where("followerUid", "==", user.uid))),
+        getDocs(query(collection(db, "follows"), where("followedUid", "==", user.uid)))
+      ]);
+      const followingRows = await Promise.all(followingSnap.docs.map(async snap => {
+        const rel = snap.data();
+        const [profileSnap, progressSnap] = await Promise.all([getDoc(doc(db, "publicProfiles", rel.followedUid)), getDoc(doc(db, "userProgress", rel.followedUid))]);
+        return { id: snap.id, ...rel, profile: profileSnap.exists() ? profileSnap.data() : { displayName: "Stoic member" }, progress: progressSnap.exists() ? progressSnap.data() : null };
+      }));
+      const followerRows = await Promise.all(followersSnap.docs.map(async snap => {
+        const rel = snap.data(); const profileSnap = await getDoc(doc(db, "publicProfiles", rel.followerUid));
+        return { id: snap.id, ...rel, profile: profileSnap.exists() ? profileSnap.data() : { displayName: "Stoic member" } };
+      }));
+      setFollowingRecords(followingRows); setFollowerRecords(followerRows);
+    } catch (e) { setError("Could not load your community. Check that the Firestore rules have been published. " + e.message); }
+    finally { setCommunityBusy(false); }
+  }
+
+  async function searchCommunity(e) {
+    e?.preventDefault();
+    const term = communitySearch.trim().toLowerCase();
+    if (term.length < 2) { setError("Enter at least two letters of the account name to search."); return; }
+    if (!user || !db) return;
+    setError(""); setCommunityBusy(true);
+    try {
+      const snap = await getDocs(query(collection(db, "publicProfiles"), orderBy("displayNameLower"), startAt(term), endAt(term + "\uf8ff"), limit(15)));
+      const followed = new Set(followingRecords.map(r => r.followedUid));
+      setCommunityResults(snap.docs.map(d => ({ id: d.id, ...d.data(), isFollowing: followed.has(d.id) })).filter(p => p.uid !== user.uid));
+      if (snap.empty) setNotice("No matching profiles found. Ask your friend to sign in and set their account name first.");
+    } catch (e) { setError("Could not search profiles. Check that the Firestore rules have been published. " + e.message); }
+    finally { setCommunityBusy(false); }
+  }
+
+  async function toggleFollow(profile) {
+    if (!user || !db || !profile?.uid || profile.uid === user.uid) return;
+    const alreadyFollowing = followingRecords.some(r => r.followedUid === profile.uid);
+    const relationshipId = user.uid + "_" + profile.uid;
+    setError(""); setNotice("");
+    try {
+      if (alreadyFollowing) { await deleteDoc(doc(db, "follows", relationshipId)); setNotice("You unfollowed " + (profile.displayName || "this member") + "."); }
+      else { await setDoc(doc(db, "follows", relationshipId), { followerUid: user.uid, followedUid: profile.uid, createdAt: serverTimestamp() }); setNotice("You are now following " + (profile.displayName || "this member") + "."); }
+      await refreshCommunity();
+      setCommunityResults(rows => rows.map(row => row.uid === profile.uid ? { ...row, isFollowing: !alreadyFollowing } : row));
+    } catch (e) { setError("Could not update your follow. Check that the Firestore rules have been published. " + e.message); }
+  }
+
+  useEffect(() => { if (user && activeTab === "Community") refreshCommunity(); }, [user, activeTab]);
 
   async function handleAuth(e) {
     e.preventDefault(); setError(""); setBusy(true);
@@ -264,7 +339,7 @@ export default function App() {
   return <main className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
-      <div className="topbar-actions"><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
+      <div className="topbar-actions"><button className="topbar-quiet-button" title="Community" aria-label="Community" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Users size={16}/></button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
     </header>
     {activeTab === "Today" && <>
     <section className="welcome">
@@ -360,6 +435,21 @@ export default function App() {
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         
+      </>}
+      {activeTab === "Community" && <>
+        <p className="eyebrow">ACCOUNTABILITY, TOGETHER</p><h1 className="tab-title">Your circle</h1>
+        <p className="muted">Find people by account name, follow their progress, and help each other keep showing up. Your private habits, books and daily notes are never shared.</p>
+        <section className="community-search-card">
+          <form className="community-search-form" onSubmit={searchCommunity}><label>Find a person<input value={communitySearch} onChange={e=>setCommunitySearch(e.target.value)} placeholder="Search by account name" maxLength="60"/></label><button className="primary" disabled={communityBusy}><Search size={16}/> Search</button></form>
+          <p className="community-hint">Search matches account names beginning with what you type. Ask friends to use a recognisable name in their profile settings.</p>
+          {communityResults.length>0 && <div className="community-list">{communityResults.map(profile=><article className="community-person" key={profile.uid}><div className="community-avatar">{(profile.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{profile.displayName||"Stoic member"}</strong><span>Stoic Discipline member</span></div><button className={followingRecords.some(r=>r.followedUid===profile.uid)?"secondary community-follow-button":"primary community-follow-button"} onClick={()=>toggleFollow(profile)}>{followingRecords.some(r=>r.followedUid===profile.uid)?<><UserCheck size={15}/> Following</>:<><UserPlus size={15}/> Follow</>}</button></article>)}</div>}
+        </section>
+        <section className="community-section"><div className="community-section-heading"><div><p className="eyebrow">YOUR ACCOUNTABILITY CIRCLE</p><h2>Following <span>{followingRecords.length}</span></h2></div><button className="quiet-icon-button" title="Refresh community" onClick={refreshCommunity}><RefreshCw size={16}/></button></div>
+          {followingRecords.length===0 ? <div className="empty community-empty"><Users size={28}/><h3>Your circle starts here</h3><p>Search for a friend above and follow them. Their shared progress will appear here.</p></div> : <div className="community-list">{followingRecords.map(row=>{const p=row.progress||{};const due=Number(p.todayDue)||0;const completed=Number(p.todayCompleted)||0;return <article className="community-progress-card" key={row.followedUid}><div className="community-person"><div className="community-avatar">{(row.profile?.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{row.profile?.displayName||"Stoic member"}</strong><span>Level {p.level||1} · {p.rank||"Initiate"}</span></div><button className="quiet-icon-button danger" title={"Unfollow "+(row.profile?.displayName||"member")} onClick={()=>toggleFollow({...row.profile,uid:row.followedUid})}><UserCheck size={16}/></button></div><div className="community-metrics"><div><Trophy size={15}/><strong>{Number(p.totalXp)||0}</strong><span>XP</span></div><div><Target size={15}/><strong>{Number(p.totalActions)||0}</strong><span>actions</span></div><div><Flame size={15}/><strong>{Number(p.streak)||0}</strong><span>day streak</span></div></div><div className="community-daily"><div className="community-daily-label"><span>Today's commitments</span><strong>{completed}/{due}</strong></div><div className="community-daily-track"><span style={{width:(due?Math.min(100,Math.round(completed/due*100)):0)+"%"}}/></div><small>{due===0?"No commitments due today":completed===due?"All due commitments completed":Math.round(completed/due*100)+"% complete so far"}</small></div></article>})}</div>}
+        </section>
+        <section className="community-section"><div className="community-section-heading"><div><p className="eyebrow">THEY'RE IN YOUR CORNER</p><h2>Following you <span>{followerRecords.length}</span></h2></div><button className="quiet-icon-button" title="Refresh community" onClick={refreshCommunity}><RefreshCw size={16}/></button></div>
+          {followerRecords.length===0 ? <div className="empty community-empty"><UserPlus size={28}/><h3>Your first follower</h3><p>When someone follows your account, they'll appear here. Your progress is only visible to people you follow back.</p></div> : <div className="community-list">{followerRecords.map(row=>{const mutual=followingRecords.some(r=>r.followedUid===row.followerUid);return <article className="community-person community-follower" key={row.followerUid}><div className="community-avatar">{(row.profile?.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{row.profile?.displayName||"Stoic member"}</strong><span>{mutual?"You're following each other":"Follows you · follow back to see their progress"}</span></div>{!mutual&&<button className="primary community-follow-button" onClick={()=>toggleFollow({...row.profile,uid:row.followerUid})}><UserPlus size={15}/> Follow back</button>}</article>})}</div>}
+        </section>
       </>}
       {activeTab === "Settings" && <>
         <button className="settings-back" onClick={()=>{if(settingsSection!=="menu"){setSettingsSection("menu");}else{setActiveTab("Profile");}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={16}/> {settingsSection!=="menu"?"All settings":"Back to profile"}</button>
