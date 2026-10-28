@@ -112,19 +112,31 @@ export default function App() {
             }).filter(item => item.title);
           }
         } catch (err) { if (err.name === "AbortError") throw err; }
-        if (!results.length) {
-          const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(term)}&limit=8`, { signal: controller.signal });
-          if (!response.ok) throw new Error("Book search is temporarily unavailable.");
-          const data = await response.json();
-          results = (data.docs || []).map(item => ({
-            id:"openlibrary-"+(item.key || item.title+"-"+(item.author_name?.[0]||"")),
-            title:item.title || "",
-            author:Array.isArray(item.author_name)?item.author_name.slice(0,3).join(", "):"",
-            pageCount:Number(item.number_of_pages_median)||0,
-            cover:item.cover_i?`https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`:"",
-            published:item.first_publish_year?String(item.first_publish_year):"",
-            publisher:Array.isArray(item.publisher)?item.publisher[0]||"":""
-          })).filter(item => item.title);
+        // Also consult Open Library when Google has matches but omits page counts or covers.
+        // This gives the reading-time estimate a better chance of working automatically.
+        if (!results.length || results.some(item => !item.pageCount || !item.cover)) {
+          try {
+            const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(term)}&limit=12`, { signal: controller.signal });
+            if (response.ok) {
+              const data = await response.json();
+              const libraryResults = (data.docs || []).map(item => ({
+                id:"openlibrary-"+(item.key || item.title+"-"+(item.author_name?.[0]||"")),
+                title:item.title || "",
+                author:Array.isArray(item.author_name)?item.author_name.slice(0,3).join(", "):"",
+                pageCount:Number(item.number_of_pages_median)||0,
+                cover:item.cover_i?`https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`:"",
+                published:item.first_publish_year?String(item.first_publish_year):"",
+                publisher:Array.isArray(item.publisher)?item.publisher[0]||"":""
+              })).filter(item => item.title);
+              if (!results.length) results = libraryResults;
+              else results = results.map(item => {
+                const normalise = value => (value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+                const match = libraryResults.find(candidate => normalise(candidate.title)===normalise(item.title) &&
+                  (!item.author || !candidate.author || normalise(candidate.author).includes(normalise(item.author.split(",")[0])) || normalise(item.author).includes(normalise(candidate.author.split(",")[0]))));
+                return match ? {...item, pageCount:item.pageCount||match.pageCount, cover:item.cover||match.cover, published:item.published||match.published, publisher:item.publisher||match.publisher} : item;
+              });
+            }
+          } catch (err) { if (err.name === "AbortError") throw err; }
         }
         if (!controller.signal.aborted) { setBookSearchResults(results); setBookSearchError(results.length ? "" : "No matches found. You can enter the details manually."); }
       } catch (err) {
