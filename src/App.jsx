@@ -74,8 +74,6 @@ export default function App() {
   const [followingRecords, setFollowingRecords] = useState([]);
   const [followerRecords, setFollowerRecords] = useState([]);
   const [communityBusy, setCommunityBusy] = useState(false);
-  const [reflection, setReflection] = useState({good:"",shortfall:"",tomorrow:""});
-  const [reflectionSaved, setReflectionSaved] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
@@ -101,7 +99,7 @@ export default function App() {
       setHabits(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
-    const stopChecks = onSnapshot(checkRef, (snapshot) => { setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}); setReflection(snapshot.exists() ? (snapshot.data().reflection || {good:"",shortfall:"",tomorrow:""}) : {good:"",shortfall:"",tomorrow:""}); setReflectionSaved(false); }, (e) => setError(e.message));
+    const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
     const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }), (e) => setError(e.message));
     const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
     const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))), (e) => setError(e.message));
@@ -279,19 +277,6 @@ export default function App() {
     finally { setBusy(false); }
   }
 
-  async function saveReflection(e) {
-    e.preventDefault();
-    if (!user || !db) return;
-    setError(""); setNotice("");
-    try {
-      await setDoc(doc(db, "users", user.uid, "dailyLogs", todayKey()), {
-        date: todayKey(), reflection, reflectionUpdatedAt: serverTimestamp(), updatedAt: serverTimestamp()
-      }, { merge: true });
-      setReflectionSaved(true);
-      setNotice("Evening reflection saved privately.");
-    } catch (e) { setError(e.message); }
-  }
-
   async function toggleHabit(habit) {
     if (!user || !db) return;
     setError(""); setNotice("");
@@ -450,16 +435,6 @@ export default function App() {
       </section>})}
       {!dueHabits.length && <div className="empty"><Target size={30}/><h3>A clear day by design</h3><p>No commitments are scheduled for today. Enjoy the rest day or adjust your schedule in Settings.</p></div>}
     </div>
-    <section className="reflection-card">
-      <div className="reflection-heading"><div><p className="eyebrow">THE DAILY EXAMINATION</p><h2>Evening reflection</h2></div><Moon size={21}/></div>
-      <p className="muted">Take two minutes to learn from the day. This stays private to your account.</p>
-      <form onSubmit={saveReflection} className="reflection-form">
-        <label>What did I do well today?<textarea rows="2" maxLength="1000" value={reflection.good} onChange={e=>{setReflection(v=>({...v,good:e.target.value}));setReflectionSaved(false);}} placeholder="Recognise what went well…"/></label>
-        <label>Where did I fall short, and why?<textarea rows="2" maxLength="1000" value={reflection.shortfall} onChange={e=>{setReflection(v=>({...v,shortfall:e.target.value}));setReflectionSaved(false);}} placeholder="Be honest without judging yourself…"/></label>
-        <label>What will I do differently tomorrow?<textarea rows="2" maxLength="1000" value={reflection.tomorrow} onChange={e=>{setReflection(v=>({...v,tomorrow:e.target.value}));setReflectionSaved(false);}} placeholder="Choose one practical adjustment…"/></label>
-        <button className="primary" type="submit"><Check size={16}/>{reflectionSaved?"Reflection saved":"Save reflection"}</button>
-      </form>
-    </section>
     <section className="achievements-section">
       <div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div>
       <div className="achievement-grid">{achievements.map((a)=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>;})}</div>
