@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
   signOut, updateProfile
@@ -403,6 +403,33 @@ export default function App() {
       setNotice("Book removed from your list.");
     } catch (e) { setError(e.message); }
   }
+
+  const attemptedBookLookup = useRef(new Set());
+  useEffect(() => {
+    const missing = books.filter(book => !book.finishedAt && !(Number(book.pageCount)>0) && book.title && !attemptedBookLookup.current.has(book.id));
+    missing.forEach(book => attemptedBookLookup.current.add(book.id));
+    if (!missing.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const book of missing) {
+        try {
+          const queryText = [book.title, book.author].filter(Boolean).join(" ");
+          const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(queryText)}&limit=8`);
+          if (!response.ok) continue;
+          const data = await response.json();
+          const normalise = value => (value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+          const candidate = (data.docs||[]).find(item => normalise(item.title)===normalise(book.title) &&
+            (!book.author || !Array.isArray(item.author_name) || item.author_name.some(author => normalise(author).includes(normalise(book.author.split(",")[0])) || normalise(book.author).includes(normalise(author)))));
+          if (cancelled || !candidate) continue;
+          const changes = {};
+          if (Number(candidate.number_of_pages_median)>0) changes.pageCount=Number(candidate.number_of_pages_median);
+          if (!book.cover && candidate.cover_i) changes.cover=`https://covers.openlibrary.org/b/id/${candidate.cover_i}-M.jpg`;
+          if (Object.keys(changes).length) await updateBook(book, changes);
+        } catch (e) { /* Keep the book usable if metadata lookup is unavailable. */ }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [books, user, db]);
 
   async function addHabit(e) {
     e.preventDefault();
