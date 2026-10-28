@@ -21,7 +21,8 @@ service cloud.firestore {
       allow create, update: if request.auth != null && request.auth.uid == userId
         && request.resource.data.uid == request.auth.uid;
       allow read: if request.auth != null && (request.auth.uid == userId
-        || exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId)));
+        || (exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
+          && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))));
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
     // A follow edge is created/deleted by the follower; both sides can read it.
