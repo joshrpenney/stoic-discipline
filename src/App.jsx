@@ -7,7 +7,7 @@ import {
   addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query,
   serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 
 const starterHabits = [
@@ -55,7 +55,7 @@ export default function App() {
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
   const [newTarget, setNewTarget] = useState("");
-  const [newNonNegotiable, setNewNonNegotiable] = useState(true);
+  const [newNonNegotiable, setNewNonNegotiable] = useState(true);\n  const [editingHabitId, setEditingHabitId] = useState(null);\n  const [editingTitle, setEditingTitle] = useState("");\n  const [editingCategory, setEditingCategory] = useState("Mindset");\n  const [editingTarget, setEditingTarget] = useState("");\n  const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -176,6 +176,24 @@ export default function App() {
       });
       setNewTitle(""); setNewTarget(""); setNewCategory("Mindset"); setNewNonNegotiable(true); setShowAdd(false);
       setNotice("Commitment added.");
+    } catch (e) { setError(e.message); }
+  }
+
+  function beginEditHabit(habit) {
+    setEditingHabitId(habit.id); setEditingTitle(habit.title || "");
+    setEditingCategory(habit.category || "Mindset"); setEditingTarget(habit.target || "");
+    setEditingIsNonNegotiable(!!habit.nonNegotiable);
+  }
+
+  async function saveHabitEdit(e) {
+    e.preventDefault();
+    if (!user || !db || !editingHabitId || !editingTitle.trim()) return;
+    try {
+      await updateDoc(doc(db, "users", user.uid, "habits", editingHabitId), {
+        title: editingTitle.trim(), category: editingCategory, target: editingTarget.trim(),
+        nonNegotiable: editingIsNonNegotiable, updatedAt: serverTimestamp()
+      });
+      setEditingHabitId(null); setNotice("Commitment updated.");
     } catch (e) { setError(e.message); }
   }
 
@@ -307,8 +325,31 @@ export default function App() {
         <section className="level-card profile-level"><div className="level-top"><div className="level-emblem"><ShieldCheck size={25}/></div><div className="level-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} total XP</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div><div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div><div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising every day"}</span><span>{levelInfo.progress}%</span></div></section>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
-        <button className="secondary profile-signout" onClick={()=>signOut(auth)}><LogOut size={16}/> Sign out</button>
+        <div className="profile-account-actions"><button className="quiet-account-button" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={13}/> Settings</button><button className="quiet-account-button" onClick={()=>signOut(auth)}><LogOut size={13}/> Sign out</button></div>
+      </>      {activeTab === "Settings" && <>
+        <button className="settings-back" onClick={()=>{setActiveTab("Profile");window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={16}/> Back to profile</button>
+        <p className="eyebrow">PERSONALISE YOUR PRACTICE</p><h1 className="tab-title">Settings</h1>
+        <p className="muted">Manage your commitments here. Your Reading and Training pages stay as they are.</p>
+        <div className="settings-section-heading"><div><p className="eyebrow">YOUR DAILY STANDARD</p><h2>Manage commitments</h2></div><button className="quiet-account-button" onClick={()=>{setNewTitle("");setNewTarget("");setNewCategory("Mindset");setNewNonNegotiable(true);setShowAdd(v=>!v);setEditingHabitId(null);}}><Plus size={14}/> Add</button></div>
+        {showAdd && <form className="add-form settings-add-form" onSubmit={addHabit}>
+          <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
+          <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
+          <label className="check-label"><input type="checkbox" checked={newNonNegotiable} onChange={e=>setNewNonNegotiable(e.target.checked)}/> Mark as a non-negotiable</label>
+          <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save commitment</button></div>
+        </form>}
+        <div className="settings-habit-list">{activeHabits.map(h=>{const Icon=categoryIcon(h.category);return <article className="settings-habit" key={h.id}>
+          {editingHabitId===h.id ? <form className="settings-edit-form" onSubmit={saveHabitEdit}>
+            <label>Commitment name<input required maxLength="100" value={editingTitle} onChange={e=>setEditingTitle(e.target.value)}/></label>
+            <div className="form-row"><label>Category<select value={editingCategory} onChange={e=>setEditingCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target<input value={editingTarget} onChange={e=>setEditingTarget(e.target.value)} placeholder="Optional target"/></label></div>
+            <label className="check-label"><input type="checkbox" checked={editingIsNonNegotiable} onChange={e=>setEditingIsNonNegotiable(e.target.checked)}/> Non-negotiable commitment</label>
+            <div className="form-actions"><button type="button" className="secondary" onClick={()=>setEditingHabitId(null)}>Cancel</button><button className="primary">Save changes</button></div>
+          </form> : <><div className="settings-habit-main"><div className="habit-icon"><Icon size={18}/></div><div className="settings-habit-copy"><strong>{h.title}</strong><span>{h.target||h.category}</span><small>{h.nonNegotiable?"NON-NEGOTIABLE":"GENERAL HABIT"}</small></div><button className="quiet-icon-button" aria-label={"Edit "+h.title} onClick={()=>beginEditHabit(h)}><Pencil size={15}/></button><button className="quiet-icon-button danger" aria-label={"Remove "+h.title} onClick={()=>removeHabit(h)}><Trash2 size={15}/></button></div></>}
+        </article>})}
+        {!activeHabits.length&&<div className="empty"><ShieldCheck size={28}/><h3>No commitments yet</h3><p>Add your first commitment to start building your standard.</p></div>}
+        </div>
+        <p className="settings-note">Changes here apply to your daily checklist and Non-negotiables page. Past completion records are retained when you archive a commitment.</p>
       </>}
+}
     </section>}
     <nav className="bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Training",Dumbbell],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""} ${label==="Today"?"nav-today":""}`} onClick={() => {setActiveTab(label);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={label==="Today"?23:19}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
     <p className="footnote">XP is awarded once per commitment each day. Unticking a commitment does not remove earned XP. Your progress is saved to your private Firebase account.</p>
