@@ -139,9 +139,10 @@ export default function App() {
       const date = new Date(); date.setHours(12,0,0,0); date.setDate(date.getDate()-offset);
       const key = dayKey(date), log = byDate.get(key);
       const completed = log?.completed || {};
-      const due = Array.isArray(log?.dueHabitIds) ? log.dueHabitIds : Object.keys(completed);
+      const hasDueSnapshot = Array.isArray(log?.dueHabitIds);
+      const due = hasDueSnapshot ? log.dueHabitIds : Object.keys(completed);
       const done = due.filter(id => completed[id] === true).length;
-      const rate = due.length ? Math.round(done / due.length * 100) : (log ? 100 : 0);
+      const rate = due.length ? Math.round(done / due.length * 100) : (hasDueSnapshot && log ? 100 : 0);
       days.push({key, label:date.toLocaleDateString("en-GB",{day:"numeric",month:"short"}), weekday:date.toLocaleDateString("en-GB",{weekday:"short"}), rate, hasLog:!!log, isToday:key===todayKey()});
     }
     return days;
