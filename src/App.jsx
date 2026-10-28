@@ -331,7 +331,8 @@ export default function App() {
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
         <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         <div className="profile-account-actions"><button className="quiet-account-button" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={13}/> Settings</button><button className="quiet-account-button" onClick={()=>signOut(auth)}><LogOut size={13}/> Sign out</button></div>
-      </>      {activeTab === "Settings" && <>
+      </>}
+      {activeTab === "Settings" && <>
         <button className="settings-back" onClick={()=>{setActiveTab("Profile");window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={16}/> Back to profile</button>
         <p className="eyebrow">PERSONALISE YOUR PRACTICE</p><h1 className="tab-title">Settings</h1>
         <p className="muted">Manage your commitments here. Your Reading and Training pages stay as they are.</p>
