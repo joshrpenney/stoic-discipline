@@ -413,17 +413,44 @@ export default function App() {
     (async () => {
       for (const book of missing) {
         try {
-          const queryText = [book.title, book.author].filter(Boolean).join(" ");
-          const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(queryText)}&limit=8`);
-          if (!response.ok) continue;
-          const data = await response.json();
           const normalise = value => (value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-          const candidate = (data.docs||[]).find(item => normalise(item.title)===normalise(book.title) &&
-            (!book.author || !Array.isArray(item.author_name) || item.author_name.some(author => normalise(author).includes(normalise(book.author.split(",")[0])) || normalise(book.author).includes(normalise(author)))));
-          if (cancelled || !candidate) continue;
+          const authorTerm = (book.author||"").split(",")[0].trim();
+          const googleQuery = `intitle:${book.title}${authorTerm ? " inauthor:"+authorTerm : ""}`;
+          let pageCount = 0;
+          let cover = "";
+          // Prefer Google Books edition metadata, which often includes the publisher's exact page count.
+          try {
+            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleQuery)}&maxResults=10&printType=books`);
+            if (response.ok) {
+              const data = await response.json();
+              const match = (data.items||[]).map(item => {
+                const v=item.volumeInfo||{};
+                return {title:v.title||"",authors:Array.isArray(v.authors)?v.authors:[],pageCount:Number(v.pageCount)||0,cover:v.imageLinks?.thumbnail?.replace("http://","https://")||""};
+              }).find(item => normalise(item.title)===normalise(book.title) &&
+                (!authorTerm || !item.authors.length || item.authors.some(author => normalise(author).includes(normalise(authorTerm)) || normalise(authorTerm).includes(normalise(author)))));
+              if (match) { pageCount=match.pageCount; cover=match.cover; }
+            }
+          } catch (e) { /* Try Open Library below. */ }
+          // Open Library provides a second chance when Google has no exact page-count match.
+          if (!pageCount || (!book.cover && !cover)) {
+            try {
+              const queryText = [book.title, authorTerm].filter(Boolean).join(" ");
+              const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(queryText)}&limit=20&fields=title,author_name,number_of_pages_median,cover_i,first_publish_year`);
+              if (response.ok) {
+                const data = await response.json();
+                const candidate = (data.docs||[]).find(item => normalise(item.title)===normalise(book.title) &&
+                  (!authorTerm || !Array.isArray(item.author_name) || item.author_name.some(author => normalise(author).includes(normalise(authorTerm)) || normalise(authorTerm).includes(normalise(author)))));
+                if (candidate) {
+                  pageCount=pageCount||Number(candidate.number_of_pages_median)||0;
+                  cover=cover||(candidate.cover_i?`https://covers.openlibrary.org/b/id/${candidate.cover_i}-M.jpg`:"");
+                }
+              }
+            } catch (e) { /* Keep the book usable if metadata services are unavailable. */ }
+          }
+          if (cancelled) continue;
           const changes = {};
-          if (Number(candidate.number_of_pages_median)>0) changes.pageCount=Number(candidate.number_of_pages_median);
-          if (!book.cover && candidate.cover_i) changes.cover=`https://covers.openlibrary.org/b/id/${candidate.cover_i}-M.jpg`;
+          if (pageCount>0) changes.pageCount=pageCount;
+          if (!book.cover && cover) changes.cover=cover;
           if (Object.keys(changes).length) await updateBook(book, changes);
         } catch (e) { /* Keep the book usable if metadata lookup is unavailable. */ }
       }
