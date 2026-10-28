@@ -18,7 +18,7 @@ const starterHabits = [
 ];
 const WEEKDAYS = [{label:"Mon",value:1},{label:"Tue",value:2},{label:"Wed",value:3},{label:"Thu",value:4},{label:"Fri",value:5},{label:"Sat",value:6},{label:"Sun",value:0}];
 const formatReadingTime = (pages, wordsPerPage, wpm) => {
-  const minutes = Math.max(0, Math.ceil((Math.max(0, Number(pages)||0) * (Number(wordsPerPage)||300)) / Math.max(1, Number(wpm)||163)));
+  const minutes = Math.max(0, Math.ceil((Math.max(0, Number(pages)||0) * (Number(wordsPerPage)||233)) / Math.max(1, Number(wpm)||163)));
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60), remaining = minutes % 60;
   return remaining ? `${hours} hr ${remaining} min` : `${hours} hr`;
@@ -66,7 +66,7 @@ export default function App() {
   const [bookSearchError, setBookSearchError] = useState("");
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
   const [readingWpm, setReadingWpm] = useState(() => Number(localStorage.getItem("stoic-reading-wpm")) || 163);
-  const [wordsPerPage, setWordsPerPage] = useState(() => Number(localStorage.getItem("stoic-words-per-page")) || 300);
+  const [wordsPerPage, setWordsPerPage] = useState(() => { const saved = Number(localStorage.getItem("stoic-words-per-page")); return !saved || saved === 300 ? 233 : saved; });
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState("Mindset");
@@ -539,7 +539,7 @@ export default function App() {
           <button className="primary">Add book <Plus size={16}/></button>
         </form>
         <section className="reading-calculator">
-          <div><p className="eyebrow">YOUR READING PACE</p><h2>Reading time calculator</h2><p>Estimates use page count × average words per page, so results vary by book layout.</p></div>
+          <div><p className="eyebrow">YOUR READING PACE</p><h2>Reading time calculator</h2><p>Uses 233 words per page as a research-based average for non-fiction. Actual page density varies by edition and layout, so treat the result as a guide.</p></div>
           <div className="reading-calculator-fields"><label>Words per minute<input type="number" min="20" max="2000" value={readingWpm} onChange={e=>setReadingWpm(Math.max(20,Math.min(2000,Number(e.target.value)||20)))}/></label><label>Words per page<input type="number" min="50" max="1000" value={wordsPerPage} onChange={e=>setWordsPerPage(Math.max(50,Math.min(1000,Number(e.target.value)||50)))}/></label></div>
         </section>
         <section className="book-section">
