@@ -74,6 +74,8 @@ export default function App() {
   const [followingRecords, setFollowingRecords] = useState([]);
   const [followerRecords, setFollowerRecords] = useState([]);
   const [communityBusy, setCommunityBusy] = useState(false);
+  const [reflection, setReflection] = useState({good:"",shortfall:"",tomorrow:""});
+  const [reflectionSaved, setReflectionSaved] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
@@ -99,7 +101,7 @@ export default function App() {
       setHabits(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
-    const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
+    const stopChecks = onSnapshot(checkRef, (snapshot) => { setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}); setReflection(snapshot.exists() ? (snapshot.data().reflection || {good:"",shortfall:"",tomorrow:""}) : {good:"",shortfall:"",tomorrow:""}); setReflectionSaved(false); }, (e) => setError(e.message));
     const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }), (e) => setError(e.message));
     const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
     const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))), (e) => setError(e.message));
@@ -112,6 +114,23 @@ export default function App() {
   const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
   const doneCount = dueHabits.filter((h) => checks[h.id]).length;
   const percent = dueHabits.length ? Math.round(doneCount / dueHabits.length * 100) : 100;
+  const nonNegotiableToday = dueHabits.filter(h => h.nonNegotiable);
+  const trainingToday = dueHabits.filter(h => !h.nonNegotiable && ["Training","Running","Walking","Movement"].includes(h.category));
+  const otherToday = dueHabits.filter(h => !h.nonNegotiable && !["Training","Running","Walking","Movement"].includes(h.category));
+  const consistencyDays = useMemo(() => {
+    const byDate = new Map(dailyLogs.map(log => [log.date || log.id, log]));
+    const days = [];
+    for (let offset = 34; offset >= 0; offset--) {
+      const date = new Date(); date.setHours(12,0,0,0); date.setDate(date.getDate()-offset);
+      const key = dayKey(date), log = byDate.get(key);
+      const completed = log?.completed || {};
+      const due = Array.isArray(log?.dueHabitIds) ? log.dueHabitIds : Object.keys(completed);
+      const done = due.filter(id => completed[id] === true).length;
+      const rate = due.length ? Math.round(done / due.length * 100) : (log ? 100 : 0);
+      days.push({key, label:date.toLocaleDateString("en-GB",{day:"numeric",month:"short"}), weekday:date.toLocaleDateString("en-GB",{weekday:"short"}), rate, hasLog:!!log, isToday:key===todayKey()});
+    }
+    return days;
+  }, [dailyLogs]);
   const streak = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     let count = 0; const d = new Date();
@@ -237,6 +256,19 @@ export default function App() {
       }
     } catch (e) { setError(e.message.replace("Firebase: ", "")); }
     finally { setBusy(false); }
+  }
+
+  async function saveReflection(e) {
+    e.preventDefault();
+    if (!user || !db) return;
+    setError(""); setNotice("");
+    try {
+      await setDoc(doc(db, "users", user.uid, "dailyLogs", todayKey()), {
+        date: todayKey(), reflection, reflectionUpdatedAt: serverTimestamp(), updatedAt: serverTimestamp()
+      }, { merge: true });
+      setReflectionSaved(true);
+      setNotice("Evening reflection saved privately.");
+    } catch (e) { setError(e.message); }
   }
 
   async function toggleHabit(habit) {
@@ -381,15 +413,32 @@ export default function App() {
     </form>}
     {error && <div className="error-banner">{error}</div>}
     {notice && <p className="notice">{notice}</p>}
-    <div className="habit-list">
-      {dueHabits.map(h => {const Icon=categoryIcon(h.category); return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}>
-        <button className="habit-check" aria-label={checks[h.id]?"Mark incomplete":"Mark complete"} onClick={()=>toggleHabit(h)}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button>
-        <div className="habit-icon"><Icon size={19}/></div>
-        <button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target || h.category}{h.nonNegotiable ? " · NON-NEGOTIABLE" : ""}</span></button>
-        <button className="remove-button" aria-label={`Archive ${h.title}`} onClick={()=>removeHabit(h)}><Trash2 size={16}/></button>
-      </article>;})}
+    <div className="commitment-groups">
+      {[
+        {title:"Non-negotiables",subtitle:"The promises you keep first",items:nonNegotiableToday,icon:ShieldCheck},
+        {title:"Training & movement",subtitle:"Build a stronger body",items:trainingToday,icon:Dumbbell},
+        {title:"Other commitments",subtitle:"The rest of today's priorities",items:otherToday,icon:Target}
+      ].filter(group=>group.items.length>0).map(group=>{const GroupIcon=group.icon;return <section className="commitment-group" key={group.title}>
+        <div className="commitment-group-heading"><div className="commitment-group-icon"><GroupIcon size={17}/></div><div><h3>{group.title}</h3><p>{group.subtitle}</p></div><span>{group.items.filter(h=>checks[h.id]).length}/{group.items.length}</span></div>
+        <div className="habit-list">{group.items.map(h=>{const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}>
+          <button className="habit-check" aria-label={checks[h.id]?"Mark incomplete":"Mark complete"} onClick={()=>toggleHabit(h)}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button>
+          <div className="habit-icon"><Icon size={19}/></div>
+          <button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target || h.category}{h.nonNegotiable ? " · NON-NEGOTIABLE" : ""}</span></button>
+          <button className="remove-button" aria-label={`Archive ${h.title}`} onClick={()=>removeHabit(h)}><Trash2 size={16}/></button>
+        </article>;})}</div>
+      </section>})}
       {!dueHabits.length && <div className="empty"><Target size={30}/><h3>A clear day by design</h3><p>No commitments are scheduled for today. Enjoy the rest day or adjust your schedule in Settings.</p></div>}
     </div>
+    <section className="reflection-card">
+      <div className="reflection-heading"><div><p className="eyebrow">THE DAILY EXAMINATION</p><h2>Evening reflection</h2></div><Moon size={21}/></div>
+      <p className="muted">Take two minutes to learn from the day. This stays private to your account.</p>
+      <form onSubmit={saveReflection} className="reflection-form">
+        <label>What did I do well today?<textarea rows="2" maxLength="1000" value={reflection.good} onChange={e=>{setReflection(v=>({...v,good:e.target.value}));setReflectionSaved(false);}} placeholder="Recognise what went well…"/></label>
+        <label>Where did I fall short, and why?<textarea rows="2" maxLength="1000" value={reflection.shortfall} onChange={e=>{setReflection(v=>({...v,shortfall:e.target.value}));setReflectionSaved(false);}} placeholder="Be honest without judging yourself…"/></label>
+        <label>What will I do differently tomorrow?<textarea rows="2" maxLength="1000" value={reflection.tomorrow} onChange={e=>{setReflection(v=>({...v,tomorrow:e.target.value}));setReflectionSaved(false);}} placeholder="Choose one practical adjustment…"/></label>
+        <button className="primary" type="submit"><Check size={16}/>{reflectionSaved?"Reflection saved":"Save reflection"}</button>
+      </form>
+    </section>
     <section className="achievements-section">
       <div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div>
       <div className="achievement-grid">{achievements.map((a)=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>;})}</div>
@@ -443,7 +492,7 @@ export default function App() {
         <div className="profile-social-stats"><button onClick={()=>{setActiveTab("Community");setError("");window.scrollTo({top:0,behavior:"smooth"});}}><strong>{followingRecords.length}</strong><span>Following</span></button><button onClick={()=>{setActiveTab("Community");setError("");window.scrollTo({top:0,behavior:"smooth"});}}><strong>{followerRecords.length}</strong><span>Followers</span></button></div>
         <button className="profile-add-friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Users size={20}/> Add friends</button>
         <div className="profile-stats"><article><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></article></div>
-        <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
+        <section className="consistency-card"><div className="section-heading"><div><p className="eyebrow">SHOWING UP</p><h2>Consistency calendar</h2></div><span className="achievement-count">Last 35 days</span></div><p className="muted">Each square shows the completion rate recorded for that day. Empty squares mean no record was saved.</p><div className="consistency-grid">{consistencyDays.map(day=><div key={day.key} title={`${day.weekday} ${day.label}: ${day.hasLog?day.rate+"% complete":"No record"}`} className={`consistency-day ${!day.hasLog?"no-record":day.rate===100?"full":day.rate>=50?"medium":"low"} ${day.isToday?"today":""}`}><span>{day.key.slice(-2)}</span></div>)}</div><div className="consistency-legend"><span><i className="no-record"/> No record</span><span><i className="low"/> Started</span><span><i className="medium"/> Halfway</span><span><i className="full"/> Complete</span></div></section>\n    <section className="achievements-section"><div className="section-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="achievement-count">{achievements.filter(a=>a.unlocked).length} unlocked</span></div><div className="achievement-grid">{achievements.map(a=>{const Icon=a.icon;return <article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.title}><div className="achievement-icon"><Icon size={20}/></div><div><strong>{a.title}</strong><span>{a.detail}</span></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>•••</span>}</div></article>})}</div></section>
         
       </>}
       {activeTab === "Community" && <>
