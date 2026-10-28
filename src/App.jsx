@@ -100,15 +100,35 @@ export default function App() {
     const timer = setTimeout(async () => {
       setBookSearchBusy(true); setBookSearchError("");
       try {
-        const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(term)}&maxResults=8&printType=books`, { signal: controller.signal });
-        if (!response.ok) throw new Error("Book search is temporarily unavailable.");
-        const data = await response.json();
-        setBookSearchResults((data.items || []).map(item => {
-          const v = item.volumeInfo || {};
-          return { id:item.id, title:v.title || "", author:Array.isArray(v.authors)?v.authors.join(", "):"", pageCount:Number(v.pageCount)||0, cover:v.imageLinks?.thumbnail?.replace("http://","https://") || "", published:v.publishedDate || "", publisher:v.publisher || "" };
-        }).filter(item => item.title));
+        let results = [];
+        // Try Google Books first, then Open Library if Google is blocked or has no useful matches.
+        try {
+          const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(term)}&maxResults=8&printType=books`, { signal: controller.signal });
+          if (response.ok) {
+            const data = await response.json();
+            results = (data.items || []).map(item => {
+              const v = item.volumeInfo || {};
+              return { id:"google-"+item.id, title:v.title || "", author:Array.isArray(v.authors)?v.authors.join(", "):"", pageCount:Number(v.pageCount)||0, cover:v.imageLinks?.thumbnail?.replace("http://","https://") || "", published:v.publishedDate || "", publisher:v.publisher || "" };
+            }).filter(item => item.title);
+          }
+        } catch (err) { if (err.name === "AbortError") throw err; }
+        if (!results.length) {
+          const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(term)}&limit=8`, { signal: controller.signal });
+          if (!response.ok) throw new Error("Book search is temporarily unavailable.");
+          const data = await response.json();
+          results = (data.docs || []).map(item => ({
+            id:"openlibrary-"+(item.key || item.title+"-"+(item.author_name?.[0]||"")),
+            title:item.title || "",
+            author:Array.isArray(item.author_name)?item.author_name.slice(0,3).join(", "):"",
+            pageCount:Number(item.number_of_pages_median)||0,
+            cover:item.cover_i?`https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg`:"",
+            published:item.first_publish_year?String(item.first_publish_year):"",
+            publisher:Array.isArray(item.publisher)?item.publisher[0]||"":""
+          })).filter(item => item.title);
+        }
+        if (!controller.signal.aborted) { setBookSearchResults(results); setBookSearchError(results.length ? "" : "No matches found. You can enter the details manually."); }
       } catch (err) {
-        if (err.name !== "AbortError") { setBookSearchResults([]); setBookSearchError("Couldn't search books just now. You can still enter the details manually."); }
+        if (err.name !== "AbortError") { setBookSearchResults([]); setBookSearchError("Book search services are unavailable right now. You can still enter the details manually."); }
       } finally { if (!controller.signal.aborted) setBookSearchBusy(false); }
     }, 350);
     return () => { clearTimeout(timer); controller.abort(); };
