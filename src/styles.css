@@ -346,3 +346,7 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
   .opening-splash__emblem-frame{animation:none;opacity:1;transform:none}
   .opening-splash__artwork{animation:none}
 }
+
+
+/* Nudge the emblem artwork down slightly so the top gold edge is fully visible */
+.opening-splash__artwork{top:53.5%}
