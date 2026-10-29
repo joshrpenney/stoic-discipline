@@ -310,7 +310,11 @@ export default function App() {
   }, [user]);
 
   const activeHabits = habits.filter((h) => h.active !== false);
-  const isDueOn = (habit, date) => { const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
+  const nonNegotiableHabits = activeHabits.filter(h => h.nonNegotiable);
+  const flexibleHabits = activeHabits.filter(h => !h.nonNegotiable);
+  const MAX_NON_NEGOTIABLES = 5;
+  const MAX_FLEXIBLE_COMMITMENTS = 5;
+  const isDueOn = (habit, date) => { if (habit.nonNegotiable) return true; const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
   const dueHabits = activeHabits.filter(h => isDueOn(h, new Date()));
   const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
   const doneNonNegotiables = dueNonNegotiables.filter(h => checks[h.id]).length;
@@ -345,10 +349,7 @@ export default function App() {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     const scheduledNonNegotiables = date => habits
       .filter(h => h.active !== false && h.nonNegotiable)
-      .filter(h => {
-        const schedule = Array.isArray(h.daysOfWeek) && h.daysOfWeek.length ? h.daysOfWeek : [0,1,2,3,4,5,6];
-        return schedule.includes(date.getDay());
-      }).map(h => h.id);
+      .map(h => h.id);
     const dayStatus = date => {
       const key = dayKey(date), log = logs.get(key);
       const dueIds = Array.isArray(log?.dueNonNegotiableIds) ? log.dueNonNegotiableIds : scheduledNonNegotiables(date);
@@ -729,12 +730,16 @@ export default function App() {
   async function addHabit(e) {
     e.preventDefault();
     if (!newTitle.trim() || !user || !db) return;
+    const currentCount = newNonNegotiable ? nonNegotiableHabits.length : flexibleHabits.length;
+    const limit = newNonNegotiable ? MAX_NON_NEGOTIABLES : MAX_FLEXIBLE_COMMITMENTS;
+    if (currentCount >= limit) { setError(`You can have up to ${limit} ${newNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Edit or archive one before adding another.`); return; }
+    if (!newNonNegotiable && newSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
     try {
       await addDoc(collection(db, "users", user.uid, "habits"), {
         title: newTitle.trim(), category: newCategory, target: newTarget.trim(),
-        nonNegotiable: newNonNegotiable, daysOfWeek: newSchedule, active: true, createdAt: serverTimestamp()
+        nonNegotiable: newNonNegotiable, daysOfWeek: newNonNegotiable ? [0,1,2,3,4,5,6] : newSchedule, active: true, createdAt: serverTimestamp()
       });
-      setNewTitle(""); setNewTarget(""); setNewCategory("Mindset"); setNewNonNegotiable(true); setNewSchedule([0,1,2,3,4,5,6]); setShowAdd(false);
+      setNewTitle(""); setNewTarget(""); setNewCategory("Mindset"); setNewNonNegotiable(true); setNewSchedule([0,1,2,3,4,5,6]); setShowAdd(false); setError("");
       setNotice("Commitment added.");
     } catch (e) { setError(e.message); }
   }
@@ -748,12 +753,16 @@ export default function App() {
   async function saveHabitEdit(e) {
     e.preventDefault();
     if (!user || !db || !editingHabitId || !editingTitle.trim()) return;
+    const countInSelectedGroup = (editingIsNonNegotiable ? nonNegotiableHabits : flexibleHabits).filter(h => h.id !== editingHabitId).length;
+    const limit = editingIsNonNegotiable ? MAX_NON_NEGOTIABLES : MAX_FLEXIBLE_COMMITMENTS;
+    if (countInSelectedGroup >= limit) { setError(`You can have up to ${limit} ${editingIsNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Change or archive one before moving this commitment.`); return; }
+    if (!editingIsNonNegotiable && editingSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
     try {
       await updateDoc(doc(db, "users", user.uid, "habits", editingHabitId), {
         title: editingTitle.trim(), category: editingCategory, target: editingTarget.trim(),
-        nonNegotiable: editingIsNonNegotiable, daysOfWeek: editingSchedule, updatedAt: serverTimestamp()
+        nonNegotiable: editingIsNonNegotiable, daysOfWeek: editingIsNonNegotiable ? [0,1,2,3,4,5,6] : editingSchedule, updatedAt: serverTimestamp()
       });
-      setEditingHabitId(null); setNotice("Commitment updated.");
+      setEditingHabitId(null); setError(""); setNotice("Commitment updated.");
     } catch (e) { setError(e.message); }
   }
 
