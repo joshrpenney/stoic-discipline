@@ -7,7 +7,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
   serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 
 const starterHabits = [
