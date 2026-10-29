@@ -458,7 +458,19 @@ export default function App() {
     setError(""); setNotice("");
     try {
       if (alreadyFollowing) { await deleteDoc(doc(db, "follows", relationshipId)); setNotice("You unfollowed " + (profile.displayName || "this member") + "."); }
-      else { await setDoc(doc(db, "follows", relationshipId), { followerUid: user.uid, followedUid: profile.uid, createdAt: serverTimestamp() }); setNotice("You are now following " + (profile.displayName || "this member") + "."); }
+      else {
+        await setDoc(doc(db, "follows", relationshipId), { followerUid: user.uid, followedUid: profile.uid, createdAt: serverTimestamp() });
+        setNotice("You are now following " + (profile.displayName || "this member") + ".");
+        const becameMutual = followerRecords.some(row => row.followerUid === profile.uid);
+        if (becameMutual) {
+          const eventKey = ("mutual_follow_" + user.uid + "_" + profile.uid + "_" + Date.now()).slice(0, 180);
+          await setDoc(doc(db, "users", profile.uid, "notifications", eventKey), {
+            type: "mutual_follow", actorUid: user.uid, actorName: accountName || user.displayName || "A friend",
+            eventKey, read: false, createdAt: serverTimestamp(),
+            message: "You are now mutual accountability partners."
+          }).catch(() => {});
+        }
+      }
       await refreshCommunity();
       setCommunityResults(rows => rows.map(row => row.uid === profile.uid ? { ...row, isFollowing: !alreadyFollowing } : row));
     } catch (e) { setError("Could not update your follow. Check that the Firestore rules have been published. " + e.message); }
@@ -750,7 +762,7 @@ export default function App() {
         <p className="eyebrow">YOUR ACCOUNTABILITY CIRCLE</p>
         <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : newFollowerNotifications.length > 1 ? "New followers" : "Notifications"}</h2>
         <p className="muted">{newFollowerNotifications.length || notificationItems.some(n=>!n.read) ? "Updates from the people in your corner." : "You’re all caught up. New activity will appear here when it happens."}</p>
-        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); setShowNotifications(false); }}><span className="community-avatar">{(item.displayName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}{notificationItems.map(item=><button key={item.id} className="follower-notification-person" onClick={()=>{markAllNotificationsRead();setActiveTab("Community");setSelectedMemberProfile({uid:item.actorUid,displayName:item.actorName||"Stoic member"});setShowNotifications(false);}}><span className="community-avatar">{(item.actorName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.actorName||"A friend"} {item.type==="book_started"?"started reading":item.type==="book_finished"?"finished reading":item.type==="all_non_negotiables"?"completed all non-negotiables":item.type==="streak_milestone"?"reached a streak milestone":item.type==="level_up"?"levelled up":item.type==="achievement"?"unlocked an achievement":"shared an update"}</strong><small>{item.bookTitle?(item.bookTitle+(item.bookAuthor?" — "+item.bookAuthor:"")):(item.message||"View profile")}</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}</div>
+        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); setShowNotifications(false); }}><span className="community-avatar">{(item.displayName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}{notificationItems.map(item=><button key={item.id} className="follower-notification-person" onClick={()=>{markAllNotificationsRead();setActiveTab("Community");setSelectedMemberProfile({uid:item.actorUid,displayName:item.actorName||"Stoic member"});setShowNotifications(false);}}><span className="community-avatar">{(item.actorName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.actorName||"A friend"} {item.type==="book_started"?"started reading":item.type==="book_finished"?"finished reading":item.type==="all_non_negotiables"?"completed all non-negotiables":item.type==="streak_milestone"?"reached a streak milestone":item.type==="level_up"?"levelled up":item.type==="achievement"?"unlocked an achievement":item.type==="mutual_follow"?"is now your accountability partner":"shared an update"}</strong><small>{item.bookTitle?(item.bookTitle+(item.bookAuthor?" — "+item.bookAuthor:"")):(item.message||"View profile")}</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}</div>
         <button className="primary follower-notification-done" onClick={() => { markAllNotificationsRead(); setShowNotifications(false); }}>Mark all as read</button>
       </section>
     </div>}
