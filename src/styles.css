@@ -166,3 +166,10 @@
 .social-directory-stats strong{font-size:.88rem;overflow-wrap:anywhere}
 .social-directory-stats span{grid-column:1/-1;color:var(--muted,#9b9890);font-size:.7rem}
 @media(max-width:420px){.social-directory-card{padding:12px 10px}.social-directory-stats{margin-left:0}.social-directory-stats>div{padding:8px 6px}.social-directory-person-copy>strong{font-size:.96rem}}
+
+/* The selected bottom-navigation page gets the gold icon tile, whichever page is active. */
+.bottom-nav .nav-item{transform:none;gap:4px;color:#817d72;font-weight:500}
+.bottom-nav .nav-item .nav-icon-wrap{width:44px;height:44px;border-radius:14px;background:transparent;border:2px solid transparent;box-shadow:none;color:inherit;transition:background .18s ease,color .18s ease,box-shadow .18s ease,transform .18s ease}
+.bottom-nav .nav-item.active{color:var(--gold-bright);font-weight:700}
+.bottom-nav .nav-item.active .nav-icon-wrap{background:linear-gradient(145deg,#e5ca8b,#b08c4c);border-color:#24221d;color:#201d17;box-shadow:0 3px 10px #0004}
+.bottom-nav .nav-item span:last-child{color:inherit;font-size:10px}
