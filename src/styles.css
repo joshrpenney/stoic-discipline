@@ -509,3 +509,21 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 @keyframes achievement-relic-reveal{0%{opacity:.72;transform:translateY(5px) scale(.975);filter:brightness(.8)}55%{opacity:1;transform:translateY(-1px) scale(1.012);filter:brightness(1.15)}100%{opacity:1;transform:translateY(0) scale(1);filter:brightness(1)}}
 @keyframes rank-relic-settle{0%{transform:scale(.9);filter:brightness(.7)}65%{transform:scale(1.07);filter:brightness(1.18)}100%{transform:scale(1);filter:brightness(1)}}
 @media(prefers-reduced-motion:reduce){.achievement.unlocked,.rank-list-item.rank-reached .rank-stone-emblem{animation:none}.achievement-progress-track>span{transition:none}}
+
+
+/* Never show a selected tab while viewing another member's profile */
+.member-profile-bottom-nav .nav-item,
+.member-profile-bottom-nav .nav-item.active,
+.member-profile-bottom-nav .nav-item .nav-icon-wrap,
+.member-profile-bottom-nav .nav-item svg{
+  color:#77766e!important;
+}
+.member-profile-bottom-nav .nav-item.active .nav-icon-wrap{
+  background:transparent!important;
+  box-shadow:none!important;
+  border-color:transparent!important;
+}
+.member-profile-bottom-nav .nav-item.active svg{
+  fill:none!important;
+  stroke:currentColor!important;
+}
