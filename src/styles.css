@@ -173,3 +173,11 @@
 .bottom-nav .nav-item.active{color:var(--gold-bright);font-weight:700}
 .bottom-nav .nav-item.active .nav-icon-wrap{background:linear-gradient(145deg,#e5ca8b,#b08c4c);border-color:#24221d;color:#201d17;box-shadow:0 3px 10px #0004}
 .bottom-nav .nav-item span:last-child{color:inherit;font-size:10px}
+
+/* Remove Android/Chrome's blue tap flash while keeping keyboard focus visible. */
+button, a, input[type="button"], input[type="submit"], [role="button"]{
+  -webkit-tap-highlight-color: transparent;
+}
+button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:focus:not(:focus-visible){
+  outline:none;
+}
