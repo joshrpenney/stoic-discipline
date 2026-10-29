@@ -350,3 +350,45 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 
 /* Nudge the emblem artwork down slightly so the top gold edge is fully visible */
 .opening-splash__artwork{top:53.5%}
+
+
+/* Individual insignias for the twelve ranks */
+.rank-list-emblem{
+  position:relative;isolation:isolate;overflow:hidden;
+  width:52px;height:52px;flex:0 0 52px;border-radius:13px;
+  display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 35%,rgba(220,190,120,.13),transparent 62%),linear-gradient(145deg,#28251e,#151513);
+  border:1px solid rgba(199,170,105,.55);
+  color:#d9c17f;
+  box-shadow:inset 0 0 0 2px rgba(215,190,130,.045),0 3px 10px rgba(0,0,0,.18);
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+}
+.rank-list-item.rank-reached .rank-list-emblem{border-color:rgba(220,192,126,.72)}
+.rank-list-item.rank-reached:hover .rank-list-emblem{transform:translateY(-2px);box-shadow:inset 0 0 0 2px rgba(215,190,130,.08),0 5px 14px rgba(0,0,0,.25)}
+.rank-list-emblem>svg{position:relative;z-index:2;filter:drop-shadow(0 0 4px rgba(217,193,127,.15))}
+.rank-emblem-orbit{position:absolute;inset:5px;border:1px solid rgba(213,185,117,.28);border-radius:10px;transform:rotate(45deg);z-index:0}
+.rank-emblem-number{position:absolute;right:3px;bottom:2px;font:600 7px/1 sans-serif;letter-spacing:.4px;color:#a99561;z-index:3}
+.rank-emblem-1{border-radius:12px}
+.rank-emblem-2{border-radius:50%;background:radial-gradient(circle,#3a3322,#171613 72%)}
+.rank-emblem-2 .rank-emblem-orbit{border-radius:50%;inset:4px;transform:none}
+.rank-emblem-3{clip-path:none;border-radius:8px 15px 8px 15px;background:linear-gradient(145deg,#392a20,#171513)}
+.rank-emblem-3 .rank-emblem-orbit{border-radius:4px 10px 4px 10px;transform:rotate(45deg)}
+.rank-emblem-4{background:radial-gradient(circle at 50% 70%,rgba(201,117,59,.2),transparent 60%),linear-gradient(145deg,#30251c,#151412);color:#dfad78;border-color:#8d6241}
+.rank-emblem-5{border-radius:8px;background:linear-gradient(145deg,#343027,#181816);color:#c9c1a7}
+.rank-emblem-5 .rank-emblem-orbit{border-radius:2px;transform:rotate(45deg)}
+.rank-emblem-6{border-radius:50% 50% 13px 13px;background:radial-gradient(circle,#373225,#171613 72%)}
+.rank-emblem-6 .rank-emblem-orbit{border-radius:50%;inset:5px;transform:none}
+.rank-emblem-7{background:linear-gradient(145deg,#302b20,#171613);color:#d7c27d;border-color:#b39b5d}
+.rank-emblem-7 .rank-emblem-orbit{inset:4px;border-radius:50%;transform:rotate(25deg)}
+.rank-emblem-8{border-radius:50%;background:radial-gradient(circle at 50% 35%,#554526,#211d16 70%);color:#f0d58b;border-color:#d4b66b;box-shadow:inset 0 0 0 2px rgba(240,213,139,.12),0 0 12px rgba(202,169,93,.12)}
+.rank-emblem-8 .rank-emblem-orbit{inset:4px;border-radius:50%;transform:none;border-color:rgba(240,213,139,.5)}
+.rank-emblem-9{border-radius:12px;background:linear-gradient(145deg,#2f3030,#171718);color:#d7d0bd;border-color:#a9a18e}
+.rank-emblem-9 .rank-emblem-orbit{border-color:rgba(215,208,189,.32)}
+.rank-emblem-10{border-radius:50%;background:radial-gradient(circle,#4b3d24,#171613 73%);color:#f0d68f;border-color:#ddc17a;box-shadow:inset 0 0 0 2px rgba(240,214,143,.14),0 0 13px rgba(202,169,93,.15)}
+.rank-emblem-10 .rank-emblem-orbit{inset:4px;border-radius:50%;transform:rotate(45deg);border-color:rgba(240,214,143,.5)}
+.rank-emblem-11{border-radius:10px 10px 17px 17px;background:linear-gradient(145deg,#3b3020,#171512);color:#ead39a;border-color:#c3a15d}
+.rank-emblem-11 .rank-emblem-orbit{inset:4px;border-radius:7px 7px 13px 13px;transform:none;border-color:rgba(234,211,154,.42)}
+.rank-emblem-12{border-radius:50%;background:radial-gradient(circle,#6a542b 0%,#2b2417 52%,#151412 75%);color:#ffe7a6;border-color:#e0c37a;box-shadow:inset 0 0 0 2px rgba(255,231,166,.17),0 0 16px rgba(224,195,122,.2)}
+.rank-emblem-12 .rank-emblem-orbit{inset:3px;border-radius:50%;transform:none;border-color:rgba(255,231,166,.58)}
+.rank-list-item.rank-locked .rank-list-emblem{filter:grayscale(1);opacity:.32}
+@media(max-width:420px){.rank-list-emblem{width:48px;height:48px;flex-basis:48px}.rank-list-item{gap:10px}}
