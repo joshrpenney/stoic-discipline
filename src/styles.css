@@ -137,3 +137,6 @@
 
 .topbar-actions .notification-bell-button{position:relative}
 .notification-count{position:absolute;top:-4px;right:-3px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border:2px solid var(--bg);border-radius:20px;background:var(--gold);color:#211d14;font-size:9px;font-weight:800;line-height:1}
+
+/* Reserved founder label */
+.founder-subtitle{margin:0;color:#c4a66b;line-height:1.65;font-weight:600;letter-spacing:.15px}
