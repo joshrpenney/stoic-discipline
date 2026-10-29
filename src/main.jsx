@@ -21,10 +21,7 @@ function OpeningSplash() {
 
   return (
     <div className={`opening-splash${leaving ? " opening-splash--leaving" : ""}`} aria-label="Stoic Discipline" role="status">
-      <div className="opening-splash__aura" aria-hidden="true" />
-      <img className="opening-splash__emblem" src="./stoic-icon.svg" alt="" />
-      <div className="opening-splash__wordmark">STOIC DISCIPLINE</div>
-      <div className="opening-splash__rule" aria-hidden="true" />
+      <img className="opening-splash__artwork" src="./stoic-intro.webp" alt="" />
     </div>
   );
 }
