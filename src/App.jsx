@@ -55,6 +55,14 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Today");
   const tabHistoryRef = useRef([]);
   useEffect(() => {
+    // Keep several same-document history sentinels ahead of the page that
+    // originally opened the app. A web page cannot override Android's force-close,
+    // but this prevents ordinary browser Back from immediately leaving the app.
+    const addBackSentinels = () => {
+      for (let i = 0; i < 3; i++) {
+        window.history.pushState({ stoicDiscipline: true, sentinel: true }, "", window.location.href);
+      }
+    };
     const handleAppBack = () => {
       const previousTab = tabHistoryRef.current.pop();
       if (previousTab) {
@@ -63,11 +71,10 @@ export default function App() {
         setNotice("");
         window.scrollTo({ top: 0, behavior: "smooth" });
       }
-      // Keep a history entry in place even when there are no earlier app tabs,
-      // so Android Back does not leave or close the app page.
-      window.history.pushState({ stoicDiscipline: true, tab: previousTab || "current" }, "");
+      // Replenish sentinels synchronously before the browser can continue back.
+      addBackSentinels();
     };
-    window.history.pushState({ stoicDiscipline: true }, "");
+    addBackSentinels();
     window.addEventListener("popstate", handleAppBack);
     return () => window.removeEventListener("popstate", handleAppBack);
   }, []);
