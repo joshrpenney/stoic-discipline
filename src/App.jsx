@@ -62,8 +62,10 @@ export default function App() {
         setError("");
         setNotice("");
         window.scrollTo({ top: 0, behavior: "smooth" });
-        window.history.pushState({ stoicDiscipline: true }, "");
       }
+      // Keep a history entry in place even when there are no earlier app tabs,
+      // so Android Back does not leave or close the app page.
+      window.history.pushState({ stoicDiscipline: true, tab: previousTab || "current" }, "");
     };
     window.history.pushState({ stoicDiscipline: true }, "");
     window.addEventListener("popstate", handleAppBack);
