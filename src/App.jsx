@@ -681,7 +681,7 @@ export default function App() {
         <p className="eyebrow">WHILE YOU WERE AWAY</p>
         <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : "New followers"}</h2>
         <p className="muted">{newFollowerNotifications.length === 1 ? "You have a new person in your corner." : "These people have joined your accountability circle."}</p>
-        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); }}>
+        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); }}>
           <span className="community-avatar">{(item.displayName || "S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/>
         </button>)}</div>
         <button className="primary follower-notification-done" onClick={() => setNewFollowerNotifications([])}>Continue to journal</button>
