@@ -96,3 +96,5 @@
 .settings-reading-pace input{width:100%;max-width:220px;background:#171715;color:#f1eee8;border:1px solid #51452f;border-radius:7px;padding:12px;font:inherit;color-scheme:dark}
 .settings-reading-pace small{font-size:10px;line-height:1.6;color:var(--muted)}
 .book-time-estimate{flex-wrap:wrap}
+
+.auth-field-hint{display:block;font-size:10px;line-height:1.5;color:var(--muted);margin-top:0}
