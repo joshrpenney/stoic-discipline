@@ -62,7 +62,7 @@ function RankStoneEmblem({ level, Icon }) {
         <clipPath id={clipId}>{shape === "round" ? <circle cx="32" cy="32" r="29"/> : <path d={shapePath}/>}</clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        {shape === "round" ? <circle cx="32" cy="32" r="30" fill={`url(#stone-grad-${level})`}/> : <path d={shapePath} fill={`url(#stone-grad-${level})`}/>}}
+        {shape === "round" ? <circle cx="32" cy="32" r="30" fill={`url(#stone-grad-${level})`}/> : <path d={shapePath} fill={`url(#stone-grad-${level})`}/> }
         <rect width="64" height="64" fill="#aaa79a" opacity=".16" filter={`url(#stone-texture-${level})`}/>
         <path d="M8 15 17 8 45 7 55 15M7 43 13 54 24 59" fill="none" stroke="#f0ead4" strokeOpacity=".15" strokeWidth="1.2"/>
         <path d="M5 21 11 18M47 55 55 47M18 5 21 9M55 24 59 21" stroke="#121210" strokeOpacity=".6" strokeWidth="1.4"/>
