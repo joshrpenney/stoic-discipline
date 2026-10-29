@@ -392,11 +392,20 @@ export default function App() {
     try {
       if (!firebaseConfigured) throw new Error("Firebase is not configured yet. Follow SETUP.md and add your .env.local values.");
       if (mode === "register") {
+        const cleanDisplayName = displayName.trim().replace(/\\s+/g, " ");
+        if (cleanDisplayName.length < 2) throw new Error("Choose a profile name with at least 2 characters.");
+        if (cleanDisplayName.length > 60) throw new Error("Your profile name must be 60 characters or fewer.");
         const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-        if (displayName.trim()) await updateProfile(credential.user, { displayName: displayName.trim() });
+        await updateProfile(credential.user, { displayName: cleanDisplayName });
         await setDoc(doc(db, "users", credential.user.uid), {
-          displayName: displayName.trim(), email: email.trim(), createdAt: serverTimestamp()
+          displayName: cleanDisplayName, email: email.trim(), createdAt: serverTimestamp()
         }, { merge: true });
+        await setDoc(doc(db, "publicProfiles", credential.user.uid), {
+          uid: credential.user.uid,
+          displayName: cleanDisplayName,
+          displayNameLower: cleanDisplayName.toLowerCase(),
+          updatedAt: serverTimestamp()
+        });
       } else {
         await signInWithEmailAndPassword(auth, email.trim(), password);
       }
@@ -561,7 +570,7 @@ export default function App() {
         <button className={mode === "register" ? "selected" : ""} onClick={() => {setMode("register"); setError("");}}>Create account</button>
       </div>
       <form onSubmit={handleAuth} className="auth-form">
-        {mode === "register" && <label>Your name<input value={displayName} onChange={e=>setDisplayName(e.target.value)} placeholder="What should we call you?" autoComplete="name" /></label>}
+        {mode === "register" && <label>Profile name<input required minLength="2" maxLength="60" value={displayName} onChange={e=>setDisplayName(e.target.value)} placeholder="What should we call you?" autoComplete="name" /><small className="auth-field-hint">This name helps friends find you. Your email address is never shown on your public profile.</small></label>}
         <label>Email address<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" /></label>
         <label>Password<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters" autoComplete={mode==="register"?"new-password":"current-password"} /></label>
         {error && <p className="error">{error}</p>}
