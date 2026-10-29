@@ -90,6 +90,7 @@ export default function App() {
   const [communityBusy, setCommunityBusy] = useState(false);
   const [shareProgress, setShareProgress] = useState(true);
   const [privacyBusy, setPrivacyBusy] = useState(false);
+  const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
@@ -590,6 +591,46 @@ export default function App() {
     </div>
   </main>;
 
+  if (selectedMemberProfile) {
+    const member = selectedMemberProfile;
+    const followsThem = followingRecords.some(r => r.followedUid === member.uid);
+    const theyFollow = followerRecords.some(r => r.followerUid === member.uid);
+    const mutual = followsThem && theyFollow;
+    const sharedProgress = followingRecords.find(r => r.followedUid === member.uid)?.progress;
+    return <main className="app-shell">
+      <header className="topbar">
+        <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
+        <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
+        <button className="topbar-quiet-button" title="Close profile" aria-label="Close profile" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={16}/></button>
+      </header>
+      <section className="member-profile-page">
+        <p className="eyebrow">ACCOUNTABILITY CIRCLE</p>
+        <div className="member-profile-hero">
+          <div className="member-profile-avatar">{(member.displayName || "S").trim().charAt(0).toUpperCase()}</div>
+          <h1>{member.displayName || "Stoic member"}</h1>
+          <p className="muted">Stoic Discipline member</p>
+          <div className="member-profile-actions">
+            <button className={followsThem ? "secondary" : "primary"} onClick={() => toggleFollow(member)}>{followsThem ? <><UserCheck size={15}/> Following</> : <><UserPlus size={15}/> Follow</>}</button>
+            <span className="member-connection-status">{mutual ? "Mutual friends" : followsThem ? "You follow them" : theyFollow ? "Follows you" : "Not connected yet"}</span>
+          </div>
+        </div>
+        <section className="community-section member-shared-section">
+          <p className="eyebrow">SHARED PROGRESS</p>
+          {mutual && sharedProgress ? <>
+            <h2>Level {sharedProgress.level || 1} · {sharedProgress.rank || "Initiate"}</h2>
+            <div className="profile-stats member-profile-stats">
+              <article><Trophy size={20}/><strong>{Number(sharedProgress.totalXp)||0}</strong><span>total XP</span></article>
+              <article><Target size={20}/><strong>{Number(sharedProgress.totalActions)||0}</strong><span>actions completed</span></article>
+              <article><Flame size={20}/><strong>{Number(sharedProgress.streak)||0}</strong><span>day streak</span></article>
+            </div>
+            <div className="community-daily member-daily"><div className="community-daily-label"><span>Today's commitments</span><strong>{Number(sharedProgress.todayCompleted)||0}/{Number(sharedProgress.todayDue)||0}</strong></div><div className="community-daily-track"><span style={{width:((Number(sharedProgress.todayDue)||0)?Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/(Number(sharedProgress.todayDue)||0)*100)):0)+"%"}}/></div></div>
+          </> : <div className="empty community-empty"><Users size={26}/><h3>{mutual ? "Progress not shared" : "Shared progress is locked"}</h3><p>{mutual ? "This member has chosen not to share their progress, or their summary is not available yet." : "You can see shared progress when you follow each other and this member has sharing enabled."}</p></div>}
+        </section>
+        <p className="member-profile-privacy">Private journal entries, habits and reading records are not shown on this profile.</p>
+      </section>
+    </main>;
+  }
+
   return <main className="app-shell">
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
@@ -723,13 +764,13 @@ export default function App() {
         <section className="community-search-card">
           <form className="community-search-form" onSubmit={searchCommunity}><label>Find a person<input id="community-search-input" value={communitySearch} onChange={e=>setCommunitySearch(e.target.value)} placeholder="Search by account name" maxLength="60"/></label><button className="primary" disabled={communityBusy}><Search size={16}/> Search</button></form>
           <p className="community-hint">Search matches account names beginning with what you type. Ask friends to use a recognisable name in their profile settings.</p>
-          {communityResults.length>0 && <div className="community-list">{communityResults.map(profile=><article className="community-person" key={profile.uid}><div className="community-avatar">{(profile.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{profile.displayName||"Stoic member"}</strong><span>Stoic Discipline member</span></div><button className={followingRecords.some(r=>r.followedUid===profile.uid)?"secondary community-follow-button":"primary community-follow-button"} onClick={()=>toggleFollow(profile)}>{followingRecords.some(r=>r.followedUid===profile.uid)?<><UserCheck size={15}/> Following</>:<><UserPlus size={15}/> Follow</>}</button></article>)}</div>}
+          {communityResults.length>0 && <div className="community-list">{communityResults.map(profile=><article className="community-person" key={profile.uid}><button type="button" className="community-profile-trigger" aria-label={"View "+(profile.displayName||"member")+" profile"} onClick={()=>setSelectedMemberProfile(profile)}><div className="community-avatar">{(profile.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{profile.displayName||"Stoic member"}</strong><span>View profile</span></div></button><button className={followingRecords.some(r=>r.followedUid===profile.uid)?"secondary community-follow-button":"primary community-follow-button"} onClick={()=>toggleFollow(profile)}>{followingRecords.some(r=>r.followedUid===profile.uid)?<><UserCheck size={15}/> Following</>:<><UserPlus size={15}/> Follow</>}</button></article>)}</div>}
         </section>
         <section className="community-section"><div className="community-section-heading"><div><p className="eyebrow">YOUR ACCOUNTABILITY CIRCLE</p><h2>Following <span>{followingRecords.length}</span></h2></div><button className="quiet-icon-button" title="Refresh community" onClick={refreshCommunity}><RefreshCw size={16}/></button></div>
-          {followingRecords.length===0 ? <div className="empty community-empty"><Users size={28}/><h3>Your circle starts here</h3><p>Search for a friend above and follow them. Their shared progress will appear here.</p></div> : <div className="community-list">{followingRecords.map(row=>{const p=row.progress||{};const due=Number(p.todayDue)||0;const completed=Number(p.todayCompleted)||0;return <article className="community-progress-card" key={row.followedUid}><div className="community-person"><div className="community-avatar">{(row.profile?.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{row.profile?.displayName||"Stoic member"}</strong><span>Level {p.level||1} · {p.rank||"Initiate"}</span></div><button className="quiet-icon-button danger" title={"Unfollow "+(row.profile?.displayName||"member")} onClick={()=>toggleFollow({...row.profile,uid:row.followedUid})}><UserCheck size={16}/></button></div>{row.progress ? <><div className="community-metrics"><div><Trophy size={15}/><strong>{Number(p.totalXp)||0}</strong><span>XP</span></div><div><Target size={15}/><strong>{Number(p.totalActions)||0}</strong><span>actions</span></div><div><Flame size={15}/><strong>{Number(p.streak)||0}</strong><span>day streak</span></div></div><div className="community-daily"><div className="community-daily-label"><span>Today's commitments</span><strong>{completed}/{due}</strong></div><div className="community-daily-track"><span style={{width:(due?Math.min(100,Math.round(completed/due*100)):0)+"%"}}/></div><small>{due===0?"No commitments due today":completed===due?"All due commitments completed":Math.round(completed/due*100)+"% complete so far"}</small></div></> : <p className="community-hint">Follow each other to unlock shared progress. They need to follow you back too.</p>}</article>})}</div>}
+          {followingRecords.length===0 ? <div className="empty community-empty"><Users size={28}/><h3>Your circle starts here</h3><p>Search for a friend above and follow them. Their shared progress will appear here.</p></div> : <div className="community-list">{followingRecords.map(row=>{const p=row.progress||{};const due=Number(p.todayDue)||0;const completed=Number(p.todayCompleted)||0;return <article className="community-progress-card" key={row.followedUid}><div className="community-person"><button type="button" className="community-profile-trigger" aria-label={"View "+(row.profile?.displayName||"member")+" profile"} onClick={()=>setSelectedMemberProfile({...row.profile,uid:row.followedUid})}><div className="community-avatar">{(row.profile?.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{row.profile?.displayName||"Stoic member"}</strong><span>View profile · Level {p.level||1}</span></div></button><button className="quiet-icon-button danger" title={"Unfollow "+(row.profile?.displayName||"member")} onClick={()=>toggleFollow({...row.profile,uid:row.followedUid})}><UserCheck size={16}/></button></div>{row.progress ? <><div className="community-metrics"><div><Trophy size={15}/><strong>{Number(p.totalXp)||0}</strong><span>XP</span></div><div><Target size={15}/><strong>{Number(p.totalActions)||0}</strong><span>actions</span></div><div><Flame size={15}/><strong>{Number(p.streak)||0}</strong><span>day streak</span></div></div><div className="community-daily"><div className="community-daily-label"><span>Today's commitments</span><strong>{completed}/{due}</strong></div><div className="community-daily-track"><span style={{width:(due?Math.min(100,Math.round(completed/due*100)):0)+"%"}}/></div><small>{due===0?"No commitments due today":completed===due?"All due commitments completed":Math.round(completed/due*100)+"% complete so far"}</small></div></> : <p className="community-hint">Follow each other to unlock shared progress. They need to follow you back too.</p>}</article>})}</div>}
         </section>
         <section className="community-section"><div className="community-section-heading"><div><p className="eyebrow">THEY'RE IN YOUR CORNER</p><h2>Following you <span>{followerRecords.length}</span></h2></div><button className="quiet-icon-button" title="Refresh community" onClick={refreshCommunity}><RefreshCw size={16}/></button></div>
-          {followerRecords.length===0 ? <div className="empty community-empty"><UserPlus size={28}/><h3>Your first follower</h3><p>When someone follows your account, they'll appear here. Your progress is only visible to people you follow back.</p></div> : <div className="community-list">{followerRecords.map(row=>{const mutual=followingRecords.some(r=>r.followedUid===row.followerUid);return <article className="community-person community-follower" key={row.followerUid}><div className="community-avatar">{(row.profile?.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{row.profile?.displayName||"Stoic member"}</strong><span>{mutual?"You're following each other":"Follows you · follow back to see their progress"}</span></div>{!mutual&&<button className="primary community-follow-button" onClick={()=>toggleFollow({...row.profile,uid:row.followerUid})}><UserPlus size={15}/> Follow back</button>}</article>})}</div>}
+          {followerRecords.length===0 ? <div className="empty community-empty"><UserPlus size={28}/><h3>Your first follower</h3><p>When someone follows your account, they'll appear here. Your progress is only visible to people you follow back.</p></div> : <div className="community-list">{followerRecords.map(row=>{const mutual=followingRecords.some(r=>r.followedUid===row.followerUid);return <article className="community-person community-follower" key={row.followerUid}><button type="button" className="community-profile-trigger" aria-label={"View "+(row.profile?.displayName||"member")+" profile"} onClick={()=>setSelectedMemberProfile({...row.profile,uid:row.followerUid})}><div className="community-avatar">{(row.profile?.displayName||"S").trim().charAt(0).toUpperCase()}</div><div className="community-person-copy"><strong>{row.profile?.displayName||"Stoic member"}</strong><span>{mutual?"You're following each other":"Follows you · view profile"}</span></div></button>{!mutual&&<button className="primary community-follow-button" onClick={()=>toggleFollow({...row.profile,uid:row.followerUid})}><UserPlus size={15}/> Follow back</button>}</article>})}</div>}
         </section>
       </>}
       {activeTab === "Settings" && <>
