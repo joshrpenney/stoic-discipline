@@ -527,3 +527,23 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
   fill:none!important;
   stroke:currentColor!important;
 }
+
+
+/* Premium rank-up and achievement-unlock celebration */
+.unlock-celebration-backdrop{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(7,7,6,.88);backdrop-filter:blur(10px);animation:unlock-backdrop-in .3s ease-out both}
+.unlock-celebration-panel{position:relative;width:min(100%,420px);padding:32px 24px 26px;text-align:center;overflow:hidden;border:1px solid #8b7546;border-radius:22px;background:radial-gradient(ellipse at 50% 12%,rgba(193,162,94,.17),transparent 43%),linear-gradient(145deg,#292720,#171716 72%);box-shadow:0 25px 90px rgba(0,0,0,.55),inset 0 1px rgba(255,255,255,.08);animation:unlock-panel-in .65s cubic-bezier(.2,.85,.25,1) both}
+.unlock-celebration-panel::before{content:"";position:absolute;inset:9px;border:1px solid rgba(199,173,112,.19);border-radius:15px;pointer-events:none}
+.unlock-celebration-overline,.unlock-celebration-kicker,.unlock-celebration-panel h2,.unlock-celebration-panel p,.unlock-celebration-continue,.unlock-celebration-emblem{position:relative;z-index:1}
+.unlock-celebration-overline{font-size:10px;letter-spacing:3px;font-weight:700;color:#cbb477}
+.unlock-celebration-emblem{width:108px;height:108px;margin:26px auto 22px;display:flex;align-items:center;justify-content:center;color:#f0d99d;border:2px solid #bca36a;border-radius:22px;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.2),transparent 38%),repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 5px),linear-gradient(145deg,#6c6045,#282720 68%,#4b402a);box-shadow:inset 0 0 0 5px rgba(9,9,8,.35),inset 0 1px 1px rgba(255,255,255,.25),0 8px 0 #10100e,0 0 36px rgba(211,177,99,.17);animation:unlock-emblem-arrive .9s cubic-bezier(.2,.85,.25,1) .12s both}
+.unlock-celebration-emblem.rank-emblem{border-radius:18px 18px 28px 28px;clip-path:polygon(0 0,100% 0,100% 70%,50% 100%,0 70%);padding-bottom:8px}
+.unlock-celebration-emblem>span{position:absolute;top:8px;right:11px;font-size:12px;color:#f4dfa7;text-shadow:0 0 12px #c9a657}
+.unlock-celebration-kicker{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#cbb477}
+.unlock-celebration-panel h2{margin:10px 0 5px;color:#f0e8d9;font:600 clamp(27px,7vw,36px)/1.15 'Playfair Display',Georgia,serif}
+.unlock-celebration-panel p{margin:8px auto 0;max-width:290px;color:#aaa69b;font-size:14px;line-height:1.6}
+.unlock-celebration-panel .unlock-celebration-level{margin-top:5px;color:#d4bd80;font-size:12px;letter-spacing:1px}
+.unlock-celebration-continue{width:100%;margin-top:28px;padding:14px 18px;border:1px solid #c4a767;border-radius:12px;background:linear-gradient(135deg,#e1c782,#b99a58);color:#17150f;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(196,167,103,.15)}
+@keyframes unlock-backdrop-in{from{opacity:0}to{opacity:1}}
+@keyframes unlock-panel-in{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes unlock-emblem-arrive{0%{opacity:0;transform:translateY(15px) scale(.72) rotate(-7deg);filter:brightness(.65)}65%{opacity:1;transform:translateY(-3px) scale(1.06) rotate(1deg);filter:brightness(1.2)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0);filter:brightness(1)}}
+@media(prefers-reduced-motion:reduce){.unlock-celebration-backdrop,.unlock-celebration-panel,.unlock-celebration-emblem{animation:none}}
