@@ -134,3 +134,6 @@
 .follower-notification-person small{font-size:10px;line-height:1.4;color:var(--muted)}
 .follower-notification-arrow{transform:rotate(180deg);color:var(--gold);flex:0 0 auto}
 .follower-notification-done{width:100%;padding:13px}
+
+.topbar-actions .notification-bell-button{position:relative}
+.notification-count{position:absolute;top:-4px;right:-3px;min-width:17px;height:17px;padding:0 4px;display:grid;place-items:center;border:2px solid var(--bg);border-radius:20px;background:var(--gold);color:#211d14;font-size:9px;font-weight:800;line-height:1}
