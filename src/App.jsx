@@ -466,6 +466,34 @@ export default function App() {
 
   useEffect(() => { if (user && (activeTab === "Community" || activeTab === "Profile")) refreshCommunity(); }, [user, activeTab]);
   useEffect(()=>{if(user)refreshNotifications();else setNotificationItems([]);},[user]);
+  const previousLevelRef = useRef(null);
+  const previousStreakRef = useRef(null);
+  const previousAchievementsRef = useRef(null);
+  useEffect(() => {
+    if (!user || !db) { previousLevelRef.current=null; return; }
+    const current=Number(levelInfo.level)||1;
+    if(previousLevelRef.current===null){previousLevelRef.current=current;return;}
+    const previous=previousLevelRef.current; previousLevelRef.current=current;
+    if(current>previous) notifyMutualFriends("level_up",{eventKey:"level_"+current,message:"Reached Level "+current+"."}).catch(()=>{});
+  },[user,levelInfo.level]);
+  useEffect(() => {
+    if (!user || !db) { previousStreakRef.current=null; return; }
+    const current=Number(streak)||0;
+    if(previousStreakRef.current===null){previousStreakRef.current=current;return;}
+    const previous=previousStreakRef.current; previousStreakRef.current=current;
+    const milestones=[3,7,14,30,60,100];
+    if(current>previous && milestones.includes(current)) notifyMutualFriends("streak_milestone",{eventKey:"streak_"+current,message:"Reached a "+current+"-day streak."}).catch(()=>{});
+  },[user,streak]);
+  useEffect(() => {
+    if (!user || !db) { previousAchievementsRef.current=null; return; }
+    const unlocked=achievements.filter(a=>a.unlocked).map(a=>a.title);
+    if(previousAchievementsRef.current===null){previousAchievementsRef.current=unlocked;return;}
+    const previous=new Set(previousAchievementsRef.current);
+    const fresh=unlocked.filter(title=>!previous.has(title));
+    previousAchievementsRef.current=unlocked;
+    fresh.forEach(title=>notifyMutualFriends("achievement",{eventKey:"achievement_"+title.toLowerCase().replace(/[^a-z0-9]+/g,"-"),message:"Unlocked the "+title+" achievement."}).catch(()=>{}));
+  },[user,achievements]);
+
 
   async function shareInvite() {
     const inviteText = "Join me on Stoic Discipline and let's keep each other accountable. My profile name is " + (accountName.trim() || user?.displayName || "Stoic member") + ".";
@@ -719,10 +747,10 @@ export default function App() {
       <section className="follower-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="follower-notification-title">
         <button className="follower-notification-close" aria-label="Dismiss notifications" onClick={() => setShowNotifications(false)}><X size={18}/></button>
         <div className="follower-notification-icon"><Bell size={24}/></div>
-        <p className="eyebrow">WHILE YOU WERE AWAY</p>
+        <p className="eyebrow">YOUR ACCOUNTABILITY CIRCLE</p>
         <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : newFollowerNotifications.length > 1 ? "New followers" : "Notifications"}</h2>
-        <p className="muted">{newFollowerNotifications.length === 1 ? "You have a new person in your corner." : newFollowerNotifications.length > 1 ? "These people have joined your accountability circle." : "You’re all caught up. New follower updates will appear here when you return."}</p>
-        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); setShowNotifications(false); }}><span className="community-avatar">{(item.displayName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}{notificationItems.map(item=><button key={item.id} className="follower-notification-person" onClick={()=>{markAllNotificationsRead();setActiveTab("Community");setSelectedMemberProfile({uid:item.actorUid,displayName:item.actorName||"Stoic member"});setShowNotifications(false);}}><span className="community-avatar">{(item.actorName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.actorName||"A friend"} {item.type==="book_started"?"started reading":item.type==="book_finished"?"finished reading":"completed all non-negotiables"}</strong><small>{item.bookTitle?(item.bookTitle+(item.bookAuthor?" — "+item.bookAuthor:"")):(item.message||"View profile")}</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}</div>
+        <p className="muted">{newFollowerNotifications.length || notificationItems.some(n=>!n.read) ? "Updates from the people in your corner." : "You’re all caught up. New activity will appear here when it happens."}</p>
+        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); setShowNotifications(false); }}><span className="community-avatar">{(item.displayName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}{notificationItems.map(item=><button key={item.id} className="follower-notification-person" onClick={()=>{markAllNotificationsRead();setActiveTab("Community");setSelectedMemberProfile({uid:item.actorUid,displayName:item.actorName||"Stoic member"});setShowNotifications(false);}}><span className="community-avatar">{(item.actorName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.actorName||"A friend"} {item.type==="book_started"?"started reading":item.type==="book_finished"?"finished reading":item.type==="all_non_negotiables"?"completed all non-negotiables":item.type==="streak_milestone"?"reached a streak milestone":item.type==="level_up"?"levelled up":item.type==="achievement"?"unlocked an achievement":"shared an update"}</strong><small>{item.bookTitle?(item.bookTitle+(item.bookAuthor?" — "+item.bookAuthor:"")):(item.message||"View profile")}</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}</div>
         <button className="primary follower-notification-done" onClick={() => { markAllNotificationsRead(); setShowNotifications(false); }}>Mark all as read</button>
       </section>
     </div>}
