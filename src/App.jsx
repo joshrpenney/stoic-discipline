@@ -919,7 +919,7 @@ export default function App() {
         </section>
         <p className="member-profile-privacy">Private journal entries and habits are not shown on this profile. Shared reading activity shows books in progress and their start dates; the Library shows completed books.</p>
       </section>
-      <nav className="bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setActiveTab(label);setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
+      <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setActiveTab(label);setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
     </main>;
   }
 
