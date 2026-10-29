@@ -52,6 +52,34 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))));
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
+    // Notification recipients can read and manage their own notifications.
+    // A mutual friend may create only a limited, privacy-respecting activity notification.
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'type', 'actorUid', 'actorName', 'eventKey', 'read', 'createdAt',
+          'bookTitle', 'bookAuthor', 'message'
+        ])
+        && request.resource.data.type in [
+          'all_non_negotiables', 'streak_milestone', 'level_up', 'achievement',
+          'book_started', 'book_finished'
+        ]
+        && request.resource.data.eventKey is string
+        && request.resource.data.read == false
+        && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
+        && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))
+        && (
+          (request.resource.data.type in ['book_started', 'book_finished']
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy)
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy).data.shareReadingActivity == true)
+          ||
+          (request.resource.data.type in ['all_non_negotiables', 'streak_milestone', 'level_up', 'achievement']
+            && (!exists(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy)
+              || get(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy).data.shareProgress != false))
+        );
+    }
     // A follow edge is created/deleted by the follower; both sides can read it.
     match /follows/{followId} {
       allow read: if request.auth != null && (resource.data.followerUid == request.auth.uid || resource.data.followedUid == request.auth.uid);
