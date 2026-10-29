@@ -364,7 +364,7 @@ export default function App() {
     if (!user || !db) return;
     const publicName = (accountName.trim() || user.displayName || "").trim();
     if (!publicName) return;
-    setDoc(doc(db, "publicProfiles", user.uid), { uid: user.uid, displayName: publicName, displayNameLower: publicName.toLowerCase(), isFounder: user.email?.toLowerCase() === "joshrpenney@gmail.com", updatedAt: serverTimestamp() }, { merge: true }).catch(e => setError(e.message));
+    setDoc(doc(db, "publicProfiles", user.uid), { uid: user.uid, displayName: publicName, displayNameLower: publicName.toLowerCase(), isFounder: user.email?.toLowerCase() === "joshrpenney@hotmail.co.uk", updatedAt: serverTimestamp() }, { merge: true }).catch(e => setError(e.message));
   }, [user, accountName]);
 
   useEffect(() => {
