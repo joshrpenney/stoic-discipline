@@ -547,3 +547,24 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 @keyframes unlock-panel-in{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes unlock-emblem-arrive{0%{opacity:0;transform:translateY(15px) scale(.72) rotate(-7deg);filter:brightness(.65)}65%{opacity:1;transform:translateY(-3px) scale(1.06) rotate(1deg);filter:brightness(1.2)}100%{opacity:1;transform:translateY(0) scale(1) rotate(0);filter:brightness(1)}}
 @media(prefers-reduced-motion:reduce){.unlock-celebration-backdrop,.unlock-celebration-panel,.unlock-celebration-emblem{animation:none}}
+
+
+/* The celebration must feature the actual earned badge, not a generic trophy */
+.unlock-celebration-emblem.rank-emblem,
+.unlock-celebration-emblem.achievement-emblem{
+  width:116px;height:116px;margin:24px auto 22px;padding:0;
+  border:0;border-radius:0;background:transparent;box-shadow:none;
+  overflow:visible;clip-path:none;animation:none;
+}
+.unlock-celebration-emblem.rank-emblem .rank-list-emblem.rank-stone-emblem{
+  width:104px;height:104px;flex:0 0 104px;
+  filter:drop-shadow(0 7px 5px rgba(0,0,0,.65));
+  animation:unlock-emblem-arrive .9s cubic-bezier(.2,.85,.25,1) .12s both;
+}
+.unlock-celebration-emblem.achievement-emblem .unlock-celebration-achievement-stone{
+  width:92px;height:92px;flex:0 0 92px;border-radius:50%;
+  box-shadow:inset 1px 1px 1px rgba(255,255,255,.22),inset -3px -4px 6px rgba(0,0,0,.62),0 6px 0 #10100e,0 0 28px rgba(211,177,99,.16);
+  animation:unlock-emblem-arrive .9s cubic-bezier(.2,.85,.25,1) .12s both;
+}
+.unlock-celebration-emblem.achievement-emblem .unlock-celebration-achievement-stone>svg{width:42px;height:42px}
+.unlock-celebration-emblem.achievement-emblem>span{top:0;right:0}
