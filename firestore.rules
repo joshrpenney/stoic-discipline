@@ -24,7 +24,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly([
           'uid', 'displayName', 'totalXp', 'totalActions', 'level', 'rank',
-          'streak', 'todayCompleted', 'todayDue', 'updatedAt'
+          'streak', 'todayCompleted', 'todayDue', 'shareProgress', 'updatedAt'
         ]);
       allow read: if request.auth != null && (request.auth.uid == userId
         || (resource.data.shareProgress != false
