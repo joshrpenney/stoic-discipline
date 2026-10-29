@@ -30,7 +30,16 @@ const todayKey = () => {
 };
 const prettyDate = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 function RankStoneEmblem({ level, Icon }) {
-  const shape = level === 2 || level === 6 || level === 8 || level === 10 || level === 12 ? "round" : level === 3 || level === 11 ? "shield" : level === 4 ? "flame" : level === 5 || level === 9 ? "diamond" : "square";
+  const shape = ["square","round","shield","flame","diamond","hexagon","octagon","arch","sun","crest","kite","laurel"][level - 1] || "square";
+  const shapePaths = {
+    square:"M15 3H49L61 15V49L49 61H15L3 49V15Z", shield:"M32 3 57 13 54 39 32 60 10 39 7 13Z",
+    flame:"M32 3 43 15 55 21 59 36 49 52 32 61 15 52 5 36 9 21 21 15Z", diamond:"M32 3 60 32 32 61 4 32Z",
+    hexagon:"M18 4H46L60 20V44L46 60H18L4 44V20Z", octagon:"M21 3H43L61 21V43L43 61H21L3 43V21Z",
+    arch:"M7 59V29C7 14 18 4 32 4S57 14 57 29V59Z", sun:"M32 3 38 10 48 7 50 17 59 23 54 32 59 41 50 47 48 57 38 54 32 61 26 54 16 57 14 47 5 41 10 32 5 23 14 17 16 7 26 10Z",
+    crest:"M8 7H56L53 39 32 60 11 39Z", kite:"M32 3 55 20 48 45 32 61 16 45 9 20Z",
+    laurel:"M32 4C45 8 57 19 57 32S45 56 32 60C19 56 7 45 7 32S19 8 32 4Z"
+  };
+  const shapePath = shapePaths[shape] || shapePaths.square;
   const clipId = `rank-stone-clip-${level}`;
   return <div className={`rank-list-emblem rank-emblem-${level} rank-stone-emblem rank-stone-${shape}`} aria-label={`Rank ${level} emblem`}>
     <svg className="rank-stone-art" viewBox="0 0 64 64" role="img" aria-hidden="true">
@@ -43,15 +52,15 @@ function RankStoneEmblem({ level, Icon }) {
           <feComponentTransfer><feFuncA type="table" tableValues="0 .18"/></feComponentTransfer>
           <feBlend in="SourceGraphic" mode="soft-light"/>
         </filter>
-        <clipPath id={clipId}>{shape === "round" ? <circle cx="32" cy="32" r="29"/> : shape === "shield" ? <path d="M32 3 57 13 54 39 32 60 10 39 7 13Z"/> : shape === "diamond" ? <path d="M32 3 60 32 32 61 4 32Z"/> : shape === "flame" ? <path d="M32 3 51 16 60 34 51 53 32 61 13 53 4 34 13 16Z"/> : <path d="M13 3H51L61 13V51L51 61H13L3 51V13Z"/>}</clipPath>
+        <clipPath id={clipId}>{shape === "round" ? <circle cx="32" cy="32" r="29"/> : <path d={shapePath}/>}</clipPath>
       </defs>
       <g clipPath={`url(#${clipId})`}>
-        {shape === "round" ? <circle cx="32" cy="32" r="30" fill={`url(#stone-grad-${level})`}/> : shape === "shield" ? <path d="M32 3 57 13 54 39 32 60 10 39 7 13Z" fill={`url(#stone-grad-${level})`}/> : shape === "diamond" ? <path d="M32 3 60 32 32 61 4 32Z" fill={`url(#stone-grad-${level})`}/> : shape === "flame" ? <path d="M32 3 51 16 60 34 51 53 32 61 13 53 4 34 13 16Z" fill={`url(#stone-grad-${level})`}/> : <path d="M13 3H51L61 13V51L51 61H13L3 51V13Z" fill={`url(#stone-grad-${level})`}/>}
+        {shape === "round" ? <circle cx="32" cy="32" r="30" fill={`url(#stone-grad-${level})`}/> : <path d={shapePath} fill={`url(#stone-grad-${level})`}/>}}
         <rect width="64" height="64" fill="#aaa79a" opacity=".16" filter={`url(#stone-texture-${level})`}/>
         <path d="M8 15 17 8 45 7 55 15M7 43 13 54 24 59" fill="none" stroke="#f0ead4" strokeOpacity=".15" strokeWidth="1.2"/>
         <path d="M5 21 11 18M47 55 55 47M18 5 21 9M55 24 59 21" stroke="#121210" strokeOpacity=".6" strokeWidth="1.4"/>
       </g>
-      {shape === "round" ? <><circle cx="32" cy="32" r="27" fill="none" stroke="#151512" strokeWidth="3"/><circle cx="32" cy="32" r="24.5" fill="none" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".72" strokeWidth="1.1"/><circle cx="32" cy="32" r="20.5" fill="none" stroke="#c9c2aa" strokeOpacity=".38" strokeWidth=".7"/></> : <><path d={shape === "shield" ? "M32 5 55 14 52 38 32 57 12 38 9 14Z" : shape === "diamond" ? "M32 6 57 32 32 58 7 32Z" : shape === "flame" ? "M32 6 49 18 56 34 48 50 32 58 16 50 8 34 15 18Z" : "M14 6H50L58 14V50L50 58H14L6 50V14Z"} fill="none" stroke="#141411" strokeWidth="3"/><path d={shape === "shield" ? "M32 7 53 15 50 37 32 54 14 37 11 15Z" : shape === "diamond" ? "M32 8 55 32 32 55 9 32Z" : shape === "flame" ? "M32 8 47 19 54 34 46 48 32 55 18 48 10 34 17 19Z" : "M15 8H49L56 15V49L49 56H15L8 49V15Z"} fill="none" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".66" strokeWidth="1.1"/></>}
+      {shape === "round" ? <><circle cx="32" cy="32" r="27" fill="none" stroke="#151512" strokeWidth="3"/><circle cx="32" cy="32" r="24.5" fill="none" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".72" strokeWidth="1.1"/><circle cx="32" cy="32" r="20.5" fill="none" stroke="#c9c2aa" strokeOpacity=".38" strokeWidth=".7"/></> : <><path d={shapePath} transform="translate(32 32) scale(.86) translate(-32 -32)" fill="none" stroke="#141411" strokeWidth="3"/><path d={shapePath} transform="translate(32 32) scale(.79) translate(-32 -32)" fill="none" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".66" strokeWidth="1.1"/></>}
       <path d="M32 12 34 16 39 17 35 21 36 26 32 23 28 26 29 21 25 17 30 16Z" fill={`url(#inlay-grad-${level})`} opacity=".65"/>
       <path d="M13 32H17M47 32H51M32 45V49" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".55" strokeWidth="1"/>
     </svg>
