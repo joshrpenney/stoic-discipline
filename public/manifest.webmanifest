@@ -1,0 +1,27 @@
+{
+  "id": "/stoic-discipline/stoic-journal-v3/",
+  "name": "Stoic Discipline Journal",
+  "short_name": "Stoic Journal",
+  "description": "Keep the promises you make to yourself.",
+  "start_url": "/stoic-discipline/?install=stoic-journal-v3",
+  "scope": "/stoic-discipline/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#151515",
+  "theme_color": "#151515",
+  "icons": [
+    {
+      "src": "/stoic-discipline/stoic-icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/stoic-discipline/stoic-icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
