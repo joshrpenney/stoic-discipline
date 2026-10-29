@@ -64,7 +64,7 @@ service cloud.firestore {
         ])
         && request.resource.data.type in [
           'all_non_negotiables', 'streak_milestone', 'level_up', 'achievement',
-          'book_started', 'book_finished'
+          'book_started', 'book_finished', 'mutual_follow'
         ]
         && request.resource.data.eventKey is string
         && request.resource.data.read == false
@@ -78,6 +78,8 @@ service cloud.firestore {
           (request.resource.data.type in ['all_non_negotiables', 'streak_milestone', 'level_up', 'achievement']
             && (!exists(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy)
               || get(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy).data.shareProgress != false))
+          ||
+          request.resource.data.type == 'mutual_follow'
         );
     }
     // A follow edge is created/deleted by the follower; both sides can read it.
