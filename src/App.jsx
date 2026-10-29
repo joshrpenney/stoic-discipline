@@ -92,6 +92,8 @@ export default function App() {
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
   const [newFollowerNotifications, setNewFollowerNotifications] = useState([]);
+  const [notificationItems, setNotificationItems] = useState([]);
+  const [shareReadingActivity, setShareReadingActivity] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
@@ -141,6 +143,7 @@ export default function App() {
     if (!user || !db) { setShareProgress(true); return; }
     getDoc(doc(db, "users", user.uid, "settings", "privacy")).then(snapshot => {
       setShareProgress(snapshot.exists() ? snapshot.data().shareProgress !== false : true);
+      setShareReadingActivity(snapshot.exists() ? snapshot.data().shareReadingActivity === true : false);
     }).catch(e => setError("Could not load privacy settings: " + e.message));
   }, [user]);
   useEffect(() => { localStorage.setItem("stoic-reading-wpm", String(readingWpm)); }, [readingWpm]);
@@ -374,6 +377,39 @@ export default function App() {
     }, { merge: true }).catch(e => setError(e.message));
   }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length, shareProgress]);
 
+  async function notifyMutualFriends(type, details = {}) {
+    if (!user || !db) return;
+    const privacySnap = await getDoc(doc(db, "users", user.uid, "settings", "privacy"));
+    const privacy = privacySnap.exists() ? privacySnap.data() : {};
+    const isReading = type === "book_started" || type === "book_finished";
+    if (isReading ? privacy.shareReadingActivity !== true : privacy.shareProgress === false) return;
+    const followersSnap = await getDocs(query(collection(db, "follows"), where("followedUid", "==", user.uid)));
+    const profileSnap = await getDoc(doc(db, "publicProfiles", user.uid));
+    const actorName = profileSnap.exists() ? profileSnap.data().displayName || "A friend" : user.displayName || "A friend";
+    const eventKey = [user.uid,type,details.eventKey||todayKey()].join("_").replace(/[^a-zA-Z0-9_-]/g,"_").slice(0,180);
+    await Promise.all(followersSnap.docs.map(async followerDoc => {
+      const recipientUid=followerDoc.data().followerUid;
+      if(!recipientUid||recipientUid===user.uid)return;
+      if(!(await getDoc(doc(db,"follows",user.uid+"_"+recipientUid))).exists())return;
+      const ref=doc(db,"users",recipientUid,"notifications",eventKey);
+      if((await getDoc(ref)).exists())return;
+      await setDoc(ref,{type,actorUid:user.uid,actorName,eventKey,read:false,createdAt:serverTimestamp(),
+        ...(details.bookTitle?{bookTitle:details.bookTitle.slice(0,180)}:{}),
+        ...(details.bookAuthor?{bookAuthor:details.bookAuthor.slice(0,120)}:{}),
+        ...(details.message?{message:details.message.slice(0,220)}:{})});
+    }));
+  }
+  async function refreshNotifications() {
+    if(!user||!db){setNotificationItems([]);return;}
+    try {const snap=await getDocs(query(collection(db,"users",user.uid,"notifications"),orderBy("createdAt","desc"),limit(100)));setNotificationItems(snap.docs.map(d=>({id:d.id,...d.data()})));}
+    catch(e){setError("Could not load notifications: "+e.message);}
+  }
+  async function markAllNotificationsRead() {
+    if(!user||!db)return;
+    try {await Promise.all(notificationItems.filter(n=>!n.read).map(n=>updateDoc(doc(db,"users",user.uid,"notifications",n.id),{read:true})));setNotificationItems(items=>items.map(n=>({...n,read:true})));setNewFollowerNotifications([]);}
+    catch(e){setError("Could not mark notifications as read: "+e.message);}
+  }
+
   async function refreshCommunity() {
     if (!user || !db) return;
     setCommunityBusy(true);
@@ -429,6 +465,7 @@ export default function App() {
   }
 
   useEffect(() => { if (user && (activeTab === "Community" || activeTab === "Profile")) refreshCommunity(); }, [user, activeTab]);
+  useEffect(()=>{if(user)refreshNotifications();else setNotificationItems([]);},[user]);
 
   async function shareInvite() {
     const inviteText = "Join me on Stoic Discipline and let's keep each other accountable. My profile name is " + (accountName.trim() || user?.displayName || "Stoic member") + ".";
@@ -483,6 +520,7 @@ export default function App() {
         transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
       });
       setNotice(completing?(earned?`Promise kept. +${earned} XP earned.`:"Promise kept. XP for this commitment was already earned today."):"Record updated. Earned XP is kept.");
+      if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyMutualFriends("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
     } catch(e) { setError(e.message); }
   }
 
@@ -494,6 +532,7 @@ export default function App() {
       await addDoc(collection(db, "users", user.uid, "booksRead"), {
         title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", currentPage: Math.max(1, Number(bookPage) || 1), pageCount, cover: bookCover || "", createdAt: serverTimestamp()
       });
+      await notifyMutualFriends(bookFinished ? "book_finished" : "book_started", {bookTitle:bookInput.trim(),bookAuthor:bookAuthor.trim(),eventKey:(bookFinished?"finished_":"started_")+todayKey()+"_"+bookInput.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-")});
       setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setBookPageCount(""); setBookCover(""); setBookSearchResults([]); setBookSearchOpen(false); setNotice(bookFinished ? "Book added to completed books." : "Book added to Currently reading.");
     } catch (e) { setError(e.message); }
   }
@@ -502,6 +541,7 @@ export default function App() {
     if (!user || !db) return;
     try {
       await updateDoc(doc(db, "users", user.uid, "booksRead", book.id), changes);
+      if(changes.finishedAt&&!book.finishedAt) await notifyMutualFriends("book_finished",{bookTitle:book.title||"A book",bookAuthor:book.author||"",eventKey:"finished_"+book.id});
       setNotice(changes.finishedAt ? "Book marked as completed." : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
     } catch (e) { setError(e.message); }
   }
@@ -682,15 +722,13 @@ export default function App() {
         <p className="eyebrow">WHILE YOU WERE AWAY</p>
         <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : newFollowerNotifications.length > 1 ? "New followers" : "Notifications"}</h2>
         <p className="muted">{newFollowerNotifications.length === 1 ? "You have a new person in your corner." : newFollowerNotifications.length > 1 ? "These people have joined your accountability circle." : "You’re all caught up. New follower updates will appear here when you return."}</p>
-        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setShowNotifications(false); }}>
-          <span className="community-avatar">{(item.displayName || "S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/>
-        </button>)}</div>
-        <button className="primary follower-notification-done" onClick={() => { setNewFollowerNotifications([]); setShowNotifications(false); }}>Mark all as read</button>
+        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); setShowNotifications(false); }}><span className="community-avatar">{(item.displayName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}{notificationItems.map(item=><button key={item.id} className="follower-notification-person" onClick={()=>{markAllNotificationsRead();setActiveTab("Community");setSelectedMemberProfile({uid:item.actorUid,displayName:item.actorName||"Stoic member"});setShowNotifications(false);}}><span className="community-avatar">{(item.actorName||"S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.actorName||"A friend"} {item.type==="book_started"?"started reading":item.type==="book_finished"?"finished reading":"completed all non-negotiables"}</strong><small>{item.bookTitle?(item.bookTitle+(item.bookAuthor?" — "+item.bookAuthor:"")):(item.message||"View profile")}</small></span><ArrowLeft className="follower-notification-arrow" size={16}/></button>)}</div>
+        <button className="primary follower-notification-done" onClick={() => { markAllNotificationsRead(); setShowNotifications(false); }}>Mark all as read</button>
       </section>
     </div>}
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
-      <div className="topbar-actions"><button className="topbar-quiet-button add-friend-icon-button" title="Add friends" aria-label="Add friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><UserPlus size={16}/></button><button className="topbar-quiet-button notification-bell-button" title="Notifications" aria-label={"Notifications"+(newFollowerNotifications.length ? ", "+newFollowerNotifications.length+" unread" : "")} onClick={()=>setShowNotifications(true)}><Bell size={16}/>{newFollowerNotifications.length>0&&<span className="notification-count">{newFollowerNotifications.length>9?"9+":newFollowerNotifications.length}</span>}</button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
+      <div className="topbar-actions"><button className="topbar-quiet-button add-friend-icon-button" title="Add friends" aria-label="Add friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><UserPlus size={16}/></button><button className="topbar-quiet-button notification-bell-button" title="Notifications" aria-label="Notifications" onClick={()=>{setShowNotifications(true);refreshNotifications();}}><Bell size={16}/>{(newFollowerNotifications.length+notificationItems.filter(n=>!n.read).length)>0&&<span className="notification-count">{newFollowerNotifications.length+notificationItems.filter(n=>!n.read).length>9?"9+":newFollowerNotifications.length+notificationItems.filter(n=>!n.read).length}</span>}</button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
     </header>
     {activeTab === "Today" && <>
     <section className="welcome">
