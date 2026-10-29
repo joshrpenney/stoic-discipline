@@ -7,7 +7,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
   serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, Users, UserPlus, UserCheck, Search, RefreshCw } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 
 const starterHabits = [
@@ -91,9 +91,51 @@ export default function App() {
   const [shareProgress, setShareProgress] = useState(true);
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
+  const [newFollowerNotifications, setNewFollowerNotifications] = useState([]);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
+  useEffect(() => {
+    if (!user || !db) { setNewFollowerNotifications([]); return; }
+    let cancelled = false;
+    async function checkNewFollowers() {
+      try {
+        const settingsRef = doc(db, "users", user.uid, "settings", "communityNotifications");
+        const [settingsSnap, followersSnap] = await Promise.all([
+          getDoc(settingsRef),
+          getDocs(query(collection(db, "follows"), where("followedUid", "==", user.uid)))
+        ]);
+        if (cancelled) return;
+        const events = followersSnap.docs.map(snap => {
+          const data = snap.data();
+          const createdAt = data.createdAt?.toMillis ? data.createdAt.toMillis() : "";
+          return { id: snap.id, followerUid: data.followerUid, eventKey: snap.id + "_" + createdAt };
+        });
+        const known = settingsSnap.exists() && Array.isArray(settingsSnap.data().knownFollowerEvents)
+          ? settingsSnap.data().knownFollowerEvents : null;
+        if (!known) {
+          await setDoc(settingsRef, { knownFollowerEvents: events.map(event => event.eventKey).slice(-500), updatedAt: serverTimestamp() }, { merge: true });
+          return;
+        }
+        const knownSet = new Set(known);
+        const fresh = events.filter(event => !knownSet.has(event.eventKey));
+        await setDoc(settingsRef, { knownFollowerEvents: [...new Set([...known, ...events.map(event => event.eventKey)])].slice(-500), updatedAt: serverTimestamp() }, { merge: true });
+        if (!fresh.length) return;
+        const notifications = await Promise.all(fresh.map(async event => {
+          try {
+            const profileSnap = await getDoc(doc(db, "publicProfiles", event.followerUid));
+            return { ...event, displayName: profileSnap.exists() ? profileSnap.data().displayName || "Someone" : "Someone" };
+          } catch { return { ...event, displayName: "Someone" }; }
+        }));
+        if (!cancelled) setNewFollowerNotifications(notifications);
+      } catch (e) {
+        if (!cancelled) setError("Could not check new followers: " + e.message);
+      }
+    }
+    checkNewFollowers();
+    return () => { cancelled = true; };
+  }, [user]);
+
   useEffect(() => {
     if (!user || !db) { setShareProgress(true); return; }
     getDoc(doc(db, "users", user.uid, "settings", "privacy")).then(snapshot => {
@@ -632,6 +674,19 @@ export default function App() {
   }
 
   return <main className="app-shell">
+    {newFollowerNotifications.length > 0 && <div className="follower-notification-backdrop" role="presentation">
+      <section className="follower-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="follower-notification-title">
+        <button className="follower-notification-close" aria-label="Dismiss notifications" onClick={() => setNewFollowerNotifications([])}><X size={18}/></button>
+        <div className="follower-notification-icon"><Bell size={24}/></div>
+        <p className="eyebrow">WHILE YOU WERE AWAY</p>
+        <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : "New followers"}</h2>
+        <p className="muted">{newFollowerNotifications.length === 1 ? "You have a new person in your corner." : "These people have joined your accountability circle."}</p>
+        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); }}>
+          <span className="community-avatar">{(item.displayName || "S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/>
+        </button>)}</div>
+        <button className="primary follower-notification-done" onClick={() => setNewFollowerNotifications([])}>Continue to journal</button>
+      </section>
+    </div>}
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
       <div className="topbar-actions"><button className="topbar-quiet-button add-friend-icon-button" title="Add friends" aria-label="Add friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><UserPlus size={16}/></button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
