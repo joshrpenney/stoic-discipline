@@ -140,3 +140,5 @@
 
 /* Reserved founder label */
 .founder-subtitle{margin:0;color:#c4a66b;line-height:1.65;font-weight:600;letter-spacing:.15px}
+
+.own-profile-role{margin:6px 0 8px;font-weight:600}.own-social-list{margin:18px 0 24px}.profile-social-inline button{cursor:pointer}
