@@ -147,6 +147,55 @@ export default function App() {
   }, [bookInput, bookSearchOpen]);
 
 
+  const [formPageLookupStatus, setFormPageLookupStatus] = useState("idle");
+  useEffect(() => {
+    const title=bookInput.trim();
+    const author=bookAuthor.trim();
+    if(title.length<3 || Number(bookPageCount)>0) { setFormPageLookupStatus("idle"); return; }
+    let cancelled=false;
+    const normalise=value=>(value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    const matchesTitle=candidate=>{
+      const a=normalise(candidate), b=normalise(title);
+      return !!a && !!b && (a===b || (Math.min(a.length,b.length)>=7 && (a.startsWith(b)||b.startsWith(a)||a.includes(b)||b.includes(a))));
+    };
+    const matchesAuthor=authors=>!author || !authors?.length || authors.some(name=>normalise(name).includes(normalise(author))||normalise(author).includes(normalise(name)));
+    setFormPageLookupStatus("searching");
+    const timer=setTimeout(async()=>{
+      try {
+        let pageCount=0, cover="";
+        try {
+          const q=`intitle:${title}${author ? " inauthor:"+author : ""}`;
+          const response=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&printType=books`);
+          if(response.ok){
+            const data=await response.json();
+            const items=(data.items||[]).map(item=>{const v=item.volumeInfo||{};return {title:v.title||"",authors:Array.isArray(v.authors)?v.authors:[],pageCount:Number(v.pageCount)||0,cover:v.imageLinks?.thumbnail?.replace("http://","https://")||""};});
+            const match=items.find(item=>matchesTitle(item.title)&&matchesAuthor(item.authors)&&item.pageCount>0);
+            if(match){pageCount=match.pageCount;cover=match.cover;}
+          }
+        } catch(e) { /* Try Open Library next. */ }
+        if(!pageCount){
+          try {
+            const q=[title,author].filter(Boolean).join(" ");
+            const response=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=30&fields=title,author_name,number_of_pages_median,cover_i`);
+            if(response.ok){
+              const data=await response.json();
+              const items=(data.docs||[]).filter(item=>matchesTitle(item.title)&&matchesAuthor(item.author_name));
+              const match=items.find(item=>Number(item.number_of_pages_median)>0);
+              if(match){pageCount=Number(match.number_of_pages_median)||0;cover=cover||(match.cover_i?`https://covers.openlibrary.org/b/id/${match.cover_i}-M.jpg`:"");}
+            }
+          } catch(e) { /* Keep manual entry available. */ }
+        }
+        if(cancelled)return;
+        if(pageCount>0){
+          setBookPageCount(String(pageCount));
+          if(cover&&!bookCover)setBookCover(cover);
+          setFormPageLookupStatus("found");
+        } else setFormPageLookupStatus("not-found");
+      } catch(e) { if(!cancelled)setFormPageLookupStatus("not-found"); }
+    },700);
+    return ()=>{cancelled=true;clearTimeout(timer);};
+  }, [bookInput, bookAuthor, bookPageCount]);
+
   useEffect(() => {
     if (!auth) { setAuthReady(true); return; }
     return onAuthStateChanged(auth, (current) => { setUser(current); setAuthReady(true); });
@@ -602,7 +651,7 @@ export default function App() {
           <label>Author<input maxLength="160" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label>
           <div className="book-date-grid"><label>Started reading<input type="date" required value={bookStarted} onChange={e=>setBookStarted(e.target.value)}/></label><label>Finished reading <span className="optional-label">(optional)</span><input type="date" min={bookStarted || undefined} value={bookFinished} onChange={e=>setBookFinished(e.target.value)}/></label></div>
           <div className="book-date-grid"><label>Total pages<input type="number" min="1" max="100000" value={bookPageCount} onChange={e=>setBookPageCount(e.target.value)} placeholder="From book details"/></label>{!bookFinished && <label>Current page<input type="number" min="1" max="100000" required value={bookPage} onChange={e=>setBookPage(e.target.value)}/></label>}</div>
-          {!bookFinished && bookInput.trim() && <div className="reading-estimate-preview"><span><BookOpen size={16}/> {bookPageCount ? "Estimated total reading time" : "Reading time estimate"}</span>{bookPageCount ? <><strong>{formatReadingTime(Number(bookPageCount), wordsPerPage, readingWpm)}</strong><small>Based on {Number(bookPageCount)} pages at {readingWpm} words/min. Estimated time remaining from page {Math.max(1,Number(bookPage)||1)}: {formatReadingTime(Math.max(0, Number(bookPageCount)-Math.max(1,Number(bookPage)||1)+1), wordsPerPage, readingWpm)}.</small></> : <small>Looking for this book’s page count. Select a search result or enter the total pages to calculate a book-specific estimate. If you add it without a page count, we’ll try looking it up in the background.</small>}</div>}
+          {!bookFinished && bookInput.trim() && <div className="reading-estimate-preview"><span><BookOpen size={16}/> {bookPageCount ? "Estimated total reading time" : "Reading time estimate"}</span>{bookPageCount ? <><strong>{formatReadingTime(Number(bookPageCount), wordsPerPage, readingWpm)}</strong><small>Based on {Number(bookPageCount)} pages at {readingWpm} words/min. Estimated time remaining from page {Math.max(1,Number(bookPage)||1)}: {formatReadingTime(Math.max(0, Number(bookPageCount)-Math.max(1,Number(bookPage)||1)+1), wordsPerPage, readingWpm)}.</small></> : <small>{formPageLookupStatus==="searching" ? "Searching Google Books and Open Library for this title and author…" : formPageLookupStatus==="not-found" ? "No matching page count found yet. Try selecting a search result or enter the total pages manually." : "A book-specific estimate will appear once its page count is found. Searching the book databases automatically."}</small>}</div>}
           <button className="primary">Add book <Plus size={16}/></button>
         </form>
         <section className="book-section">
