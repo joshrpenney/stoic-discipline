@@ -117,6 +117,7 @@ export default function App() {
   const [shareProgress, setShareProgress] = useState(true);
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
+  const [showMemberLibrary, setShowMemberLibrary] = useState(false);
   const [socialListView, setSocialListView] = useState("");
   const [showProfileCalendar, setShowProfileCalendar] = useState(false);
   const [showProfileAchievements, setShowProfileAchievements] = useState(false);
@@ -431,6 +432,15 @@ export default function App() {
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
 
+
+  useEffect(() => {
+    if (!user || !db) return;
+    const library = shareReadingActivity ? books.filter(book => Boolean(book.finishedAt)).map(book => ({
+      id: book.id, title: book.title || "Untitled book", author: book.author || "", cover: book.cover || ""
+    })) : [];
+    setDoc(doc(db, "publicProfiles", user.uid), { library, libraryShared: shareReadingActivity, updatedAt: serverTimestamp() }, { merge: true })
+      .catch(e => setError("Could not update your shared library: " + e.message));
+  }, [user, books, shareReadingActivity]);
 
   useEffect(() => {
     if (!user || !db) return;
@@ -829,7 +839,7 @@ export default function App() {
         <section className="community-section member-shared-section">
           <p className="eyebrow">SHARED PROGRESS</p>
           {mutual && sharedProgress ? <>
-            <h2>Level {sharedProgress.level || 1} · {sharedProgress.rank || "Initiate"}</h2>
+            <h2 className="member-profile-rank"><ShieldCheck size={25} aria-hidden="true"/> <span>Level {sharedProgress.level || 1} · {sharedProgress.rank || "Initiate"}</span></h2>
             <div className="profile-stats member-profile-stats">
               <article><Trophy size={20}/><strong>{Number(sharedProgress.totalXp)||0}</strong><span>total XP</span></article>
               <article><Target size={20}/><strong>{Number(sharedProgress.totalActions)||0}</strong><span>actions completed</span></article>
@@ -838,7 +848,16 @@ export default function App() {
             <div className="community-daily member-daily"><div className="community-daily-label"><span>Today's commitments</span><strong>{Number(sharedProgress.todayCompleted)||0}/{Number(sharedProgress.todayDue)||0}</strong></div><div className="community-daily-track"><span style={{width:((Number(sharedProgress.todayDue)||0)?Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/(Number(sharedProgress.todayDue)||0)*100)):0)+"%"}}/></div></div>
           </> : <div className="empty community-empty"><Users size={26}/><h3>{mutual ? "Progress not shared" : "Shared progress is locked"}</h3><p>{mutual ? "This member has chosen not to share their progress, or their summary is not available yet." : "You can see shared progress when you follow each other and this member has sharing enabled."}</p></div>}
         </section>
-        <p className="member-profile-privacy">Private journal entries, habits and reading records are not shown on this profile.</p>
+        <section className="community-section member-library-section">
+          <button type="button" className="member-library-toggle" aria-expanded={showMemberLibrary} onClick={()=>setShowMemberLibrary(v=>!v)}>
+            <span><BookOpen size={20}/><strong>Library</strong><small>{Array.isArray(member.library) ? member.library.length+" books completed" : "Books completed"}</small></span>
+            <ChevronDown className={showMemberLibrary?"is-open":""} size={20}/>
+          </button>
+          {showMemberLibrary && <div className="member-library-content">
+            {Array.isArray(member.library) && member.library.length ? <div className="member-library-list">{member.library.map((book,index)=><article className="member-library-book" key={book.id||book.title+"-"+index}>{book.cover ? <img src={book.cover} alt="" loading="lazy"/> : <div className="member-library-book-placeholder"><BookOpen size={19}/></div>}<div><strong>{book.title}</strong><span>{book.author||"Author unknown"}</span></div></article>)}</div> : <p className="settings-description">{member.library === undefined ? "This member hasn’t shared a library yet." : "No completed books to show yet."}</p>}
+          </div>}
+        </section>
+        <p className="member-profile-privacy">Private journal entries and habits are not shown on this profile. Only completed books shared by this member appear in their library.</p>
       </section>
     </main>;
   }
