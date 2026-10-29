@@ -92,6 +92,7 @@ export default function App() {
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
   const [newFollowerNotifications, setNewFollowerNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
@@ -127,7 +128,7 @@ export default function App() {
             return { ...event, displayName: profileSnap.exists() ? profileSnap.data().displayName || "Someone" : "Someone" };
           } catch { return { ...event, displayName: "Someone" }; }
         }));
-        if (!cancelled) setNewFollowerNotifications(notifications);
+        if (!cancelled) { setNewFollowerNotifications(notifications); setShowNotifications(true); }
       } catch (e) {
         if (!cancelled) setError("Could not check new followers: " + e.message);
       }
@@ -674,22 +675,22 @@ export default function App() {
   }
 
   return <main className="app-shell">
-    {newFollowerNotifications.length > 0 && <div className="follower-notification-backdrop" role="presentation">
+    {showNotifications && <div className="follower-notification-backdrop" role="presentation">
       <section className="follower-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="follower-notification-title">
-        <button className="follower-notification-close" aria-label="Dismiss notifications" onClick={() => setNewFollowerNotifications([])}><X size={18}/></button>
+        <button className="follower-notification-close" aria-label="Dismiss notifications" onClick={() => setShowNotifications(false)}><X size={18}/></button>
         <div className="follower-notification-icon"><Bell size={24}/></div>
         <p className="eyebrow">WHILE YOU WERE AWAY</p>
-        <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : "New followers"}</h2>
-        <p className="muted">{newFollowerNotifications.length === 1 ? "You have a new person in your corner." : "These people have joined your accountability circle."}</p>
-        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setNewFollowerNotifications([]); }}>
+        <h2 id="follower-notification-title">{newFollowerNotifications.length === 1 ? "Someone followed you" : newFollowerNotifications.length > 1 ? "New followers" : "Notifications"}</h2>
+        <p className="muted">{newFollowerNotifications.length === 1 ? "You have a new person in your corner." : newFollowerNotifications.length > 1 ? "These people have joined your accountability circle." : "You’re all caught up. New follower updates will appear here when you return."}</p>
+        <div className="follower-notification-list">{newFollowerNotifications.map(item => <button key={item.eventKey} className="follower-notification-person" onClick={() => { setActiveTab("Community"); setSelectedMemberProfile({uid:item.followerUid,displayName:item.displayName}); setShowNotifications(false); }}>
           <span className="community-avatar">{(item.displayName || "S").trim().charAt(0).toUpperCase()}</span><span><strong>{item.displayName}</strong><small>Started following you · View profile</small></span><ArrowLeft className="follower-notification-arrow" size={16}/>
         </button>)}</div>
-        <button className="primary follower-notification-done" onClick={() => setNewFollowerNotifications([])}>Continue to journal</button>
+        <button className="primary follower-notification-done" onClick={() => { setNewFollowerNotifications([]); setShowNotifications(false); }}>Mark all as read</button>
       </section>
     </div>}
     <header className="topbar">
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
-      <div className="topbar-actions"><button className="topbar-quiet-button add-friend-icon-button" title="Add friends" aria-label="Add friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><UserPlus size={16}/></button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
+      <div className="topbar-actions"><button className="topbar-quiet-button add-friend-icon-button" title="Add friends" aria-label="Add friends" onClick={()=>{setActiveTab("Community");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><UserPlus size={16}/></button><button className="topbar-quiet-button notification-bell-button" title="Notifications" aria-label={"Notifications"+(newFollowerNotifications.length ? ", "+newFollowerNotifications.length+" unread" : "")} onClick={()=>setShowNotifications(true)}><Bell size={16}/>{newFollowerNotifications.length>0&&<span className="notification-count">{newFollowerNotifications.length>9?"9+":newFollowerNotifications.length}</span>}</button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{setActiveTab("Settings");setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
     </header>
     {activeTab === "Today" && <>
     <section className="welcome">
