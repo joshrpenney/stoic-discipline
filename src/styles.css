@@ -98,3 +98,6 @@
 .book-time-estimate{flex-wrap:wrap}
 
 .auth-field-hint{display:block;font-size:10px;line-height:1.5;color:var(--muted);margin-top:0}
+
+/* Account and privacy foundation */
+.auth-text-button{background:transparent;border:0;color:var(--gold-bright);font-size:12px;text-decoration:underline;text-underline-offset:3px;padding:8px 0;justify-self:center}.privacy-setting-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:18px 0}.privacy-setting-row strong{font-size:13px;color:#e7e0d3}.privacy-setting-row .settings-description{margin:7px 0 0}.privacy-switch{position:relative;display:inline-flex;flex:0 0 48px;width:48px;height:28px}.privacy-switch input{position:absolute;opacity:0;width:1px;height:1px}.privacy-switch span{width:48px;height:28px;border-radius:20px;background:#48463f;border:1px solid #625f55;transition:background .2s;cursor:pointer}.privacy-switch span:after{content:"";position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:#e5dfd1;transition:transform .2s}.privacy-switch input:checked+span{background:#8b7549;border-color:#b99b60}.privacy-switch input:checked+span:after{transform:translateX(20px);background:#fff2d0}.privacy-switch input:focus-visible+span{outline:2px solid var(--gold);outline-offset:3px}
