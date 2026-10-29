@@ -467,7 +467,7 @@ export default function App() {
       return;
     }
     const newlyUnlocked = current.achievements.find(name => !previous.achievements.includes(name));
-    if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, id: "achievement-" + item.title + "-" + current.actions }); }
+    if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, icon: item.icon, id: "achievement-" + item.title + "-" + current.actions }); }
   }, [user, progressionReady, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, achievements]);
 
   async function saveAccountName(e) {
@@ -944,7 +944,7 @@ export default function App() {
     {unlockCelebration && <div className="unlock-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="unlock-celebration-title">
       <div className="unlock-celebration-panel">
         <div className="unlock-celebration-overline">{unlockCelebration.type === "rank" ? "THE PATH OF DISCIPLINE" : "PROOF OF PRACTICE"}</div>
-        <div className={"unlock-celebration-emblem " + (unlockCelebration.type === "rank" ? "rank-emblem" : "achievement-emblem")} aria-hidden="true">{unlockCelebration.type === "rank" ? <ShieldCheck size={44}/> : <Trophy size={42}/>}<span>✦</span></div>
+        <div className={"unlock-celebration-emblem " + (unlockCelebration.type === "rank" ? "rank-emblem" : "achievement-emblem")} aria-hidden="true">{unlockCelebration.type === "rank" ? <RankStoneEmblem level={unlockCelebration.level} Icon={[ShieldCheck, Shield, Swords, FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, InfinityIcon, Landmark][unlockCelebration.level - 1] || ShieldCheck}/> : <div className="achievement-icon unlocked unlock-celebration-achievement-stone"><span className="achievement-medal-ring"/>{unlockCelebration.icon ? (()=>{const AchievementIcon=unlockCelebration.icon;return <AchievementIcon size={38}/>})() : <Award size={38}/>}<span className="achievement-medal-number">✓</span></div>}<span>✦</span></div>
         <div className="unlock-celebration-kicker">{unlockCelebration.title}</div>
         <h2 id="unlock-celebration-title">{unlockCelebration.name}</h2>
         {unlockCelebration.type === "rank" && <p className="unlock-celebration-level">Level {unlockCelebration.level}</p>}
