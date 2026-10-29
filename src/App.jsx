@@ -635,7 +635,7 @@ export default function App() {
         transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds,dueNonNegotiableIds,updatedAt:serverTimestamp()},{merge:true});
         transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
       });
-      setNotice(completing?(earned?`Promise kept. +${earned} XP earned.`:"Promise kept. XP for this commitment was already earned today."):"Record updated. Earned XP is kept.");
+      if (!(completing && earned > 0)) setNotice(completing?"Promise kept. XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
       if (completing && earned > 0) setXpToast({ amount: earned, reason: habit.title || "completing a commitment", id: Date.now() });
       if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyMutualFriends("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
     } catch(e) { setError(e.message); }
