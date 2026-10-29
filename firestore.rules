@@ -8,26 +8,6 @@ service cloud.firestore {
         allow read, create, update, delete: if request.auth != null && request.auth.uid == userId;
       }
     }
-      // Notifications are private to the recipient; mutual friends may create only limited activity events.
-      match /notifications/{notificationId} {
-        allow read, delete: if request.auth != null && request.auth.uid == userId;
-        allow update: if request.auth != null && request.auth.uid == userId
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
-        allow create: if request.auth != null
-          && request.auth.uid != userId
-          && request.resource.data.actorUid == request.auth.uid
-          && request.resource.data.read == false
-          && request.resource.data.type in ['book_started', 'book_finished', 'all_non_negotiables', 'streak_milestone', 'level_up', 'achievement', 'weekly_summary']
-          && request.resource.data.keys().hasOnly(['type', 'actorUid', 'actorName', 'eventKey', 'read', 'createdAt', 'bookTitle', 'bookAuthor', 'message'])
-          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
-          && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))
-          && ((request.resource.data.type in ['book_started', 'book_finished']
-              && exists(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy)
-              && get(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy).data.shareReadingActivity == true)
-            || (request.resource.data.type in ['all_non_negotiables', 'streak_milestone', 'level_up', 'achievement', 'weekly_summary']
-              && (!exists(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy)
-                || get(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy).data.shareProgress != false)));
-      }
     // Searchable account names only; no email addresses or journal records.
     match /publicProfiles/{userId} {
       allow read: if request.auth != null;
