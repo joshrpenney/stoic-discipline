@@ -53,6 +53,22 @@ export default function App() {
   const [progression, setProgression] = useState({ totalXp: 0, totalActions: 0 });
   const [dailyLogs, setDailyLogs] = useState([]);
   const [activeTab, setActiveTab] = useState("Today");
+  const tabHistoryRef = useRef([]);
+  useEffect(() => {
+    const handleAppBack = () => {
+      const previousTab = tabHistoryRef.current.pop();
+      if (previousTab) {
+        setActiveTab(previousTab);
+        setError("");
+        setNotice("");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.history.pushState({ stoicDiscipline: true }, "");
+      }
+    };
+    window.history.pushState({ stoicDiscipline: true }, "");
+    window.addEventListener("popstate", handleAppBack);
+    return () => window.removeEventListener("popstate", handleAppBack);
+  }, []);
   const [books, setBooks] = useState([]);
   const [bookInput, setBookInput] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
@@ -952,7 +968,7 @@ export default function App() {
         </>}
       </>}
     </section>}
-    <nav className="bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""}`} onClick={() => {setActiveTab(label);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
+    <nav className="bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""}`} onClick={() => {if(label!==activeTab){tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:label},"");setActiveTab(label);}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
     <p className="footnote">XP is awarded once per commitment each day. Unticking a commitment does not remove earned XP. Your progress is saved to your private Firebase account.</p>
   </main>;
 }
