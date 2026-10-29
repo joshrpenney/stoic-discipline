@@ -27,7 +27,8 @@ service cloud.firestore {
           'streak', 'todayCompleted', 'todayDue', 'updatedAt'
         ]);
       allow read: if request.auth != null && (request.auth.uid == userId
-        || (exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
+        || (resource.data.shareProgress != false
+          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
           && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))));
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
