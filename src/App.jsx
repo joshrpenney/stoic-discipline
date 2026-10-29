@@ -405,57 +405,58 @@ export default function App() {
   }
 
   const attemptedBookLookup = useRef(new Set());
+  const [bookLookupStatus, setBookLookupStatus] = useState({});
   useEffect(() => {
-    const missing = books.filter(book => !book.finishedAt && !(Number(book.pageCount)>0) && book.title && !attemptedBookLookup.current.has(book.id));
-    missing.forEach(book => attemptedBookLookup.current.add(book.id));
-    if (!missing.length) return;
-    let cancelled = false;
-    (async () => {
-      for (const book of missing) {
+    if (!user || !db) return;
+    const normalise = value => (value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+    const titleMatches = (candidate, title) => {
+      const a=normalise(candidate), b=normalise(title);
+      return !!a && !!b && (a===b || (Math.min(a.length,b.length)>=7 && (a.startsWith(b) || b.startsWith(a) || a.includes(b) || b.includes(a))));
+    };
+    const missing = books.filter(book => !book.finishedAt && !(Number(book.pageCount)>0) && book.title && !attemptedBookLookup.current.has(user.uid+":"+book.id));
+    missing.forEach(book => {
+      const lookupKey=user.uid+":"+book.id;
+      attemptedBookLookup.current.add(lookupKey);
+      setBookLookupStatus(prev=>({...prev,[book.id]:"searching"}));
+      (async () => {
         try {
-          const normalise = value => (value||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-          const authorTerm = (book.author||"").split(",")[0].trim();
-          const googleQuery = `intitle:${book.title}${authorTerm ? " inauthor:"+authorTerm : ""}`;
-          let pageCount = 0;
-          let cover = "";
-          // Prefer Google Books edition metadata, which often includes the publisher's exact page count.
+          const authorTerm=(book.author||"").split(",")[0].trim();
+          let pageCount=0, cover="";
+          const authorMatches = authors => !authorTerm || !authors?.length || authors.some(author => normalise(author).includes(normalise(authorTerm)) || normalise(authorTerm).includes(normalise(author)));
+          // Query Google Books using both title and author where available.
           try {
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(googleQuery)}&maxResults=10&printType=books`);
-            if (response.ok) {
-              const data = await response.json();
-              const match = (data.items||[]).map(item => {
-                const v=item.volumeInfo||{};
-                return {title:v.title||"",authors:Array.isArray(v.authors)?v.authors:[],pageCount:Number(v.pageCount)||0,cover:v.imageLinks?.thumbnail?.replace("http://","https://")||""};
-              }).find(item => normalise(item.title)===normalise(book.title) &&
-                (!authorTerm || !item.authors.length || item.authors.some(author => normalise(author).includes(normalise(authorTerm)) || normalise(authorTerm).includes(normalise(author)))));
-              if (match) { pageCount=match.pageCount; cover=match.cover; }
+            const queryText = `intitle:${book.title}${authorTerm ? " inauthor:"+authorTerm : ""}`;
+            const response=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(queryText)}&maxResults=20&printType=books`);
+            if(response.ok) {
+              const data=await response.json();
+              const candidates=(data.items||[]).map(item=>{const v=item.volumeInfo||{};return {title:v.title||"",authors:Array.isArray(v.authors)?v.authors:[],pageCount:Number(v.pageCount)||0,cover:v.imageLinks?.thumbnail?.replace("http://","https://")||""};});
+              const match=candidates.find(item=>titleMatches(item.title,book.title)&&authorMatches(item.authors)&&item.pageCount>0);
+              if(match){pageCount=match.pageCount;cover=match.cover;}
             }
-          } catch (e) { /* Try Open Library below. */ }
-          // Open Library provides a second chance when Google has no exact page-count match.
-          if (!pageCount || (!book.cover && !cover)) {
+          } catch(e) { /* Continue with Open Library. */ }
+          // Open Library fallback; allow subtitle/edition title differences.
+          if(!pageCount || (!book.cover&&!cover)) {
             try {
-              const queryText = [book.title, authorTerm].filter(Boolean).join(" ");
-              const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(queryText)}&limit=20&fields=title,author_name,number_of_pages_median,cover_i,first_publish_year`);
-              if (response.ok) {
-                const data = await response.json();
-                const candidate = (data.docs||[]).find(item => normalise(item.title)===normalise(book.title) &&
-                  (!authorTerm || !Array.isArray(item.author_name) || item.author_name.some(author => normalise(author).includes(normalise(authorTerm)) || normalise(authorTerm).includes(normalise(author)))));
-                if (candidate) {
-                  pageCount=pageCount||Number(candidate.number_of_pages_median)||0;
-                  cover=cover||(candidate.cover_i?`https://covers.openlibrary.org/b/id/${candidate.cover_i}-M.jpg`:"");
-                }
+              const queryText=[book.title,authorTerm].filter(Boolean).join(" ");
+              const response=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(queryText)}&limit=30&fields=title,author_name,number_of_pages_median,cover_i,first_publish_year`);
+              if(response.ok) {
+                const data=await response.json();
+                const candidates=(data.docs||[]).filter(item=>titleMatches(item.title,book.title)&&authorMatches(item.author_name));
+                const candidate=candidates.find(item=>Number(item.number_of_pages_median)>0);
+                if(candidate){pageCount=pageCount||Number(candidate.number_of_pages_median)||0;cover=cover||(candidate.cover_i?`https://covers.openlibrary.org/b/id/${candidate.cover_i}-M.jpg`:"");}
               }
-            } catch (e) { /* Keep the book usable if metadata services are unavailable. */ }
+            } catch(e) { /* Report the lookup as unsuccessful below. */ }
           }
-          if (cancelled) continue;
-          const changes = {};
-          if (pageCount>0) changes.pageCount=pageCount;
-          if (!book.cover && cover) changes.cover=cover;
-          if (Object.keys(changes).length) await updateBook(book, changes);
-        } catch (e) { /* Keep the book usable if metadata lookup is unavailable. */ }
-      }
-    })();
-    return () => { cancelled = true; };
+          const changes={};
+          if(pageCount>0) changes.pageCount=pageCount;
+          if(!book.cover&&cover) changes.cover=cover;
+          if(Object.keys(changes).length) await updateDoc(doc(db,"users",user.uid,"booksRead",book.id),changes);
+          setBookLookupStatus(prev=>({...prev,[book.id]:pageCount>0?"found":"not-found"}));
+        } catch(e) {
+          setBookLookupStatus(prev=>({...prev,[book.id]:"not-found"}));
+        }
+      })();
+    });
   }, [books, user, db]);
 
   async function addHabit(e) {
@@ -606,7 +607,7 @@ export default function App() {
         </form>
         <section className="book-section">
           <div className="reading-list-heading"><div><p className="eyebrow">IN PROGRESS</p><h2>Currently reading</h2></div><span className="book-count-finished">{books.filter(b=>!b.finishedAt).length} books</span></div>
-          <div className="book-list">{books.filter(b=>!b.finishedAt).map((book,i)=><article className="book-item book-progress-item" key={book.id}><div className="book-cover">{book.cover ? <img src={book.cover} alt="" /> : <BookOpen size={21}/>}<span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-time-estimate">{Number(book.pageCount)>0 ? <><span>{book.pageCount} pages</span><span>~{formatReadingTime(book.pageCount,wordsPerPage,readingWpm)} total</span><span>~{formatReadingTime(Math.max(0,book.pageCount-Math.max(1,Number(book.currentPage)||1)+1),wordsPerPage,readingWpm)} left</span></> : <span className="book-estimate-note">Finding page count to calculate reading time…</span>}</div><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>CURRENT PAGE</small><label className="page-input-label"><input aria-label={"Current page for "+book.title} type="number" min="1" max="100000" defaultValue={book.currentPage || 1} onBlur={e=>{const n=Math.max(1,Number(e.target.value)||1);if(n!==Number(book.currentPage||1))updateBook(book,{currentPage:n});}}/> <span>page</span></label></span></div><label className="finish-date-label">Finished reading<input aria-label={"Finish date for "+book.title} type="date" min={book.startedAt||undefined} value={book.finishedAt||""} onChange={e=>{if(e.target.value)updateBook(book,{finishedAt:e.target.value});}}/></label></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!b.finishedAt)&&<div className="empty"><BookOpen size={30}/><h3>No books in progress</h3><p>Add a book above and it will appear here until you finish it.</p></div>}</div>
+          <div className="book-list">{books.filter(b=>!b.finishedAt).map((book,i)=><article className="book-item book-progress-item" key={book.id}><div className="book-cover">{book.cover ? <img src={book.cover} alt="" /> : <BookOpen size={21}/>}<span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-time-estimate">{Number(book.pageCount)>0 ? <><span>{book.pageCount} pages</span><span>~{formatReadingTime(book.pageCount,wordsPerPage,readingWpm)} total</span><span>~{formatReadingTime(Math.max(0,book.pageCount-Math.max(1,Number(book.currentPage)||1)+1),wordsPerPage,readingWpm)} left</span></> : <span className="book-estimate-note">{bookLookupStatus[book.id]==="not-found" ? "Page count not found. Enter the total pages to calculate reading time." : "Searching Google Books and Open Library for page count…"}</span>}</div><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>CURRENT PAGE</small><label className="page-input-label"><input aria-label={"Current page for "+book.title} type="number" min="1" max="100000" defaultValue={book.currentPage || 1} onBlur={e=>{const n=Math.max(1,Number(e.target.value)||1);if(n!==Number(book.currentPage||1))updateBook(book,{currentPage:n});}}/> <span>page</span></label></span></div><label className="finish-date-label">Finished reading<input aria-label={"Finish date for "+book.title} type="date" min={book.startedAt||undefined} value={book.finishedAt||""} onChange={e=>{if(e.target.value)updateBook(book,{finishedAt:e.target.value});}}/></label></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!b.finishedAt)&&<div className="empty"><BookOpen size={30}/><h3>No books in progress</h3><p>Add a book above and it will appear here until you finish it.</p></div>}</div>
         </section>
         <section className="book-section completed-book-section">
           <div className="reading-list-heading"><div><p className="eyebrow">A LIBRARY OF FINISHED IDEAS</p><h2>Completed books</h2></div><span className="book-count-finished">{books.filter(b=>!!b.finishedAt).length} finished</span></div>
