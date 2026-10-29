@@ -603,10 +603,10 @@ export default function App() {
     try {
       const pageCount = Math.max(0, Number(bookPageCount) || 0);
       await addDoc(collection(db, "users", user.uid, "booksRead"), {
-        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: bookFinished || "", currentPage: Math.max(1, Number(bookPage) || 1), pageCount, cover: bookCover || "", createdAt: serverTimestamp()
+        title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: "", currentPage: 1, pageCount, cover: bookCover || "", createdAt: serverTimestamp()
       });
-      await notifyMutualFriends(bookFinished ? "book_finished" : "book_started", {bookTitle:bookInput.trim(),bookAuthor:bookAuthor.trim(),eventKey:(bookFinished?"finished_":"started_")+todayKey()+"_"+bookInput.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-")});
-      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setBookPageCount(""); setBookCover(""); setBookSearchResults([]); setBookSearchOpen(false); setNotice(bookFinished ? "Book added to completed books." : "Book added to Currently reading.");
+      await notifyMutualFriends("book_started", {bookTitle:bookInput.trim(),bookAuthor:bookAuthor.trim(),eventKey:"started_"+todayKey()+"_"+bookInput.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-")});
+      setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setBookPageCount(""); setBookCover(""); setBookSearchResults([]); setBookSearchOpen(false); setNotice("Book added to Currently reading.");
     } catch (e) { setError(e.message); }
   }
 
@@ -872,8 +872,7 @@ export default function App() {
             <small className="book-form-hint">Search the book database, or type the details yourself.</small>
           </div>
           <label>Author<input maxLength="160" value={bookAuthor} onChange={e=>setBookAuthor(e.target.value)} placeholder="Author's name"/></label>
-          <div className="book-date-grid"><label>Started reading<input type="date" required value={bookStarted} onChange={e=>setBookStarted(e.target.value)}/></label><label>Finished reading <span className="optional-label">(optional)</span><input type="date" min={bookStarted || undefined} value={bookFinished} onChange={e=>setBookFinished(e.target.value)}/></label></div>
-          <div className="book-date-grid"><label>Total pages<input type="number" min="1" max="100000" value={bookPageCount} onChange={e=>setBookPageCount(e.target.value)} placeholder="From book details"/></label>{!bookFinished && <label>Current page<input type="number" min="1" max="100000" required value={bookPage} onChange={e=>setBookPage(e.target.value)}/></label>}</div>
+          <div className="book-date-grid"><label>Started reading<input type="date" required value={bookStarted} onChange={e=>setBookStarted(e.target.value)}/></label><label>Total pages<input type="number" min="1" max="100000" value={bookPageCount} onChange={e=>setBookPageCount(e.target.value)} placeholder="From book details"/></label></div>
           {!bookFinished && bookInput.trim() && <div className="reading-estimate-preview"><span><BookOpen size={16}/> {bookPageCount ? "Estimated total reading time" : "Reading time estimate"}</span>{bookPageCount ? <><strong>{formatReadingTime(Number(bookPageCount), wordsPerPage, readingWpm)}</strong><small>Based on {Number(bookPageCount)} pages at {readingWpm} words/min. Estimated time remaining from page {Math.max(1,Number(bookPage)||1)}: {formatReadingTime(Math.max(0, Number(bookPageCount)-Math.max(1,Number(bookPage)||1)+1), wordsPerPage, readingWpm)}.</small></> : <small>{formPageLookupStatus==="searching" ? "Searching Google Books and Open Library for this title and author…" : formPageLookupStatus==="not-found" ? "No matching page count found yet. Try selecting a search result or enter the total pages manually." : "A book-specific estimate will appear once its page count is found. Searching the book databases automatically."}</small>}</div>}
           <button className="primary">Add book <Plus size={16}/></button>
         </form>
