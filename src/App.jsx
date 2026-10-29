@@ -360,7 +360,7 @@ export default function App() {
     if (dayStatus(cursor) !== "kept") cursor.setDate(cursor.getDate()-1);
     let count = 0;
     // Bound the scan so an account with no non-negotiables cannot loop forever.
-    for (let scanned = 0; scanned < 366; scanned++) {
+    for (let scanned = 0; scanned < 1200; scanned++) {
       const status = dayStatus(cursor);
       if (status === "skip") { cursor.setDate(cursor.getDate()-1); continue; }
       if (status !== "kept") break;
@@ -375,7 +375,48 @@ export default function App() {
     let current=levels[0], next=null; for (const item of levels) { if (xp>=item.xp) current=item; else {next=item;break;} }
     return {level:current.level,name:current.name,xp,next,progress:next?Math.round((xp-current.xp)/(next.xp-current.xp)*100):100,remaining:next?next.xp-xp:0};
   }, [progression.totalXp]);
-  const achievements = useMemo(() => { const n=Number(progression.totalActions)||0; const finishedBooks=books.filter(book=>Boolean(book.finishedAt)).length; const trainingIds=new Set(habits.filter(h=>["Training","Running","Walking","Movement"].includes(h.category)).map(h=>h.id)); const trainingDone=dailyLogs.reduce((total,log)=>total+Object.entries(log.completed||{}).filter(([id,done])=>done&&trainingIds.has(id)).length,0); const items=[{title:"First Promise",detail:"Complete your first commitment",progress:n,goal:1,icon:Star},{title:"Seven in Motion",detail:"Keep showing up for seven days",progress:streak,goal:7,icon:Flame},{title:"A Hundred Deeds",detail:"Complete 100 commitments",progress:n,goal:100,icon:Award},{title:"A Month of Resolve",detail:"Keep showing up for 30 days",progress:streak,goal:30,icon:Trophy},{title:"Reader\u0027s Resolve",detail:"Finish five books",progress:finishedBooks,goal:5,icon:BookOpen},{title:"Strength Through Effort",detail:"Complete 25 training or movement commitments",progress:trainingDone,goal:25,icon:Dumbbell}]; return items.map(item=>({...item,progress:Math.min(item.progress,item.goal),unlocked:item.progress>=item.goal,progressLabel:Math.min(item.progress,item.goal)+"/"+item.goal})); }, [progression.totalActions,streak,books,habits,dailyLogs]);
+  const achievements = useMemo(() => {
+    const actions = Math.max(0, Number(progression.totalActions) || 0);
+    const xp = Math.max(0, Number(progression.totalXp) || 0);
+    const finishedBooks = books.filter(book => Boolean(book.finishedAt)).length;
+    const startedBooks = books.length;
+    const trainingIds = new Set(habits.filter(h => ["Training", "Running", "Walking", "Movement"].includes(h.category)).map(h => h.id));
+    const trainingDone = dailyLogs.reduce((total, log) => total + Object.entries(log.completed || {}).filter(([id, done]) => done && trainingIds.has(id)).length, 0);
+    const perfectDays = dailyLogs.filter(log => {
+      const due = Array.isArray(log.dueHabitIds) ? log.dueHabitIds : Array.isArray(log.dueNonNegotiableIds) ? log.dueNonNegotiableIds : null;
+      if (!due) return false;
+      const completed = log.completed || {};
+      return due.length > 0 && due.every(id => completed[id] === true);
+    }).length;
+    const items = [
+      {title:"First Promise",detail:"Complete your first commitment",progress:actions,goal:1,icon:Star,group:"Discipline"},
+      {title:"Fifty Victories",detail:"Complete 50 commitments",progress:actions,goal:50,icon:Award,group:"Discipline"},
+      {title:"A Hundred Deeds",detail:"Complete 100 commitments",progress:actions,goal:100,icon:Award,group:"Discipline"},
+      {title:"Five Hundred Deeds",detail:"Complete 500 commitments",progress:actions,goal:500,icon:Trophy,group:"Discipline"},
+      {title:"The Standard",detail:"Complete every scheduled commitment on 10 recorded days",progress:perfectDays,goal:10,icon:ShieldCheck,group:"Discipline"},
+      {title:"Seven in Motion",detail:"Keep a 7-day streak",progress:streak,goal:7,icon:Flame,group:"Streaks"},
+      {title:"Fortnight of Resolve",detail:"Keep a 14-day streak",progress:streak,goal:14,icon:Flame,group:"Streaks"},
+      {title:"A Month of Resolve",detail:"Keep a 30-day streak",progress:streak,goal:30,icon:Flame,group:"Streaks"},
+      {title:"Century of Commitment",detail:"Keep a 100-day streak",progress:streak,goal:100,icon:Flame,group:"Streaks"},
+      {title:"Five Hundred Days",detail:"Keep a 500-day streak",progress:streak,goal:500,icon:Flame,group:"Streaks"},
+      {title:"A Thousand Days",detail:"Keep a 1,000-day streak",progress:streak,goal:1000,icon:Flame,group:"Streaks"},
+      {title:"Quartermaster",detail:"Keep a 90-day streak",progress:streak,goal:90,icon:ShieldCheck,group:"Streaks"},
+      {title:"The Long Game",detail:"Keep a 365-day streak",progress:streak,goal:365,icon:Trophy,group:"Streaks"},
+      {title:"First Chapter",detail:"Add your first book to the library",progress:startedBooks,goal:1,icon:BookOpen,group:"Reading"},
+      {title:"Reader's Resolve",detail:"Finish five books",progress:finishedBooks,goal:5,icon:BookOpen,group:"Reading"},
+      {title:"Well Read",detail:"Finish 10 books",progress:finishedBooks,goal:10,icon:BookOpen,group:"Reading"},
+      {title:"Library Builder",detail:"Finish 25 books",progress:finishedBooks,goal:25,icon:BookOpen,group:"Reading"},
+      {title:"Lifelong Student",detail:"Finish 50 books",progress:finishedBooks,goal:50,icon:BookOpen,group:"Reading"},
+      {title:"Strength Through Effort",detail:"Complete 25 training or movement commitments",progress:trainingDone,goal:25,icon:Dumbbell,group:"Movement"},
+      {title:"Built by Practice",detail:"Complete 100 training or movement commitments",progress:trainingDone,goal:100,icon:Dumbbell,group:"Movement"},
+      {title:"First XP",detail:"Earn your first experience point",progress:xp,goal:1,icon:Sparkles,group:"Progression"},
+      {title:"Rising",detail:"Earn 500 XP",progress:xp,goal:500,icon:Star,group:"Progression"},
+      {title:"Dedicated",detail:"Earn 2,500 XP",progress:xp,goal:2500,icon:Award,group:"Progression"},
+      {title:"Elite",detail:"Earn 10,000 XP",progress:xp,goal:10000,icon:ShieldCheck,group:"Progression"},
+      {title:"Living Legend",detail:"Earn 25,000 XP",progress:xp,goal:25000,icon:Trophy,group:"Progression"}
+    ];
+    return items.map(item => ({...item, progress:Math.min(item.progress,item.goal), unlocked:item.progress>=item.goal, progressLabel:Math.min(item.progress,item.goal)+"/"+item.goal}));
+  }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs]);
 
   async function saveAccountName(e) {
     e.preventDefault(); const cleanName = accountName.trim();
