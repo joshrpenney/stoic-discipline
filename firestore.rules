@@ -18,8 +18,14 @@ service cloud.firestore {
     }
     // Aggregate progress is readable only by the owner or people they follow.
     match /userProgress/{userId} {
+      // Only the account owner can publish a limited set of aggregate progress fields.
+      // Never expose email addresses, book details, habit names, or journal entries here.
       allow create, update: if request.auth != null && request.auth.uid == userId
-        && request.resource.data.uid == request.auth.uid;
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'totalXp', 'totalActions', 'level', 'rank',
+          'streak', 'todayCompleted', 'todayDue', 'updatedAt'
+        ]);
       allow read: if request.auth != null && (request.auth.uid == userId
         || (exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
           && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))));
