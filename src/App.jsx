@@ -474,7 +474,12 @@ export default function App() {
       id: book.id, title: book.title || "Untitled book", author: book.author || "", cover: book.cover || "",
       startedAt: book.startedAt || "", currentPage: Number(book.currentPage) || 1, pageCount: Number(book.pageCount) || 0
     })) : [];
-    setDoc(doc(db, "publicProfiles", user.uid), { library, currentReading, libraryShared: shareReadingActivity, updatedAt: serverTimestamp() }, { merge: true })
+    const publicName = (accountName.trim() || user.displayName || "Stoic member").trim();
+    setDoc(doc(db, "publicProfiles", user.uid), {
+      uid: user.uid, displayName: publicName, displayNameLower: publicName.toLowerCase(),
+      isFounder: user.email?.toLowerCase() === "joshrpenney@hotmail.co.uk",
+      library, currentReading, libraryShared: shareReadingActivity, updatedAt: serverTimestamp()
+    }, { merge: true })
       .catch(e => setError("Could not update your shared library: " + e.message));
   }, [user, books, shareReadingActivity]);
 
