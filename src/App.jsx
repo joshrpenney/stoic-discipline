@@ -798,7 +798,7 @@ export default function App() {
     const mutual = followsThem && theyFollow;
     const sharedProgress = followingRecords.find(r => r.followedUid === member.uid)?.progress;
     return <main className="app-shell">
-      {xpToast && <div className="xp-toast" role="status" aria-live="polite" key={xpToast.id}><div className="xp-toast-icon"><Sparkles size={22}/></div><div className="xp-toast-copy"><strong>+{xpToast.amount} XP</strong><span>Earned for {xpToast.reason}</span></div><button type="button" aria-label="Dismiss XP notification" onClick={()=>setXpToast(null)}><X size={17}/></button></div>}
+      
     <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
         <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
@@ -833,6 +833,7 @@ export default function App() {
   }
 
   return <main className="app-shell">
+    {xpToast && <div className="xp-toast" role="status" aria-live="polite" key={xpToast.id}><div className="xp-toast-icon"><Sparkles size={22}/></div><div className="xp-toast-copy"><strong>+{xpToast.amount} XP</strong><span>Earned for {xpToast.reason}</span></div><button type="button" aria-label="Dismiss XP notification" onClick={()=>setXpToast(null)}><X size={17}/></button></div>}
     {showNotifications && <div className="follower-notification-backdrop" role="presentation">
       <section className="follower-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="follower-notification-title">
         <button className="follower-notification-close" aria-label="Dismiss notifications" onClick={() => setShowNotifications(false)}><X size={18}/></button>
