@@ -478,3 +478,34 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
   .profile-name-row>.rank-stone-emblem{width:42px;height:42px;flex-basis:42px}
   .profile-name-row>.tab-title{font-size:clamp(34px,9vw,48px)}
 }
+
+
+/* Achievement collection: carved medals, visible criteria and progress */
+.achievement{position:relative;overflow:hidden;align-items:flex-start;gap:12px;padding:13px;border-radius:12px;background:linear-gradient(145deg,#24231f,#191918 72%);border-color:#393831}
+.achievement::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.22;background:linear-gradient(115deg,transparent 15%,rgba(255,255,255,.055) 42%,transparent 68%)}
+.achievement.unlocked{border-color:#7a6740;background:linear-gradient(135deg,#302b20,#22211d 52%,#191918);animation:achievement-relic-reveal .72s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(min(var(--achievement-index,0),8)*35ms)}
+.achievement-icon{position:relative;isolation:isolate;overflow:hidden;width:48px;height:48px;flex:0 0 48px;border-radius:50%;display:grid;place-items:center;color:#918b7a;border:1px solid #656257;background:radial-gradient(circle at 28% 20%,rgba(255,255,255,.19),transparent 35%),repeating-linear-gradient(135deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px),linear-gradient(145deg,#5a5951,#282824 65%,#444239);box-shadow:inset 1px 1px 1px rgba(255,255,255,.18),inset -2px -3px 4px rgba(0,0,0,.65),0 3px 0 #111110}
+.achievement-icon>svg{position:relative;z-index:2;filter:drop-shadow(0 1px 0 #111)}
+.achievement-medal-ring{position:absolute;inset:4px;border:1px solid rgba(230,221,194,.35);border-radius:50%;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.achievement-medal-number{position:absolute;bottom:3px;right:5px;font-size:6px;line-height:1;color:#d1c7a7;z-index:3}
+.achievement.unlocked .achievement-icon{color:#f0d998;border-color:#c1a765;background:radial-gradient(circle at 28% 20%,rgba(255,255,255,.23),transparent 35%),repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px),linear-gradient(145deg,#776745,#393326 65%,#5b4b2d);box-shadow:inset 1px 1px 1px rgba(255,255,255,.22),inset -2px -3px 4px rgba(0,0,0,.62),0 3px 0 #111110,0 0 12px rgba(206,177,104,.09)}
+.achievement.unlocked .achievement-medal-ring{border-color:rgba(245,222,157,.68)}
+.achievement-group-streaks .achievement-icon{border-radius:12px 12px 50% 50%}
+.achievement-group-reading .achievement-icon{border-radius:10px}
+.achievement-group-movement .achievement-icon{border-radius:8px 50% 8px 50%}
+.achievement-group-progression .achievement-icon{border-radius:50% 50% 10px 10px}
+.achievement-copy{position:relative;z-index:1;flex:1;min-width:0;padding-top:1px}
+.achievement-copy strong{font:600 14px/1.25 'Playfair Display',serif;letter-spacing:0!important;color:#e9e1d1!important}
+.achievement-copy>span{font-size:11px;line-height:1.45;color:#a9a397;margin-top:5px}
+.achievement.locked .achievement-copy strong{color:#c2bbaa!important}
+.achievement-status{position:relative;z-index:1;flex:0 0 auto;display:flex;align-items:center;justify-content:center;min-width:18px;min-height:22px}
+.achievement-status>span{font-size:7px;letter-spacing:.6px;color:#7e796c}
+.achievement-progress-track{height:4px;border-radius:99px;background:#37362f;overflow:hidden;margin-top:10px}
+.achievement-progress-track>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7b6841,#e2c77f);transition:width .5s ease}
+.achievement.locked .achievement-progress-track>span{background:linear-gradient(90deg,#555147,#a99a70)}
+.achievement-progress-label{display:block;margin-top:5px;font-size:9px;color:#999487;letter-spacing:.15px}
+.achievement.unlocked .achievement-progress-label{color:#c8b477}
+.rank-list-item.rank-reached .rank-stone-emblem{animation:rank-relic-settle .65s cubic-bezier(.2,.8,.2,1) both}
+@keyframes achievement-relic-reveal{0%{opacity:.72;transform:translateY(5px) scale(.975);filter:brightness(.8)}55%{opacity:1;transform:translateY(-1px) scale(1.012);filter:brightness(1.15)}100%{opacity:1;transform:translateY(0) scale(1);filter:brightness(1)}}
+@keyframes rank-relic-settle{0%{transform:scale(.9);filter:brightness(.7)}65%{transform:scale(1.07);filter:brightness(1.18)}100%{transform:scale(1);filter:brightness(1)}}
+@media(prefers-reduced-motion:reduce){.achievement.unlocked,.rank-list-item.rank-reached .rank-stone-emblem{animation:none}.achievement-progress-track>span{transition:none}}
