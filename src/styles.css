@@ -214,3 +214,22 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .profile-collapse-content{padding:0 18px 18px;animation:fadeIn .18s ease-out}
 .profile-collapse-content>.muted{font-size:11px;line-height:1.6}
 .profile-collapse-content .consistency-weekdays{margin-top:14px}
+
+/* Keep both profile sections inside matching, clearly defined cards. */
+.consistency-card.profile-collapsible,
+.achievements-section.profile-collapsible{
+  border:1px solid var(--line,#39362f);
+  border-radius:18px;
+  background:var(--panel,#1e1d1a);
+  margin:22px 0;
+  overflow:hidden;
+}
+.profile-collapsible .profile-collapse-toggle{
+  min-height:112px;
+  padding:20px 18px;
+}
+.profile-collapsible .profile-collapse-content{
+  padding:0 18px 18px;
+  border-top:1px solid var(--line,#39362f);
+}
+.profile-collapsible .profile-collapse-toggle:focus{outline:none}
