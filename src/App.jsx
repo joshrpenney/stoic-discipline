@@ -137,6 +137,9 @@ export default function App() {
   const [editingSchedule, setEditingSchedule] = useState([0,1,2,3,4,5,6]);
   const [notice, setNotice] = useState("");
   const [xpToast, setXpToast] = useState(null);
+  const [unlockCelebration, setUnlockCelebration] = useState(null);
+  const [progressionReady, setProgressionReady] = useState(false);
+  const previousUnlockState = useRef(null);
   const [accountName, setAccountName] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("stoic-theme") || "dark");
   const [settingsSection, setSettingsSection] = useState("menu");
@@ -335,7 +338,7 @@ export default function App() {
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
     const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
-    const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }), (e) => setError(e.message));
+    const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => { setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }); setProgressionReady(true); }, (e) => setError(e.message));
     const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
     const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))), (e) => setError(e.message));
     return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); stopBooks(); };
@@ -452,6 +455,20 @@ export default function App() {
     ];
     return items.map(item => ({...item, progress:Math.min(item.progress,item.goal), unlocked:item.progress>=item.goal, progressLabel:Math.min(item.progress,item.goal)+"/"+item.goal}));
   }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs]);
+
+  useEffect(() => {
+    if (!user || !progressionReady) { previousUnlockState.current = null; return; }
+    const current = { level: levelInfo.level, achievements: achievements.filter(item => item.unlocked).map(item => item.title), xp: Number(progression.totalXp) || 0, actions: Number(progression.totalActions) || 0 };
+    const previous = previousUnlockState.current;
+    previousUnlockState.current = current;
+    if (!previous) return;
+    if (current.level > previous.level) {
+      setUnlockCelebration({ type: "rank", title: "Rank achieved", name: levelInfo.name, level: levelInfo.level, detail: "You've earned your next rank.", id: "rank-" + levelInfo.level + "-" + current.xp });
+      return;
+    }
+    const newlyUnlocked = current.achievements.find(name => !previous.achievements.includes(name));
+    if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, id: "achievement-" + item.title + "-" + current.actions }); }
+  }, [user, progressionReady, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, achievements]);
 
   async function saveAccountName(e) {
     e.preventDefault(); const cleanName = accountName.trim();
@@ -924,6 +941,17 @@ export default function App() {
   }
 
   return <main className="app-shell">
+    {unlockCelebration && <div className="unlock-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="unlock-celebration-title">
+      <div className="unlock-celebration-panel">
+        <div className="unlock-celebration-overline">{unlockCelebration.type === "rank" ? "THE PATH OF DISCIPLINE" : "PROOF OF PRACTICE"}</div>
+        <div className={"unlock-celebration-emblem " + (unlockCelebration.type === "rank" ? "rank-emblem" : "achievement-emblem")} aria-hidden="true">{unlockCelebration.type === "rank" ? <ShieldCheck size={44}/> : <Trophy size={42}/>}<span>✦</span></div>
+        <div className="unlock-celebration-kicker">{unlockCelebration.title}</div>
+        <h2 id="unlock-celebration-title">{unlockCelebration.name}</h2>
+        {unlockCelebration.type === "rank" && <p className="unlock-celebration-level">Level {unlockCelebration.level}</p>}
+        <p>{unlockCelebration.detail}</p>
+        <button type="button" className="unlock-celebration-continue" onClick={()=>setUnlockCelebration(null)}>Continue</button>
+      </div>
+    </div>}
     {xpToast && <div className="xp-toast" role="status" aria-live="polite" key={xpToast.id}><div className="xp-toast-icon"><Sparkles size={22}/></div><div className="xp-toast-copy"><strong>+{xpToast.amount} XP</strong><span>Earned for {xpToast.reason}</span></div><button type="button" aria-label="Dismiss XP notification" onClick={()=>setXpToast(null)}><X size={17}/></button></div>}
     {showNotifications && <div className="follower-notification-backdrop" role="presentation">
       <section className="follower-notification-dialog" role="dialog" aria-modal="true" aria-labelledby="follower-notification-title">
