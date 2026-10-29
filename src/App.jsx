@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword,
-  signOut, updateProfile
+  sendPasswordResetEmail, signOut, updateProfile
 } from "firebase/auth";
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
@@ -88,9 +88,17 @@ export default function App() {
   const [followingRecords, setFollowingRecords] = useState([]);
   const [followerRecords, setFollowerRecords] = useState([]);
   const [communityBusy, setCommunityBusy] = useState(false);
+  const [shareProgress, setShareProgress] = useState(true);
+  const [privacyBusy, setPrivacyBusy] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
+  useEffect(() => {
+    if (!user || !db) { setShareProgress(true); return; }
+    getDoc(doc(db, "users", user.uid, "settings", "privacy")).then(snapshot => {
+      setShareProgress(snapshot.exists() ? snapshot.data().shareProgress !== false : true);
+    }).catch(e => setError("Could not load privacy settings: " + e.message));
+  }, [user]);
   useEffect(() => { localStorage.setItem("stoic-reading-wpm", String(readingWpm)); }, [readingWpm]);
   useEffect(() => { localStorage.setItem("stoic-words-per-page", String(wordsPerPage)); }, [wordsPerPage]);
   useEffect(() => {
@@ -318,9 +326,9 @@ export default function App() {
       uid: user.uid, displayName: accountName.trim() || user.displayName || "Stoic member",
       totalXp: Number(progression.totalXp) || 0, totalActions: Number(progression.totalActions) || 0,
       level: levelInfo.level, rank: levelInfo.name, streak,
-      todayCompleted: doneCount, todayDue: dueHabits.length, updatedAt: serverTimestamp()
+      todayCompleted: doneCount, todayDue: dueHabits.length, shareProgress, updatedAt: serverTimestamp()
     }, { merge: true }).catch(e => setError(e.message));
-  }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length]);
+  }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length, shareProgress]);
 
   async function refreshCommunity() {
     if (!user || !db) return;
@@ -575,6 +583,8 @@ export default function App() {
         <label>Password<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters" autoComplete={mode==="register"?"new-password":"current-password"} /></label>
         {error && <p className="error">{error}</p>}
         <button className="primary full" disabled={busy}>{busy ? "Please wait…" : mode === "register" ? "Create my account" : "Enter your journal"} <span>→</span></button>
+        {mode === "login" && <button type="button" className="auth-text-button" disabled={busy || !email.trim()} onClick={async()=>{setError("");setNotice("");setBusy(true);try{await sendPasswordResetEmail(auth,email.trim());setNotice("Password reset email sent. Check your inbox.");}catch(e){setError(e.message.replace("Firebase: ",""));}finally{setBusy(false);}}}>Forgot your password?</button>}
+        {notice && !user && <p className="notice">{notice}</p>}
       </form>
       <p className="fine-print">Your journal is private to your account. Never reuse a password from another service.</p>
     </div>
@@ -729,10 +739,12 @@ export default function App() {
         {settingsSection === "menu" && <div className="settings-menu-grid">
           <button className="settings-menu-card" onClick={()=>setSettingsSection("appearance")}><span className="settings-menu-icon">◐</span><strong>Background colour</strong><span>Choose light or dark theme</span></button>
           <button className="settings-menu-card" onClick={()=>setSettingsSection("account")}><span className="settings-menu-icon">♙</span><strong>Account holder name</strong><span>Change the name shown on your profile</span></button>
+          <button className="settings-menu-card" onClick={()=>setSettingsSection("privacy")}><span className="settings-menu-icon">♧</span><strong>Privacy & sharing</strong><span>Control whether mutual friends can see your progress</span></button>
           {["Reading","Non-negotiables","Today","Profile"].map(page=><button key={page} className="settings-menu-card" onClick={()=>setSettingsSection(page)}><span className="settings-menu-icon">{page==="Reading"?"▤":page==="Non-negotiables"?"⬡":page==="Today"?"◎":"☆"}</span><strong>{page} settings</strong><span>Open settings for your {page.toLowerCase()} page</span></button>)}
         </div>}
         {settingsSection === "appearance" && <div className="settings-panel"><p className="eyebrow">DISPLAY</p><h2>Background colour</h2><p className="settings-description">Choose a theme for the journal. Your choice is saved on this device.</p><div className="theme-options"><button className={"theme-option "+(theme==="dark"?"selected":"")} onClick={()=>setTheme("dark")}><span className="theme-preview theme-preview-dark"/><strong>Dark theme</strong><span>Charcoal, bronze and gold</span></button><button className={"theme-option "+(theme==="light"?"selected":"")} onClick={()=>setTheme("light")}><span className="theme-preview theme-preview-light"/><strong>Light theme</strong><span>Warm ivory and muted gold</span></button></div></div>}
         {settingsSection === "account" && <div className="settings-panel"><p className="eyebrow">ACCOUNT</p><h2>Profile name</h2><p className="settings-description">This name appears as the heading on your Profile page and in your welcome message.</p><form className="settings-edit-form" onSubmit={saveAccountName}><label>Account holder name<input required maxLength="60" value={accountName} onChange={e=>setAccountName(e.target.value)} placeholder="Enter your name"/></label><div className="form-actions"><button className="primary" disabled={busy}>{busy?"Saving…":"Save name"}</button></div></form></div>}
+        {settingsSection === "privacy" && <div className="settings-panel"><p className="eyebrow">YOUR DATA, YOUR CHOICE</p><h2>Privacy & sharing</h2><p className="settings-description">Your habits, journal entries and book records remain private. This setting controls whether people you follow who also follow you back can see your shared progress summary.</p><div className="privacy-setting-row"><div><strong>Share my progress with mutual friends</strong><p className="settings-description">When off, your progress summary is hidden from friends. Your account name can still appear in member search so people can find you.</p></div><label className="privacy-switch"><input type="checkbox" checked={shareProgress} disabled={privacyBusy} onChange={async e=>{const next=e.target.checked;setShareProgress(next);setPrivacyBusy(true);setError("");setNotice("");try{await setDoc(doc(db,"users",user.uid,"settings","privacy"),{shareProgress:next,updatedAt:serverTimestamp()},{merge:true});await setDoc(doc(db,"userProgress",user.uid),{uid:user.uid,shareProgress:next,updatedAt:serverTimestamp()},{merge:true});setNotice(next?"Progress sharing enabled for mutual friends.":"Progress sharing turned off.");}catch(err){setShareProgress(!next);setError("Could not save privacy settings: "+err.message);}finally{setPrivacyBusy(false);}}}/><span/></label></div><p className="settings-description">You can change this at any time. Existing accounts keep their current data and login details.</p></div>}
         {["Reading","Non-negotiables","Today","Profile"].includes(settingsSection) && <div className="settings-panel"><p className="eyebrow">PAGE SETTINGS</p><h2>{settingsSection} settings</h2><p className="settings-description">Manage the commitments and records used on this page. Existing data is preserved.</p>{settingsSection==="Reading"&&<><p className="settings-description">Set your personal reading pace here. It will be used automatically for book estimates whenever you search for a book and add it to your reading list.</p><div className="settings-reading-pace"><label htmlFor="personal-reading-wpm">Your reading speed (words per minute)</label><input id="personal-reading-wpm" type="number" min="20" max="2000" value={readingWpm} onChange={e=>setReadingWpm(Math.max(20,Math.min(2000,Number(e.target.value)||20)))}/><small>Tip: time yourself reading for one minute and count the words to get a personal estimate. The app uses about {wordsPerPage} words per page for non-fiction books.</small></div></>}{settingsSection==="Non-negotiables"&&<p className="settings-description">Your non-negotiables are controlled by the commitment list below. Edit a commitment and switch its non-negotiable option on or off.</p>}{settingsSection==="Today"&&<p className="settings-description">Today displays your daily checklist, completion progress, level and XP, streak and achievements.</p>}{settingsSection==="Profile"&&<p className="settings-description">Your profile shows your rank, total XP, streak, completed actions and achievements.</p>}<button className="secondary settings-open-page" onClick={()=>{setActiveTab(settingsSection);setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Open {settingsSection} page <ArrowLeft size={14}/></button></div>}
         {settingsSection === "menu" && <>
         <div className="settings-section-heading"><div><p className="eyebrow">YOUR DAILY STANDARD</p><h2>Manage commitments</h2></div><button className="quiet-account-button" onClick={()=>{setNewTitle("");setNewTarget("");setNewCategory("Mindset");setNewNonNegotiable(true);setShowAdd(v=>!v);setEditingHabitId(null);}}><Plus size={14}/> Add</button></div>
