@@ -448,3 +448,21 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .rank-emblem-11{background:linear-gradient(145deg,#81765c,#403727 50%,#242119);border-color:#c3ab70}
 .rank-emblem-12{background:radial-gradient(circle at 30% 20%,#a59a79,#5a5039 38%,#29261e 75%);border-color:#e0ca8b;box-shadow:inset 1px 1px 1px rgba(255,255,255,.26),inset -2px -3px 4px rgba(0,0,0,.58),0 3px 0 #171715,0 0 13px rgba(224,195,122,.18)}
 .rank-list-item.rank-locked .rank-list-emblem{filter:grayscale(.85) brightness(.74);opacity:.44}
+
+
+/* Detailed sculpted stone artefacts used by the rank progression */
+.rank-list-emblem.rank-stone-emblem{
+  position:relative;isolation:isolate;overflow:hidden;
+  width:56px;height:56px;flex:0 0 56px;border:0;padding:0;
+  border-radius:0;background:transparent;box-shadow:none;filter:none;
+}
+.rank-stone-art{position:absolute;inset:0;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 2px 1px rgba(0,0,0,.8))}
+.rank-stone-icon{position:absolute;inset:0;display:grid;place-items:center;color:#d7c68f;z-index:2}
+.rank-stone-icon svg{filter:drop-shadow(0 1px 0 #171612) drop-shadow(0 -1px 0 rgba(255,239,190,.25))}
+.rank-stone-emblem .rank-emblem-number{right:5px;bottom:4px;font-size:7px;color:#d1c092;z-index:4}
+.rank-list-item.rank-reached .rank-stone-icon{color:#f0dda0}
+.rank-list-item.rank-locked .rank-stone-emblem{filter:grayscale(1) brightness(.78);opacity:.48}
+.rank-list-item.rank-reached .rank-stone-art{filter:drop-shadow(0 2px 1px rgba(0,0,0,.85)) drop-shadow(0 0 3px rgba(202,174,105,.12))}
+.rank-stone-round .rank-stone-icon{transform:translateY(1px)}
+.rank-stone-shield .rank-stone-icon{transform:translateY(1px)}
+@media(max-width:420px){.rank-list-emblem.rank-stone-emblem{width:56px;height:56px;flex-basis:56px}}
