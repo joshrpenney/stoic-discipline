@@ -755,6 +755,7 @@ export default function App() {
     if (!user || !db || !editingHabitId || !editingTitle.trim()) return;
     const countInSelectedGroup = (editingIsNonNegotiable ? nonNegotiableHabits : flexibleHabits).filter(h => h.id !== editingHabitId).length;
     const limit = editingIsNonNegotiable ? MAX_NON_NEGOTIABLES : MAX_FLEXIBLE_COMMITMENTS;
+    if (habits.find(h => h.id === editingHabitId)?.nonNegotiable && !editingIsNonNegotiable) { setError("Your five daily standards can only be replaced by editing their details in Settings, not by switching them off."); return; }
     if (countInSelectedGroup >= limit) { setError(`You can have up to ${limit} ${editingIsNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Change or archive one before moving this commitment.`); return; }
     if (!editingIsNonNegotiable && editingSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
     try {
@@ -767,6 +768,7 @@ export default function App() {
   }
 
   async function removeHabit(habit) {
+    if (habit.nonNegotiable) { setError("A daily standard cannot be removed. Edit its details in Settings if you want to replace it."); return; }
     if (!user || !db || !confirm(`Remove "${habit.title}"? Previous daily records are retained.`)) return;
     try {
       await updateDoc(doc(db, "users", user.uid, "habits", habit.id), { active: false });
@@ -948,14 +950,8 @@ export default function App() {
           <div className="nonneg-progress"><div style={{width:`${dueNonNegotiables.length ? dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100 : 0}%`}}/></div>
           <p className="nonneg-quote">“First say to yourself what you would be; then do what you have to do.”</p>
         </div>
-        <div className="nonneg-heading"><div><p className="eyebrow">THE PROMISES YOU KEEP</p><h2>Your commitments</h2></div><button className="add-button" onClick={()=>{setNewNonNegotiable(true);setNewCategory("Mindset");setShowAdd(v=>!v);}}><Plus size={16}/><span>{showAdd?"Close":"Add promise"}</span></button></div>
-        {showAdd && <form className="add-form" onSubmit={addHabit}>
-          <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
-          <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
-          <label className="check-label"><input type="checkbox" checked={newNonNegotiable} onChange={e=>{const checked=e.target.checked;setNewNonNegotiable(checked);if(checked)setNewSchedule([0,1,2,3,4,5,6]);}}/> Daily non-negotiable (required for your streak)</label>
-      {!newNonNegotiable ? <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div> : <p className="settings-description">Daily non-negotiables are due every day and count towards your streak. {nonNegotiableHabits.length}/{MAX_NON_NEGOTIABLES} used.</p>}
-          <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save commitment</button></div>
-        </form>}
+        <div className="nonneg-heading"><div><p className="eyebrow">THE PROMISES YOU KEEP</p><h2>Your five standards</h2><p className="settings-description">{nonNegotiableHabits.length} of 5 established</p></div><button className="secondary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Manage in Settings <Settings size={15}/></button></div>
+        {nonNegotiableHabits.length !== 5 && <div className="settings-panel"><strong>{nonNegotiableHabits.length < 5 ? "Complete your standard setup" : "Review your standard"}</strong><p className="settings-description">Choose exactly five daily non-negotiables in Settings. This page is for completing them, not changing them.</p><button className="primary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Set up your five standards</button></div>}
         <div className="habit-list nonneg-habit-list">{dueNonNegotiables.map((h,i)=>{const Icon=categoryIcon(h.category);return <article className={`habit nonneg-habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category}</span></button><span className="promise-number">{String(i+1).padStart(2,"0")}</span></article>})}
           {!activeHabits.some(h=>h.nonNegotiable)&&<div className="empty"><ShieldCheck size={30}/><h3>Set your standard</h3><p>Choose a few promises you can keep consistently. Start small and build from there.</p><button className="primary" onClick={()=>{setNewNonNegotiable(true);setShowAdd(true);}}>Create your first promise</button></div>}
         </div>
