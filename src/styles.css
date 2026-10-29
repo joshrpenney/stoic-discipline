@@ -392,3 +392,59 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .rank-emblem-12 .rank-emblem-orbit{inset:3px;border-radius:50%;transform:none;border-color:rgba(255,231,166,.58)}
 .rank-list-item.rank-locked .rank-list-emblem{filter:grayscale(1);opacity:.32}
 @media(max-width:420px){.rank-list-emblem{width:48px;height:48px;flex-basis:48px}.rank-list-item{gap:10px}}
+
+
+/* Stone-carved rank insignias: weathered slate, chiseled edges and antique-gold inlay */
+.rank-list-emblem{
+  background:
+    radial-gradient(ellipse at 24% 18%,rgba(255,255,255,.13),transparent 34%),
+    radial-gradient(ellipse at 78% 84%,rgba(0,0,0,.48),transparent 48%),
+    repeating-linear-gradient(132deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px),
+    linear-gradient(145deg,#55544e 0%,#353530 38%,#242420 72%,#44433d 100%);
+  border:1px solid #777366;
+  color:#d7c58e;
+  box-shadow:
+    inset 1px 1px 1px rgba(255,255,255,.2),
+    inset -2px -3px 4px rgba(0,0,0,.55),
+    0 3px 0 #171715,
+    0 5px 10px rgba(0,0,0,.22);
+}
+.rank-list-emblem::before{
+  content:"";position:absolute;inset:3px;border:1px solid rgba(221,208,166,.23);
+  border-radius:inherit;pointer-events:none;z-index:1;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.45);
+}
+.rank-list-emblem>svg{
+  color:#d9c78e;
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.85)) drop-shadow(0 -1px 0 rgba(255,240,190,.18));
+  stroke-width:1.8;
+}
+.rank-emblem-orbit{
+  border-color:rgba(225,212,171,.3);
+  box-shadow:inset 0 1px 1px rgba(0,0,0,.4);
+}
+.rank-emblem-number{
+  color:#c5b17a;text-shadow:0 1px 1px #151513;
+}
+.rank-list-item.rank-reached .rank-list-emblem{
+  border-color:#a79a72;
+  background:
+    radial-gradient(ellipse at 24% 18%,rgba(255,255,255,.16),transparent 34%),
+    radial-gradient(ellipse at 78% 84%,rgba(0,0,0,.5),transparent 48%),
+    repeating-linear-gradient(132deg,rgba(255,255,255,.03) 0 1px,transparent 1px 4px),
+    linear-gradient(145deg,#626057 0%,#3d3b34 38%,#292823 72%,#4b493f 100%);
+}
+.rank-list-item.rank-reached .rank-list-emblem>svg{color:#e3d19a}
+.rank-emblem-1{background:linear-gradient(145deg,#66645c,#302f2a 75%,#4d4b43)}
+.rank-emblem-2{background:radial-gradient(circle at 30% 20%,#77746a,#34332e 66%,#20201d)}
+.rank-emblem-3{background:linear-gradient(145deg,#62564a,#312c27 70%,#4c4035);border-color:#87745c}
+.rank-emblem-4{background:radial-gradient(ellipse at 30% 15%,#786451,#352a21 70%);border-color:#99765b;color:#e2b98d}
+.rank-emblem-5{background:linear-gradient(145deg,#77766e,#3a3a35 52%,#272723);border-color:#96958b;color:#ddd7c4}
+.rank-emblem-6{background:radial-gradient(circle at 30% 20%,#777568,#36362e 70%,#24241f)}
+.rank-emblem-7{background:linear-gradient(145deg,#77705c,#373329 58%,#24231e);border-color:#a79a72}
+.rank-emblem-8{background:radial-gradient(circle at 30% 20%,#89816a,#484233 48%,#24221c);border-color:#c1ad78;box-shadow:inset 1px 1px 1px rgba(255,255,255,.23),inset -2px -3px 4px rgba(0,0,0,.55),0 3px 0 #171715,0 0 10px rgba(198,174,111,.12)}
+.rank-emblem-9{background:linear-gradient(145deg,#777a78,#3b3e3d 55%,#252726);border-color:#9caaa6;color:#d8e0d9}
+.rank-emblem-10{background:radial-gradient(circle at 30% 20%,#8b805f,#48402e 50%,#24211b);border-color:#c8b579}
+.rank-emblem-11{background:linear-gradient(145deg,#81765c,#403727 50%,#242119);border-color:#c3ab70}
+.rank-emblem-12{background:radial-gradient(circle at 30% 20%,#a59a79,#5a5039 38%,#29261e 75%);border-color:#e0ca8b;box-shadow:inset 1px 1px 1px rgba(255,255,255,.26),inset -2px -3px 4px rgba(0,0,0,.58),0 3px 0 #171715,0 0 13px rgba(224,195,122,.18)}
+.rank-list-item.rank-locked .rank-list-emblem{filter:grayscale(.85) brightness(.74);opacity:.44}
