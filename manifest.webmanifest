@@ -1,9 +1,9 @@
 {
-  "id": "/stoic-discipline/app-install-v2/",
-  "name": "STOIC — Discipline Journal",
-  "short_name": "STOIC",
+  "id": "/stoic-discipline/stoic-journal-v3/",
+  "name": "Stoic Discipline Journal",
+  "short_name": "Stoic Journal",
   "description": "Keep the promises you make to yourself.",
-  "start_url": "/stoic-discipline/",
+  "start_url": "/stoic-discipline/?install=stoic-journal-v3",
   "scope": "/stoic-discipline/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
