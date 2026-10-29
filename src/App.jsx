@@ -105,6 +105,7 @@ export default function App() {
   const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
   const [editingSchedule, setEditingSchedule] = useState([0,1,2,3,4,5,6]);
   const [notice, setNotice] = useState("");
+  const [xpToast, setXpToast] = useState(null);
   const [accountName, setAccountName] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("stoic-theme") || "dark");
   const [settingsSection, setSettingsSection] = useState("menu");
@@ -635,6 +636,7 @@ export default function App() {
         transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
       });
       setNotice(completing?(earned?`Promise kept. +${earned} XP earned.`:"Promise kept. XP for this commitment was already earned today."):"Record updated. Earned XP is kept.");
+      if (completing && earned > 0) setXpToast({ amount: earned, reason: habit.title || "completing a commitment", id: Date.now() });
       if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyMutualFriends("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
     } catch(e) { setError(e.message); }
   }
@@ -796,7 +798,8 @@ export default function App() {
     const mutual = followsThem && theyFollow;
     const sharedProgress = followingRecords.find(r => r.followedUid === member.uid)?.progress;
     return <main className="app-shell">
-      <header className="topbar">
+      {xpToast && <div className="xp-toast" role="status" aria-live="polite" key={xpToast.id}><div className="xp-toast-icon"><Sparkles size={22}/></div><div className="xp-toast-copy"><strong>+{xpToast.amount} XP</strong><span>Earned for {xpToast.reason}</span></div><button type="button" aria-label="Dismiss XP notification" onClick={()=>setXpToast(null)}><X size={17}/></button></div>}
+    <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
         <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
         <button className="topbar-quiet-button" title="Close profile" aria-label="Close profile" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={16}/></button>
