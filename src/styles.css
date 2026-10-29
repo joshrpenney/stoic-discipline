@@ -188,3 +188,29 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .app-shell input, .app-shell textarea, .app-shell select, .app-shell [contenteditable="true"] {
   -webkit-user-select: text; user-select: text; -webkit-touch-callout: default;
 }
+
+/* Today page: non-negotiables lead, and the streak is tied only to their completion. */
+.today-nonneg-card{margin-top:22px;margin-bottom:20px}
+.today-streak-row{display:flex;align-items:center;gap:13px;margin-top:16px;padding-top:15px;border-top:1px solid #413a2e}
+.today-streak-row>div{display:grid;gap:4px;min-width:0}
+.today-streak-row strong{font-size:15px;color:var(--text,#f1eee8)}
+.today-streak-row span{font-size:11px;line-height:1.5;color:var(--muted)}
+.streak-flame{flex:0 0 auto;transition:color .3s ease,filter .3s ease}
+.streak-material-stone{color:#85847e;filter:drop-shadow(0 0 1px #b8b5aa)}
+.streak-material-iron{color:#b8b8b2;filter:drop-shadow(0 0 2px #d8d8d0)}
+.streak-material-copper{color:#c77c4b;filter:drop-shadow(0 0 3px #8f4b2d)}
+.streak-material-bronze{color:#cd985f;filter:drop-shadow(0 0 4px #b4773b)}
+.streak-material-gold{color:#e2c16d;filter:drop-shadow(0 0 5px #c69b38)}
+.streak-material-diamond{color:#a9e5e6;filter:drop-shadow(0 0 7px #77d8e5)}
+/* Compact collapsible calendar and achievement panels on the profile. */
+.profile-collapsible{padding:0;overflow:hidden}
+.profile-collapse-toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;padding:18px;background:transparent;color:inherit;border:0;text-align:left}
+.profile-collapse-toggle>span{display:grid;gap:5px}
+.profile-collapse-toggle .eyebrow{margin:0}
+.profile-collapse-toggle strong{font:600 22px 'Playfair Display',serif;color:var(--text,#f1eee8)}
+.profile-collapse-toggle small{font-size:11px;color:var(--muted)}
+.profile-collapse-toggle>svg{color:var(--gold);transition:transform .2s ease;flex:0 0 auto}
+.profile-collapse-toggle>svg.is-open{transform:rotate(180deg)}
+.profile-collapse-content{padding:0 18px 18px;animation:fadeIn .18s ease-out}
+.profile-collapse-content>.muted{font-size:11px;line-height:1.6}
+.profile-collapse-content .consistency-weekdays{margin-top:14px}
