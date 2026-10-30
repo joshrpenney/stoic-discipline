@@ -1048,7 +1048,7 @@ export default function App() {
         {title:"Non-negotiables",subtitle:"The promises you keep first",items:nonNegotiableToday,icon:ShieldCheck},
         {title:"Training & movement",subtitle:"Build a stronger body",items:trainingToday,icon:Dumbbell},
         {title:"Other commitments",subtitle:"The rest of today's priorities",items:otherToday,icon:Target}
-      ].filter(group=>group.items.length>0).map(group=>{const GroupIcon=group.icon;return <section className="commitment-group" key={group.title}>
+      ].filter(group=>group.items.length>0).map(group=>{const GroupIcon=group.icon;return <section className={`commitment-group ${group.title === "Non-negotiables" ? "non-negotiable-group" : "other-commitment-group"}`} key={group.title}>
         <div className="commitment-group-heading"><div className="commitment-group-icon"><GroupIcon size={17}/></div><div><h3>{group.title}</h3><p>{group.subtitle}</p></div><span>{group.items.filter(h=>checks[h.id]).length}/{group.items.length}</span></div>
         <div className="habit-list">{group.items.map(h=>{const Icon=categoryIcon(h.category);return <article className={`habit ${checks[h.id]?"completed":""}`} key={h.id}>
           <button className="habit-check" aria-label={checks[h.id]?"Mark incomplete":"Mark complete"} onClick={()=>toggleHabit(h)}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button>
