@@ -76,6 +76,16 @@ function RankStoneEmblem({ level, Icon }) {
         <path d="M12 23c4-7 8-9 12-10-2 5-5 9-10 12l-2-2zm40 0c-4-7-8-9-12-10 2 5 5 9 10 12l2-2zM13 42c4 6 8 8 12 9-2-5-5-9-10-11l-2 2zm38 0c-4 6-8 8-12 9 2-5 5-9 10-11l2 2z"/>
         <circle cx="32" cy="7.5" r="1.2"/><circle cx="32" cy="56.5" r="1.2"/><circle cx="7.5" cy="32" r="1.2"/><circle cx="56.5" cy="32" r="1.2"/>
       </g>
+      <g fill="none" stroke={`url(#inlay-grad-${level})`} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 49C5 37 7 21 20 11M53 49C59 37 57 21 44 11" opacity=".9"/>
+      </g>
+      <g fill={`url(#inlay-grad-${level})`} stroke="#5d431e" strokeWidth=".35">
+        <path d="M10 43Q2 39 5 32Q12 34 10 43Z"/><path d="M9 34Q1 29 6 23Q13 27 9 34Z"/>
+        <path d="M12 25Q6 18 13 14Q18 20 12 25Z"/><path d="M17 17Q14 9 22 8Q25 15 17 17Z"/>
+        <path d="M14 49Q7 46 8 40Q15 41 14 49Z"/><path d="M54 43Q62 39 59 32Q52 34 54 43Z"/>
+        <path d="M55 34Q63 29 58 23Q51 27 55 34Z"/><path d="M52 25Q58 18 51 14Q46 20 52 25Z"/>
+        <path d="M47 17Q50 9 42 8Q39 15 47 17Z"/><path d="M50 49Q57 46 56 40Q49 41 50 49Z"/>
+      </g>
       <path d="M32 10 34 14 39 15 35 19 36 24 32 21 28 24 29 19 25 15 30 14Z" fill={`url(#inlay-grad-${level})`} opacity=".9"/>
     </svg>
     <span className="rank-stone-icon"><Icon size={25} strokeWidth={1.7}/></span>
