@@ -736,3 +736,11 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .rank-list-item.rank-locked .rank-stone-medallion{filter:grayscale(.72) brightness(.65);opacity:.62}
 .rank-list-item.rank-reached .rank-stone-medallion{box-shadow:0 4px 9px rgba(0,0,0,.58),0 0 10px rgba(205,177,116,.12)}
 .today-rank-strip>.rank-stone-medallion{border-radius:50%}
+
+/* Actual reference-art rank emblems: 6 x 2 sprite, one distinct medallion per level */
+.rank-list-emblem.rank-tier-image{position:relative;overflow:visible;border:0!important;border-radius:50%;background:transparent!important;box-shadow:0 3px 9px rgba(0,0,0,.58)!important}
+.rank-list-emblem.rank-tier-image::before{content:"";position:absolute;inset:2px;border:1px solid rgba(231,215,179,.22);border-radius:50%;z-index:2;pointer-events:none}
+.rank-list-emblem.rank-tier-image .rank-emblem-image{position:absolute;inset:0;display:block;border-radius:50%;background-repeat:no-repeat;background-size:600% 200%;z-index:0}
+.rank-list-emblem.rank-tier-image .rank-emblem-number{position:absolute;right:-2px;bottom:-2px;z-index:3;color:#e7d4a6;text-shadow:0 1px 3px #000;font-size:10px;font-weight:600}
+.rank-list-item.rank-locked .rank-tier-image{filter:grayscale(.85) brightness(.58);opacity:.72}
+.rank-list-item.rank-reached .rank-tier-image{filter:drop-shadow(0 0 5px rgba(205,177,116,.2))}
