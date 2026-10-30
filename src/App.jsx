@@ -962,7 +962,6 @@ export default function App() {
             {visibleRank && <div className="member-profile-rank-badge"><RankStoneEmblem level={visibleRank.level}/><span><strong>{visibleRank.name}</strong><small>Level {visibleRank.level}</small></span></div>}
           </div>
           {mutual && sharedProgress ? <>
-            <h2 className="member-profile-rank"><ShieldCheck size={25} aria-hidden="true"/> <span>Level {sharedProgress.level || 1} · {sharedProgress.rank || "Initiate"}</span></h2>
             <div className="profile-stats member-profile-stats">
               <article><Trophy size={20}/><strong>{Number(sharedProgress.totalXp)||0}</strong><span>total XP</span></article>
               <article><Target size={20}/><strong>{Number(sharedProgress.totalActions)||0}</strong><span>actions completed</span></article>
