@@ -940,7 +940,7 @@ export default function App() {
     const theyFollow = followerRecords.some(r => r.followerUid === member.uid);
     const mutual = followsThem && theyFollow;
     const sharedProgress = member.progress || followingRecords.find(r => r.followedUid === member.uid)?.progress;
-    const canViewProgress = !!sharedProgress && sharedProgress.shareProgress !== false;
+    const canViewProgress = followsThem && !!sharedProgress && sharedProgress.shareProgress !== false;
     const canViewReading = followsThem && member.libraryShared === true;
     const memberRank = canViewProgress ? {level:Math.max(1,Number(sharedProgress.level)||1),name:sharedProgress.rank||"Initiate"} : null;
     const memberAchievements = canViewProgress && Array.isArray(sharedProgress.achievements) ? sharedProgress.achievements : [];
