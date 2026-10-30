@@ -627,17 +627,19 @@ export default function App() {
     setError("");
     try {
       // Refresh the public profile and the member's rank summary when opening their profile.
-      const [latest, progressSnap, followingSnap, followersSnap] = await Promise.all([
+      const [latest, progressSnap, followingSnap, followersSnap, viewerFollowsMember, memberFollowsViewer] = await Promise.all([
         getDoc(doc(db, "publicProfiles", profile.uid)),
         getDoc(doc(db, "userProgress", profile.uid)),
         getDocs(query(collection(db, "follows"), where("followerUid", "==", profile.uid))),
-        getDocs(query(collection(db, "follows"), where("followedUid", "==", profile.uid)))
+        getDocs(query(collection(db, "follows"), where("followedUid", "==", profile.uid))),
+        getDoc(doc(db, "follows", user.uid + "_" + profile.uid)),
+        getDoc(doc(db, "follows", profile.uid + "_" + user.uid))
       ]);
       const latestProfile = latest.exists() ? { ...profile, ...latest.data() } : profile;
       const progress = progressSnap.exists() ? progressSnap.data() : null;
-      const socialListsShared = latestProfile.socialListsShared === true;
-      const [sharedFollowing, sharedFollowers] = socialListsShared ? await Promise.all([Promise.all(followingSnap.docs.map(async row=>{const uid=row.data().followedUid;const p=await getDoc(doc(db,"publicProfiles",uid));return {uid,displayName:p.exists()?p.data().displayName||"Stoic member":"Stoic member"};})),Promise.all(followersSnap.docs.map(async row=>{const uid=row.data().followerUid;const p=await getDoc(doc(db,"publicProfiles",uid));return {uid,displayName:p.exists()?p.data().displayName||"Stoic member":"Stoic member"};}))]) : [[],[]];
-      setSelectedMemberProfile({ ...latestProfile, progress, sharedFollowing, sharedFollowers, followingCount:Math.max(followingSnap.size, followingRecords.filter(row=>row.followedUid===profile.uid).length), followerCount:Math.max(followersSnap.size, followerRecords.filter(row=>row.followerUid===profile.uid).length) });
+      const followingCount = Math.max(followingSnap.size, followingRecords.filter(row=>row.followedUid===profile.uid).length, memberFollowsViewer.exists()?1:0);
+      const followerCount = Math.max(followersSnap.size, followerRecords.filter(row=>row.followerUid===profile.uid).length, viewerFollowsMember.exists()?1:0);
+      setSelectedMemberProfile({ ...latestProfile, progress, followingCount, followerCount });
     } catch (e) {
       setSelectedMemberProfile(profile);
       setError("Could not refresh this member's profile details: " + e.message);
@@ -953,7 +955,7 @@ export default function App() {
     const canViewCommitments = followsThem && member.commitmentsShared === true;
     const memberRank = canViewProgress ? {level:Math.max(1,Number(sharedProgress.level)||1),name:sharedProgress.rank||"Initiate"} : null;
     const memberAchievements = canViewProgress && Array.isArray(sharedProgress.achievements) ? sharedProgress.achievements : [];
-    const memberCalendar = canViewProgress && Array.isArray(sharedProgress.consistencyDays) ? sharedProgress.consistencyDays : [];
+    const memberCalendar = canViewProgress ? (Array.isArray(sharedProgress.consistencyDays) ? sharedProgress.consistencyDays : Array.isArray(sharedProgress.consistencyDays?.days) ? sharedProgress.consistencyDays.days : []) : [];
     const memberUnlocked = canViewProgress ? Number(sharedProgress.achievementCount)||0 : 0;
     const memberTotalAchievements = canViewProgress ? Number(sharedProgress.achievementTotal)||memberAchievements.length||achievements.length : 0;
     const memberProgressPercent = sharedProgress?.todayDue ? Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/Number(sharedProgress.todayDue)*100)) : 0;
@@ -995,7 +997,6 @@ export default function App() {
         </div>
         <p className={member.isFounder ? "founder-subtitle own-profile-role" : "muted own-profile-role"}>{member.isFounder ? "Stoic Discipline Founder" : "Stoic Discipline member"}</p>
         <p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
-        {followsThem && member.socialListsShared === true && <section className="member-social-shared"><div className="member-social-shared-column"><p className="eyebrow">FOLLOWING</p>{(member.sharedFollowing||[]).length ? member.sharedFollowing.map(person=><button type="button" key={person.uid} onClick={()=>openMemberProfile({uid:person.uid,displayName:person.displayName})}>{person.displayName}<ChevronRight size={15}/></button>) : <p className="settings-description">Not following anyone yet.</p>}</div><div className="member-social-shared-column"><p className="eyebrow">FOLLOWERS</p>{(member.sharedFollowers||[]).length ? member.sharedFollowers.map(person=><button type="button" key={person.uid} onClick={()=>openMemberProfile({uid:person.uid,displayName:person.displayName})}>{person.displayName}<ChevronRight size={15}/></button>) : <p className="settings-description">No followers yet.</p>}</div></section>}
         <div className="member-profile-actions member-profile-follow-actions">
           <button className={followsThem ? "secondary" : "primary"} onClick={() => toggleFollow(member)}>{followsThem ? <><UserCheck size={15}/> Following</> : <><UserPlus size={15}/> Follow</>}</button>
           <span className="member-connection-status">{mutual ? "Mutual friends" : followsThem ? "You follow them" : theyFollow ? "Follows you" : "Not connected yet"}</span>
