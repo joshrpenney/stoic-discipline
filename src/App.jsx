@@ -49,7 +49,7 @@ function RankStoneEmblem({ level }) {
   const spriteRow = Math.floor((level - 1) / 6);
   return <div className={`rank-list-emblem rank-emblem-${level} rank-stone-emblem rank-stone-medallion rank-tier-image`} aria-label={`Rank ${level} emblem`}>
     <span className="rank-emblem-image" style={{
-      backgroundImage: "url('/stoic-emblems.webp')",
+      backgroundImage: `url(${import.meta.env.BASE_URL}stoic-emblems.webp)`,
       backgroundSize: "600% 200%",
       backgroundPosition: `${spriteColumn * 20}% ${spriteRow * 100}%`
     }}/>
