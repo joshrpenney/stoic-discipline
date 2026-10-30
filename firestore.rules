@@ -77,6 +77,11 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/publicProfiles/$(resource.data.followedUid)).data.socialListsShared == true
           && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.followedUid))
         )
+        || (
+          exists(/databases/$(database)/documents/publicProfiles/$(resource.data.followerUid))
+          && get(/databases/$(database)/documents/publicProfiles/$(resource.data.followerUid)).data.socialListsShared == true
+          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.followerUid))
+        )
       );
       allow create: if request.auth != null && request.resource.data.followerUid == request.auth.uid
         && request.resource.data.followedUid is string && request.resource.data.followedUid != request.auth.uid
