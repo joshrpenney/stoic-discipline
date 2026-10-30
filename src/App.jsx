@@ -1097,7 +1097,7 @@ export default function App() {
         <div className="standard-intro">
           <p className="eyebrow">THE DISCIPLINE YOU CHOOSE</p>
           <h1 className="tab-title">The Standard.</h1>
-          <p className="muted">The promises you make to yourself. Keep them simple, keep them visible, and let your actions give them meaning.</p>
+          <p className="muted">Five promises. One standard. Kept through action.</p>
         </div>
         <section className="standard-code-section">
           <div className="standard-section-heading"><div><p className="eyebrow">YOUR PERSONAL CODE</p><h2>Five non-negotiables</h2></div><button className="secondary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Edit <Settings size={15}/></button></div>
@@ -1108,8 +1108,9 @@ export default function App() {
           </div>
         </section>
         <section className="standard-principle">
-          <span className="standard-principle-mark"><ShieldCheck size={19}/></span>
-          <div><p className="eyebrow">THE PRINCIPLE</p><h2>Character is built<br/><span>in the keeping.</span></h2><p>Do not measure yourself by what you intend to do. Let the promises you keep, especially when it is difficult, speak for you.</p></div>
+          <div className="standard-principle-heading"><span className="standard-principle-mark"><ShieldCheck size={19}/></span><p className="eyebrow">THE PRINCIPLE</p></div>
+          <h2>Character is built in the keeping.</h2>
+          <p>Do not measure yourself by what you intend to do. Let the promises you keep speak for you.</p>
           <small>CONSISTENCY OVER INTENSITY</small>
         </section>
       </div>}
