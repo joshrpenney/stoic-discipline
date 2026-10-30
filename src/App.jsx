@@ -51,15 +51,7 @@ function RankStoneEmblem({ level, Icon }) {
     <svg className="rank-stone-art" viewBox="0 0 64 64" role="img" aria-hidden="true">
       <defs>
         <linearGradient id={grad} x1="0" y1="0" x2="1" y2="1">
-          {#if level <= 1}
-            <stop offset="0%" stopColor="#f4f0e6"/><stop offset="48%" stopColor="#aaa69c"/><stop offset="100%" stopColor="#5e5b55"/>
-          {:else if level <= 4}
-            <stop offset="0%" stopColor="#d7c9a9"/><stop offset="48%" stopColor="#8e7958"/><stop offset="100%" stopColor="#3d3427"/>
-          {:else if level <= 8}
-            <stop offset="0%" stopColor="#f1e4c4"/><stop offset="45%" stopColor="#9e9b91"/><stop offset="100%" stopColor="#45433e"/>
-          {:else}
-            <stop offset="0%" stopColor="#fff0c5"/><stop offset="42%" stopColor="#d2a958"/><stop offset="100%" stopColor="#68451c"/>
-          {/if}
+          {level <= 1 ? <><stop offset="0%" stopColor="#f4f0e6"/><stop offset="48%" stopColor="#aaa69c"/><stop offset="100%" stopColor="#5e5b55"/></> : level <= 4 ? <><stop offset="0%" stopColor="#d7c9a9"/><stop offset="48%" stopColor="#8e7958"/><stop offset="100%" stopColor="#3d3427"/></> : level <= 8 ? <><stop offset="0%" stopColor="#f1e4c4"/><stop offset="45%" stopColor="#9e9b91"/><stop offset="100%" stopColor="#45433e"/></> : <><stop offset="0%" stopColor="#fff0c5"/><stop offset="42%" stopColor="#d2a958"/><stop offset="100%" stopColor="#68451c"/></>}
         </linearGradient>
         <radialGradient id={`emblem-stone-${level}`} cx="30%" cy="22%" r="85%">
           <stop offset="0%" stopColor={level === 1 ? "#dedbd2" : "#55534e"}/>
@@ -76,12 +68,8 @@ function RankStoneEmblem({ level, Icon }) {
       <path d="M9 21C17 24 18 12 27 13S43 19 55 10M7 44C16 39 19 52 29 48S45 42 57 51M17 5C20 14 12 20 16 29M48 5C44 15 54 20 49 30" fill="none" stroke={level === 1 ? "#f4f0e7" : "#d5d0c2"} strokeOpacity={level === 1 ? ".32" : ".2"} strokeWidth="1"/>
       <circle cx="32" cy="32" r="24.3" fill="none" stroke={`url(#${grad})`} strokeWidth={level >= 9 ? "1.8" : "1.15"} opacity=".95"/>
       <circle cx="32" cy="32" r="21.8" fill="none" stroke="#080908" strokeWidth="1" opacity=".8"/>
-      {#if level >= 5}
-        <path d="M32 5.5 34 9.5 32 11.5 30 9.5Z M58.5 32 54.5 34 52.5 32 54.5 30Z M32 58.5 30 54.5 32 52.5 34 54.5Z M5.5 32 9.5 30 11.5 32 9.5 34Z" fill={`url(#${grad})`} opacity=".9"/>
-      {/if}
-      {#if level >= 9}
-        <circle cx="32" cy="32" r="28.1" fill="none" stroke={`url(#${grad})`} strokeWidth=".65" opacity=".85"/>
-      {/if}
+      {level >= 5 && <path d="M32 5.5 34 9.5 32 11.5 30 9.5Z M58.5 32 54.5 34 52.5 32 54.5 30Z M32 58.5 30 54.5 32 52.5 34 54.5Z M5.5 32 9.5 30 11.5 32 9.5 34Z" fill={`url(#${grad})`} opacity=".9"/>}
+      {level >= 9 && <circle cx="32" cy="32" r="28.1" fill="none" stroke={`url(#${grad})`} strokeWidth=".65" opacity=".85"/>}
     </svg>
     <span className="rank-stone-icon"><Icon size={level >= 9 ? 27 : 25} strokeWidth={level >= 9 ? 1.9 : 1.7}/></span>
     <span className="rank-emblem-number">{String(level).padStart(2,"0")}</span>
