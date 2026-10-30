@@ -617,6 +617,7 @@ export default function App() {
   }
 
   async function openMemberProfile(profile) {
+    setShowMemberRanksPage(false);
     if (!profile?.uid || !db) { setSelectedMemberProfile(profile); return; }
     setError("");
     try {
