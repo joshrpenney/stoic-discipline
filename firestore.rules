@@ -16,7 +16,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'uid', 'displayName', 'displayNameLower', 'isFounder', 'updatedAt',
           'library', 'currentReading', 'libraryShared', 'commitments',
-          'commitmentsShared', 'socialListsShared'
+          'commitmentsShared', 'socialListsShared', 'followingCount', 'followerCount'
         ])
         && request.resource.data.isFounder == (request.auth.token.email == 'joshrpenney@hotmail.co.uk');
       allow delete: if request.auth != null && request.auth.uid == userId;
