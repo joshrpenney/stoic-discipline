@@ -462,10 +462,10 @@ export default function App() {
       {title:"Strength Through Effort",detail:"Complete 25 training or movement commitments",progress:trainingDone,goal:25,icon:Dumbbell,group:"Movement"},
       {title:"Built by Practice",detail:"Complete 100 training or movement commitments",progress:trainingDone,goal:100,icon:Dumbbell,group:"Movement"},
       {title:"First XP",detail:"Earn your first experience point",progress:xp,goal:1,icon:Sparkles,group:"Progression"},
-      {title:"Rising",detail:"Earn 500 XP",progress:xp,goal:500,icon:Star,group:"Progression"},
-      {title:"Dedicated",detail:"Earn 2,500 XP",progress:xp,goal:2500,icon:Award,group:"Progression"},
-      {title:"Elite",detail:"Earn 10,000 XP",progress:xp,goal:10000,icon:ShieldCheck,group:"Progression"},
-      {title:"Living Legend",detail:"Earn 25,000 XP",progress:xp,goal:25000,icon:Trophy,group:"Progression"}
+      {title:"Rising",detail:"Earn 2,500 XP",progress:xp,goal:2500,icon:Star,group:"Progression"},
+      {title:"Dedicated",detail:"Earn 12,500 XP",progress:xp,goal:12500,icon:Award,group:"Progression"},
+      {title:"Elite",detail:"Earn 50,000 XP",progress:xp,goal:50000,icon:ShieldCheck,group:"Progression"},
+      {title:"Living Legend",detail:"Earn 125,000 XP",progress:xp,goal:125000,icon:Trophy,group:"Progression"}
     ];
     return items.map(item => ({...item, progress:Math.min(item.progress,item.goal), unlocked:item.progress>=item.goal, progressLabel:Math.min(item.progress,item.goal)+"/"+item.goal}));
   }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs]);
