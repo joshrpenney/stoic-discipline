@@ -947,6 +947,29 @@ export default function App() {
     const memberUnlocked = canViewProgress ? Number(sharedProgress.achievementCount)||0 : 0;
     const memberTotalAchievements = canViewProgress ? Number(sharedProgress.achievementTotal)||memberAchievements.length : 0;
     const memberProgressPercent = sharedProgress?.todayDue ? Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/Number(sharedProgress.todayDue)*100)) : 0;
+    if (showMemberRanksPage) return <main className="app-shell">
+      <header className="topbar">
+        <button className="topbar-quiet-button" aria-label="Back to member profile" onClick={()=>setShowMemberRanksPage(false)}><ArrowLeft size={18}/></button>
+        <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
+        <button className="topbar-quiet-button" aria-label="Close profile" onClick={()=>{setSelectedMemberProfile(null);setShowMemberRanksPage(false);}}><X size={16}/></button>
+      </header>
+      <section className="member-profile-page ranks-page">
+        <button className="community-back" onClick={()=>{setShowMemberRanksPage(false);window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={18}/> Back to {member.displayName || "profile"}</button>
+        <p className="eyebrow">THE PATH OF DISCIPLINE</p><h1 className="tab-title">Ranks & achievements</h1>
+        <p className="muted">A record of the progress {member.displayName || "this member"} has chosen to share.</p>
+        {canViewProgress ? <>
+          <section className="rank-list-section">
+            <div className="reading-list-heading"><div><p className="eyebrow">THEIR PROGRESSION</p><h2>Ranks</h2></div><span className="book-count-finished">{(Number(sharedProgress.totalXp)||0).toLocaleString()} XP</span></div>
+            <div className="rank-list">{RANKS.map(rank=>{const xp=Number(sharedProgress.totalXp)||0;const reached=xp>=rank.xp;return <article key={rank.level} className={"rank-list-item "+(reached?"rank-reached":"rank-locked")}><RankStoneEmblem level={rank.level} Icon={RANK_ICONS[rank.level-1]}/><div className="rank-list-copy"><strong>{reached?rank.name:"????"}</strong><span>Level {rank.level}</span></div><div className="rank-list-xp"><strong>{rank.xp.toLocaleString()} XP</strong><span>{reached?"Unlocked":(rank.xp-xp).toLocaleString()+" XP to go"}</span></div></article>})}</div>
+          </section>
+          <section className="rank-list-section">
+            <div className="reading-list-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="book-count-finished">{memberUnlocked}/{memberTotalAchievements || memberAchievements.length}</span></div>
+            {memberAchievements.length ? <div className="achievement-grid">{memberAchievements.map((a,index)=>{const pct=Math.round((Number(a.progress||0)/Math.max(1,Number(a.goal)||1))*100);return <article className={"achievement "+(a.unlocked?"unlocked":"locked")+" achievement-group-"+String(a.group||"Discipline").toLowerCase()} key={a.title}><div className="achievement-icon"><span className="achievement-medal-ring"/><Award size={20}/><span className="achievement-medal-number">{String(index+1).padStart(2,"0")}</span></div><div className="achievement-copy"><strong>{a.title}</strong><span>{a.detail}</span><div className="achievement-progress-track"><span style={{width:pct+"%"}}/></div><small className="achievement-progress-label">{Number(a.progress)||0} / {Number(a.goal)||0} {a.unlocked?"· Earned":"· "+pct+"%"}</small></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>LOCKED</span>}</div></article>})}</div> : <p className="settings-description member-reading-empty">Achievement details will appear here once this member's shared progress has refreshed.</p>}
+          </section>
+        </> : <div className="empty community-empty"><h3>Progress is private</h3><p>This member has chosen not to share their discipline progress.</p></div>}
+      </section>
+      <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon])=><button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setShowMemberRanksPage(false);setActiveTab(label);window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
+    </main>;
     return <main className="app-shell">
       <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
