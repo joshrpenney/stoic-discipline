@@ -754,3 +754,11 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .member-profile-rank-badge span{display:flex;flex-direction:column;gap:1px}
 .member-profile-rank-badge strong{font-family:inherit;font-size:13px;color:#d7bd83;line-height:1.2}
 .member-profile-rank-badge small{font-size:10px;color:var(--muted,#999);line-height:1.2}
+
+/* Keep member rank identity alongside shared progress, away from the profile name */
+.member-profile-name-row{justify-content:center;width:100%}
+.member-shared-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.member-shared-heading>.eyebrow{margin:0}
+.member-shared-heading .member-profile-rank-badge{flex-shrink:0}
+.member-shared-heading .rank-list-emblem{width:34px;height:34px;min-width:34px}
+.member-shared-heading .member-profile-rank-badge{padding:4px 9px 4px 4px}
