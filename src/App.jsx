@@ -991,7 +991,7 @@ export default function App() {
         <div className="profile-name-row member-profile-name-row">
           <h1 className="tab-title">{member.displayName || "Stoic member"}</h1>
           {memberRank && <RankStoneEmblem level={memberRank.level} Icon={RANK_ICONS[memberRank.level-1]}/>}
-          <div className="profile-social-inline"><span><strong>{Number(member.followingCount)||0}</strong><span>Following</span></span><span><strong>{Number(member.followerCount)||0}</strong><span>Followers</span></span></div>
+          <div className="profile-social-inline">{followsThem && member.socialListsShared === true ? <><span><strong>{Number(member.followingCount)||0}</strong><span>Following</span></span><span><strong>{Number(member.followerCount)||0}</strong><span>Followers</span></span></> : <span className="member-social-private">Social details private</span>}</div>
         </div>
         <p className={member.isFounder ? "founder-subtitle own-profile-role" : "muted own-profile-role"}>{member.isFounder ? "Stoic Discipline Founder" : "Stoic Discipline member"}</p>
         <p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
