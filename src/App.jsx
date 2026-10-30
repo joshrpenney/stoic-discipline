@@ -148,6 +148,7 @@ export default function App() {
   const [shareProgress, setShareProgress] = useState(true);
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
+  const [showMemberRanksPage, setShowMemberRanksPage] = useState(false);
   const [showMemberLibrary, setShowMemberLibrary] = useState(false);
   const [socialListView, setSocialListView] = useState("");
   const [showProfileCalendar, setShowProfileCalendar] = useState(false);
@@ -628,7 +629,7 @@ export default function App() {
       ]);
       const latestProfile = latest.exists() ? { ...profile, ...latest.data() } : profile;
       const progress = progressSnap.exists() ? progressSnap.data() : null;
-      setSelectedMemberProfile({ ...latestProfile, progress, followingCount:followingSnap.size, followerCount:followersSnap.size });
+      setSelectedMemberProfile({ ...latestProfile, progress, followingCount:Math.max(followingSnap.size, followingRecords.filter(row=>row.followedUid===profile.uid).length), followerCount:Math.max(followersSnap.size, followerRecords.filter(row=>row.followerUid===profile.uid).length) });
     } catch (e) {
       setSelectedMemberProfile(profile);
       setError("Could not refresh this member's profile details: " + e.message);
@@ -967,7 +968,7 @@ export default function App() {
         </div>
         {canViewProgress ? <>
           <div className="profile-stats"><article><Flame size={22}/><strong>{Number(sharedProgress.streak)||0}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(sharedProgress.totalActions)||0}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{memberUnlocked}/{memberTotalAchievements}</strong><span>achievements</span></article></div>
-          <section className="level-card rank-open-card member-rank-card"><div className="rank-open-card-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {memberRank.level} · {memberRank.name}</h2><p>{(Number(sharedProgress.totalXp)||0).toLocaleString()} total XP</p></div><div className="rank-open-card-action"><span>Rank progression</span><ChevronRight size={20}/></div></section>
+          <section className="level-card rank-open-card member-rank-card"><div className="rank-open-card-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {memberRank.level} · {memberRank.name}</h2><p>{(Number(sharedProgress.totalXp)||0).toLocaleString()} total XP</p></div><button type="button" className="rank-open-card-action member-rank-open-button" onClick={()=>{setShowMemberRanksPage(true);window.scrollTo({top:0,behavior:"smooth"});}}><span>Ranks & achievements</span><ChevronRight size={20}/></button></section>
           <section className="consistency-card profile-collapsible member-profile-collapsible">
             <div className="profile-collapse-toggle member-profile-static-toggle"><span><p className="eyebrow">SHOWING UP</p><strong>Consistency calendar</strong><small>{memberCalendar.length ? new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "Not shared yet"}</small></span></div>
             {memberCalendar.length>0 ? <div className="profile-collapse-content"><p className="muted">Their current month at a glance. Gold marks completed days; darker squares are incomplete.</p><div className="consistency-grid">{memberCalendar.map(day=>day.blank?<div className="consistency-day blank" key={day.key}/>:<div key={day.key} className={"consistency-day "+(day.isComplete?"full":"incomplete")+" "+(day.isToday?"today":"")+" "+(day.future?"future":"")}><span>{day.number}</span></div>)}</div><div className="consistency-legend"><span><i className="incomplete"/> Incomplete</span><span><i className="full"/> Complete</span><span><i className="today-key"/> Today</span></div></div> : <p className="settings-description member-reading-empty">This member hasn't shared their consistency calendar.</p>}
