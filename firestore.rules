@@ -15,7 +15,8 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly([
           'uid', 'displayName', 'displayNameLower', 'isFounder', 'updatedAt',
-          'library', 'currentReading', 'libraryShared'
+          'library', 'currentReading', 'libraryShared', 'commitments',
+          'commitmentsShared', 'socialListsShared'
         ])
         && request.resource.data.isFounder == (request.auth.token.email == 'joshrpenney@hotmail.co.uk');
       allow delete: if request.auth != null && request.auth.uid == userId;
@@ -28,12 +29,12 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.keys().hasOnly([
           'uid', 'displayName', 'totalXp', 'totalActions', 'level', 'rank',
-          'streak', 'todayCompleted', 'todayDue', 'shareProgress', 'updatedAt'
+          'streak', 'todayCompleted', 'todayDue', 'shareProgress', 'updatedAt',
+          'consistencyDays', 'achievements', 'achievementCount', 'achievementTotal'
         ]);
       allow read: if request.auth != null && (request.auth.uid == userId
         || (resource.data.shareProgress != false
-          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
-          && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))));
+          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))));
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
     // Notification recipients can read and manage their own notifications.
@@ -68,7 +69,15 @@ service cloud.firestore {
     }
     // A follow edge is created/deleted by the follower; both sides can read it.
     match /follows/{followId} {
-      allow read: if request.auth != null && (resource.data.followerUid == request.auth.uid || resource.data.followedUid == request.auth.uid);
+      allow read: if request.auth != null && (
+        resource.data.followerUid == request.auth.uid
+        || resource.data.followedUid == request.auth.uid
+        || (
+          exists(/databases/$(database)/documents/publicProfiles/$(resource.data.followedUid))
+          && get(/databases/$(database)/documents/publicProfiles/$(resource.data.followedUid)).data.socialListsShared == true
+          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + resource.data.followedUid))
+        )
+      );
       allow create: if request.auth != null && request.resource.data.followerUid == request.auth.uid
         && request.resource.data.followedUid is string && request.resource.data.followedUid != request.auth.uid
         && request.resource.data.keys().hasOnly(['followerUid', 'followedUid', 'createdAt']);
