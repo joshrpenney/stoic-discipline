@@ -931,3 +931,7 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .member-profile-page .member-rank-open-button{border:0;background:transparent;padding:0;color:#d6bd80;font:inherit;cursor:pointer}
 .member-profile-page .member-rank-open-button:hover{color:#f0d79c}
 .member-profile-page .member-rank-open-button span{max-width:110px}
+
+.member-social-shared{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0 24px;padding:16px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+.member-social-shared-column{min-width:0}.member-social-shared-column .eyebrow{margin-bottom:10px}.member-social-shared-column button{width:100%;display:flex;align-items:center;justify-content:space-between;gap:5px;padding:8px 0;border:0;border-bottom:1px solid var(--line);background:transparent;color:#e6e0d4;text-align:left;font-size:12px}.member-social-shared-column button svg{flex:0 0 auto;color:var(--gold)}.member-social-shared-column .settings-description{font-size:11px;line-height:1.5;color:var(--muted)}
+@media(max-width:390px){.member-social-shared{gap:9px;padding:12px}.member-social-shared-column button{font-size:11px}}
