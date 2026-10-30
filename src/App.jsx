@@ -946,7 +946,6 @@ export default function App() {
     const memberUnlocked = canViewProgress ? Number(sharedProgress.achievementCount)||0 : 0;
     const memberTotalAchievements = canViewProgress ? Number(sharedProgress.achievementTotal)||memberAchievements.length : 0;
     const memberProgressPercent = sharedProgress?.todayDue ? Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/Number(sharedProgress.todayDue)*100)) : 0;
-    const [showMemberCalendar,setShowMemberCalendar] = [null,null];
     return <main className="app-shell">
       <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
