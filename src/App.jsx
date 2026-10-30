@@ -866,7 +866,8 @@ export default function App() {
 
   async function removeHabit(habit) {
     if (habit.nonNegotiable && activeTab !== "Settings") { setError("Daily standards can only be changed in Settings."); return; }
-    if (!user || !db || !confirm(`Remove "${habit.title}"? Previous daily records and earned XP are retained.`)) return;
+    if (habit.nonNegotiable && nonNegotiableHabits.length <= MAX_NON_NEGOTIABLES) { setError("You must always keep exactly five non-negotiables. Edit this standard to replace it rather than removing it."); return; }
+    if (!user || !db || !confirm(`Archive "${habit.title}"? Previous daily records and earned XP are retained.`)) return;
     try {
       await updateDoc(doc(db, "users", user.uid, "habits", habit.id), { active: false });
       setNotice("Commitment archived. Previous records are retained.");
