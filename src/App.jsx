@@ -45,41 +45,40 @@ const RANKS = [
 ];
 const RANK_ICONS = [ShieldCheck, Shield, Swords, FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, InfinityIcon, Landmark];
 function RankStoneEmblem({ level, Icon }) {
-  const shape = ["square","round","shield","flame","diamond","hexagon","octagon","arch","sun","crest","kite","laurel"][level - 1] || "square";
-  const shapePaths = {
-    square:"M15 3H49L61 15V49L49 61H15L3 49V15Z", shield:"M32 3 57 13 54 39 32 60 10 39 7 13Z",
-    flame:"M32 3 43 15 55 21 59 36 49 52 32 61 15 52 5 36 9 21 21 15Z", diamond:"M32 3 60 32 32 61 4 32Z",
-    hexagon:"M18 4H46L60 20V44L46 60H18L4 44V20Z", octagon:"M21 3H43L61 21V43L43 61H21L3 43V21Z",
-    arch:"M7 59V29C7 14 18 4 32 4S57 14 57 29V59Z", sun:"M32 3 38 10 48 7 50 17 59 23 54 32 59 41 50 47 48 57 38 54 32 61 26 54 16 57 14 47 5 41 10 32 5 23 14 17 16 7 26 10Z",
-    crest:"M8 7H56L53 39 32 60 11 39Z", kite:"M32 3 55 20 48 45 32 61 16 45 9 20Z",
-    laurel:"M32 4C45 8 57 19 57 32S45 56 32 60C19 56 7 45 7 32S19 8 32 4Z"
-  };
-  const shapePath = shapePaths[shape] || shapePaths.square;
+  const shape = "round";
   const clipId = `rank-stone-clip-${level}`;
-  return <div className={`rank-list-emblem rank-emblem-${level} rank-stone-emblem rank-stone-${shape}`} aria-label={`Rank ${level} emblem`}>
+  return <div className={`rank-list-emblem rank-emblem-${level} rank-stone-emblem rank-stone-medallion`} aria-label={`Rank ${level} emblem`}>
     <svg className="rank-stone-art" viewBox="0 0 64 64" role="img" aria-hidden="true">
       <defs>
-        <linearGradient id={`stone-grad-${level}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#77766d"/><stop offset="38%" stopColor="#494841"/><stop offset="74%" stopColor="#282824"/><stop offset="100%" stopColor="#5b5950"/></linearGradient>
-        <linearGradient id={`inlay-grad-${level}`} x1="0" y1="0" x2="0.8" y2="1"><stop offset="0%" stopColor="#f2dfa5"/><stop offset="48%" stopColor="#c7ad69"/><stop offset="100%" stopColor="#77633a"/></linearGradient>
+        <linearGradient id={`stone-grad-${level}`} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#aaa99f"/><stop offset="23%" stopColor="#66665f"/><stop offset="54%" stopColor="#343530"/><stop offset="78%" stopColor="#20211e"/><stop offset="100%" stopColor="#77766d"/></linearGradient>
+        <linearGradient id={`inlay-grad-${level}`} x1="0" y1="0" x2=".85" y2="1"><stop offset="0%" stopColor="#fff0bd"/><stop offset="24%" stopColor="#e6c879"/><stop offset="56%" stopColor="#a9843f"/><stop offset="78%" stopColor="#f1d994"/><stop offset="100%" stopColor="#725327"/></linearGradient>
         <filter id={`stone-texture-${level}`} x="-10%" y="-10%" width="120%" height="120%">
-          <feTurbulence type="fractalNoise" baseFrequency=".72" numOctaves="2" seed={level * 13} result="grain"/>
+          <feTurbulence type="fractalNoise" baseFrequency=".58" numOctaves="3" seed={level * 19} result="grain"/>
           <feColorMatrix in="grain" type="saturate" values="0" result="mono"/>
-          <feComponentTransfer><feFuncA type="table" tableValues="0 .18"/></feComponentTransfer>
+          <feComponentTransfer><feFuncA type="table" tableValues="0 .23"/></feComponentTransfer>
           <feBlend in="SourceGraphic" mode="soft-light"/>
         </filter>
-        <clipPath id={clipId}>{shape === "round" ? <circle cx="32" cy="32" r="29"/> : <path d={shapePath}/>}</clipPath>
+        <clipPath id={clipId}><circle cx="32" cy="32" r="27.5"/></clipPath>
       </defs>
+      <circle cx="32" cy="32" r="31" fill="#100f0c"/>
+      <circle cx="32" cy="32" r="29.5" fill="none" stroke={`url(#inlay-grad-${level})`} strokeWidth="2.5"/>
+      <circle cx="32" cy="32" r="26.8" fill="none" stroke="#211b10" strokeWidth="1.6"/>
       <g clipPath={`url(#${clipId})`}>
-        {shape === "round" ? <circle cx="32" cy="32" r="30" fill={`url(#stone-grad-${level})`}/> : <path d={shapePath} fill={`url(#stone-grad-${level})`}/> }
-        <rect width="64" height="64" fill="#aaa79a" opacity=".16" filter={`url(#stone-texture-${level})`}/>
-        <path d="M8 15 17 8 45 7 55 15M7 43 13 54 24 59" fill="none" stroke="#f0ead4" strokeOpacity=".15" strokeWidth="1.2"/>
-        <path d="M5 21 11 18M47 55 55 47M18 5 21 9M55 24 59 21" stroke="#121210" strokeOpacity=".6" strokeWidth="1.4"/>
+        <circle cx="32" cy="32" r="28" fill={`url(#stone-grad-${level})`}/>
+        <rect width="64" height="64" fill="#c9c6b9" opacity=".18" filter={`url(#stone-texture-${level})`}/>
+        <path d="M7 18C16 22 17 8 27 10S42 19 57 8M4 43C16 36 17 54 29 48S44 42 61 52M14 4C19 15 9 22 15 31M48 4C43 17 56 20 49 31" fill="none" stroke="#e5e1d3" strokeOpacity=".2" strokeWidth="1.1"/>
+        <path d="M8 15 19 11M43 53 56 47M11 48 19 53" fill="none" stroke="#10110f" strokeOpacity=".48" strokeWidth="1.4"/>
       </g>
-      {shape === "round" ? <><circle cx="32" cy="32" r="27" fill="none" stroke="#151512" strokeWidth="3"/><circle cx="32" cy="32" r="24.5" fill="none" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".72" strokeWidth="1.1"/><circle cx="32" cy="32" r="20.5" fill="none" stroke="#c9c2aa" strokeOpacity=".38" strokeWidth=".7"/></> : <><path d={shapePath} transform="translate(32 32) scale(.86) translate(-32 -32)" fill="none" stroke="#141411" strokeWidth="3"/><path d={shapePath} transform="translate(32 32) scale(.79) translate(-32 -32)" fill="none" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".66" strokeWidth="1.1"/></>}
-      <path d="M32 12 34 16 39 17 35 21 36 26 32 23 28 26 29 21 25 17 30 16Z" fill={`url(#inlay-grad-${level})`} opacity=".65"/>
-      <path d="M13 32H17M47 32H51M32 45V49" stroke={`url(#inlay-grad-${level})`} strokeOpacity=".55" strokeWidth="1"/>
+      <circle cx="32" cy="32" r="25.5" fill="none" stroke={`url(#inlay-grad-${level})`} strokeWidth="1.15"/>
+      <circle cx="32" cy="32" r="22.7" fill="none" stroke="#17140e" strokeWidth="1.2"/>
+      <circle cx="32" cy="32" r="20.8" fill="none" stroke="#e0c27a" strokeOpacity=".68" strokeWidth=".65"/>
+      <g fill={`url(#inlay-grad-${level})`} opacity=".92">
+        <path d="M12 23c4-7 8-9 12-10-2 5-5 9-10 12l-2-2zm40 0c-4-7-8-9-12-10 2 5 5 9 10 12l2-2zM13 42c4 6 8 8 12 9-2-5-5-9-10-11l-2 2zm38 0c-4 6-8 8-12 9 2-5 5-9 10-11l2 2z"/>
+        <circle cx="32" cy="7.5" r="1.2"/><circle cx="32" cy="56.5" r="1.2"/><circle cx="7.5" cy="32" r="1.2"/><circle cx="56.5" cy="32" r="1.2"/>
+      </g>
+      <path d="M32 10 34 14 39 15 35 19 36 24 32 21 28 24 29 19 25 15 30 14Z" fill={`url(#inlay-grad-${level})`} opacity=".9"/>
     </svg>
-    <span className="rank-stone-icon"><Icon size={24} strokeWidth={1.65}/></span>
+    <span className="rank-stone-icon"><Icon size={25} strokeWidth={1.7}/></span>
     <span className="rank-emblem-number">{String(level).padStart(2,"0")}</span>
   </div>;
 }
