@@ -614,12 +614,17 @@ export default function App() {
     if (!profile?.uid || !db) { setSelectedMemberProfile(profile); return; }
     setError("");
     try {
-      // Search results can be older than the latest reading-sharing update.
-      const latest = await getDoc(doc(db, "publicProfiles", profile.uid));
-      setSelectedMemberProfile(latest.exists() ? { ...profile, ...latest.data() } : profile);
+      // Refresh the public profile and the member's rank summary when opening their profile.
+      const [latest, progressSnap] = await Promise.all([
+        getDoc(doc(db, "publicProfiles", profile.uid)),
+        getDoc(doc(db, "userProgress", profile.uid))
+      ]);
+      const latestProfile = latest.exists() ? { ...profile, ...latest.data() } : profile;
+      const progress = progressSnap.exists() ? progressSnap.data() : null;
+      setSelectedMemberProfile({ ...latestProfile, progress });
     } catch (e) {
       setSelectedMemberProfile(profile);
-      setError("Could not refresh this member's shared reading details: " + e.message);
+      setError("Could not refresh this member's profile details: " + e.message);
     }
   }
 
@@ -926,7 +931,11 @@ export default function App() {
     const followsThem = followingRecords.some(r => r.followedUid === member.uid);
     const theyFollow = followerRecords.some(r => r.followerUid === member.uid);
     const mutual = followsThem && theyFollow;
-    const sharedProgress = followingRecords.find(r => r.followedUid === member.uid)?.progress;
+    const sharedProgress = member.progress || followingRecords.find(r => r.followedUid === member.uid)?.progress;
+    const visibleRank = sharedProgress && (sharedProgress.shareProgress || mutual) ? {
+      level: Math.max(1, Number(sharedProgress.level) || 1),
+      name: sharedProgress.rank || "Initiate"
+    } : null;
     return <main className="app-shell">
       
     <header className="topbar">
@@ -938,7 +947,10 @@ export default function App() {
         <p className="eyebrow">ACCOUNTABILITY CIRCLE</p>
         <div className="member-profile-hero">
           <div className="member-profile-avatar">{(member.displayName || "S").trim().charAt(0).toUpperCase()}</div>
-          <h1>{member.displayName || "Stoic member"}</h1>
+          <div className="member-profile-name-row">
+            <h1>{member.displayName || "Stoic member"}</h1>
+            {visibleRank && <div className="member-profile-rank-badge"><RankStoneEmblem level={visibleRank.level}/><span><strong>{visibleRank.name}</strong><small>Level {visibleRank.level}</small></span></div>}
+          </div>
           <p className={member.isFounder ? "founder-subtitle" : "muted"}>{member.isFounder ? "Stoic Discipline Founder" : "Stoic Discipline member"}</p>
           <div className="member-profile-actions">
             <button className={followsThem ? "secondary" : "primary"} onClick={() => toggleFollow(member)}>{followsThem ? <><UserCheck size={15}/> Following</> : <><UserPlus size={15}/> Follow</>}</button>
