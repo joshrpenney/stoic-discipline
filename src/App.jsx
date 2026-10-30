@@ -514,14 +514,26 @@ export default function App() {
   useEffect(() => {
     if (!user || !progressionReady) { previousUnlockState.current = null; return; }
     const current = { level: levelInfo.level, achievements: achievements.filter(item => item.unlocked).map(item => item.title), xp: Number(progression.totalXp) || 0, actions: Number(progression.totalActions) || 0 };
-    const previous = previousUnlockState.current;
-    previousUnlockState.current = current;
-    if (!previous) return;
-    if (current.level > previous.level) {
+    let previous = previousUnlockState.current;
+    if (!previous) {
+      try {
+        const saved = localStorage.getItem("stoic-unlock-seen-" + user.uid);
+        previous = saved ? JSON.parse(saved) : null;
+      } catch { previous = null; }
+      previousUnlockState.current = current;
+      if (!previous) {
+        try { localStorage.setItem("stoic-unlock-seen-" + user.uid, JSON.stringify(current)); } catch {}
+        return;
+      }
+    } else {
+      previousUnlockState.current = current;
+    }
+    if (current.level > (Number(previous.level) || 1)) {
       setUnlockCelebration({ type: "rank", title: "Rank achieved", name: levelInfo.name, level: levelInfo.level, detail: "You've earned your next rank.", id: "rank-" + levelInfo.level + "-" + current.xp });
       return;
     }
-    const newlyUnlocked = current.achievements.find(name => !previous.achievements.includes(name));
+    const previousAchievements = Array.isArray(previous.achievements) ? previous.achievements : [];
+    const newlyUnlocked = current.achievements.find(name => !previousAchievements.includes(name));
     if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, icon: item.icon, id: "achievement-" + item.title + "-" + current.actions }); }
   }, [user, progressionReady, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, achievements]);
 
@@ -1073,7 +1085,7 @@ export default function App() {
         <h2 id="unlock-celebration-title">{unlockCelebration.name}</h2>
         {unlockCelebration.type === "rank" && <p className="unlock-celebration-level">Level {unlockCelebration.level}</p>}
         <p>{unlockCelebration.detail}</p>
-        <button type="button" className="unlock-celebration-continue" onClick={()=>setUnlockCelebration(null)}>Continue</button>
+        <button type="button" className="unlock-celebration-continue" onClick={()=>{if(user){const acknowledged={level:levelInfo.level,achievements:achievements.filter(item=>item.unlocked).map(item=>item.title),xp:Number(progression.totalXp)||0,actions:Number(progression.totalActions)||0};previousUnlockState.current=acknowledged;try{localStorage.setItem("stoic-unlock-seen-"+user.uid,JSON.stringify(acknowledged));}catch{}}setUnlockCelebration(null);}}>Continue</button>
       </div>
     </div>}
     {xpToast && <div className="xp-toast" role="status" aria-live="polite" key={xpToast.id}><div className="xp-toast-icon"><Sparkles size={22}/></div><div className="xp-toast-copy"><strong>+{xpToast.amount} XP</strong><span>Earned for {xpToast.reason}</span></div><button type="button" aria-label="Dismiss XP notification" onClick={()=>setXpToast(null)}><X size={17}/></button></div>}
