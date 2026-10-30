@@ -527,9 +527,14 @@ export default function App() {
       uid: user.uid, displayName: accountName.trim() || user.displayName || "Stoic member",
       totalXp: Number(progression.totalXp) || 0, totalActions: Number(progression.totalActions) || 0,
       level: levelInfo.level, rank: levelInfo.name, streak,
-      todayCompleted: doneCount, todayDue: dueHabits.length, shareProgress, updatedAt: serverTimestamp()
+      todayCompleted: doneCount, todayDue: dueHabits.length, shareProgress,
+      consistencyDays: shareProgress ? consistencyDays : [],
+      achievements: shareProgress ? achievements.map(({title,detail,progress,goal,unlocked,group})=>({title,detail,progress,goal,unlocked,group})) : [],
+      achievementCount: achievements.filter(a=>a.unlocked).length,
+      achievementTotal: achievements.length,
+      updatedAt: serverTimestamp()
     }, { merge: true }).catch(e => setError(e.message));
-  }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length, shareProgress]);
+  }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length, shareProgress, consistencyDays, achievements]);
 
   async function notifyMutualFriends(type, details = {}) {
     if (!user || !db) return;
@@ -615,13 +620,15 @@ export default function App() {
     setError("");
     try {
       // Refresh the public profile and the member's rank summary when opening their profile.
-      const [latest, progressSnap] = await Promise.all([
+      const [latest, progressSnap, followingSnap, followersSnap] = await Promise.all([
         getDoc(doc(db, "publicProfiles", profile.uid)),
-        getDoc(doc(db, "userProgress", profile.uid))
+        getDoc(doc(db, "userProgress", profile.uid)),
+        getDocs(query(collection(db, "follows"), where("followerUid", "==", profile.uid))),
+        getDocs(query(collection(db, "follows"), where("followedUid", "==", profile.uid)))
       ]);
       const latestProfile = latest.exists() ? { ...profile, ...latest.data() } : profile;
       const progress = progressSnap.exists() ? progressSnap.data() : null;
-      setSelectedMemberProfile({ ...latestProfile, progress });
+      setSelectedMemberProfile({ ...latestProfile, progress, followingCount:followingSnap.size, followerCount:followersSnap.size });
     } catch (e) {
       setSelectedMemberProfile(profile);
       setError("Could not refresh this member's profile details: " + e.message);
@@ -932,60 +939,54 @@ export default function App() {
     const theyFollow = followerRecords.some(r => r.followerUid === member.uid);
     const mutual = followsThem && theyFollow;
     const sharedProgress = member.progress || followingRecords.find(r => r.followedUid === member.uid)?.progress;
-    const visibleRank = sharedProgress && (sharedProgress.shareProgress || mutual) ? {
-      level: Math.max(1, Number(sharedProgress.level) || 1),
-      name: sharedProgress.rank || "Initiate"
-    } : null;
+    const canViewProgress = !!sharedProgress && sharedProgress.shareProgress !== false;
+    const memberRank = canViewProgress ? {level:Math.max(1,Number(sharedProgress.level)||1),name:sharedProgress.rank||"Initiate"} : null;
+    const memberAchievements = canViewProgress && Array.isArray(sharedProgress.achievements) ? sharedProgress.achievements : [];
+    const memberCalendar = canViewProgress && Array.isArray(sharedProgress.consistencyDays) ? sharedProgress.consistencyDays : [];
+    const memberUnlocked = canViewProgress ? Number(sharedProgress.achievementCount)||0 : 0;
+    const memberTotalAchievements = canViewProgress ? Number(sharedProgress.achievementTotal)||memberAchievements.length : 0;
+    const memberProgressPercent = sharedProgress?.todayDue ? Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/Number(sharedProgress.todayDue)*100)) : 0;
+    const [showMemberCalendar,setShowMemberCalendar] = [null,null];
     return <main className="app-shell">
-      
-    <header className="topbar">
+      <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
         <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
-        <button className="topbar-quiet-button" title="Close profile" aria-label="Close profile" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={16}/></button>
+        <button className="topbar-quiet-button" title="Close profile" aria-label="Close profile" onClick={() => setSelectedMemberProfile(null)}><X size={16}/></button>
       </header>
       <section className="member-profile-page">
-        <p className="eyebrow">ACCOUNTABILITY CIRCLE</p>
-        <div className="member-profile-hero">
-          <div className="member-profile-avatar">{(member.displayName || "S").trim().charAt(0).toUpperCase()}</div>
-          <div className="member-profile-name-row">
-            <h1>{member.displayName || "Stoic member"}</h1>
-          </div>
-          <p className={member.isFounder ? "founder-subtitle" : "muted"}>{member.isFounder ? "Stoic Discipline Founder" : "Stoic Discipline member"}</p>
-          <div className="member-profile-actions">
-            <button className={followsThem ? "secondary" : "primary"} onClick={() => toggleFollow(member)}>{followsThem ? <><UserCheck size={15}/> Following</> : <><UserPlus size={15}/> Follow</>}</button>
-            <span className="member-connection-status">{mutual ? "Mutual friends" : followsThem ? "You follow them" : theyFollow ? "Follows you" : "Not connected yet"}</span>
-          </div>
+        <p className="eyebrow">THE WORK THEY'VE PUT IN</p>
+        <div className="profile-name-row member-profile-name-row">
+          <h1 className="tab-title">{member.displayName || "Stoic member"}</h1>
+          {memberRank && <RankStoneEmblem level={memberRank.level} Icon={RANK_ICONS[memberRank.level-1]}/>}
+          <div className="profile-social-inline"><span><strong>{Number(member.followingCount)||0}</strong><span>Following</span></span><span><strong>{Number(member.followerCount)||0}</strong><span>Followers</span></span></div>
         </div>
-        <section className="community-section member-shared-section">
-          <div className="member-shared-heading">
-            <p className="eyebrow">SHARED PROGRESS</p>
-            {visibleRank && <div className="member-profile-rank-badge"><RankStoneEmblem level={visibleRank.level}/><span><strong>{visibleRank.name}</strong><small>Level {visibleRank.level}</small></span></div>}
-          </div>
-          {mutual && sharedProgress ? <>
-            <div className="profile-stats member-profile-stats">
-              <article><Trophy size={20}/><strong>{Number(sharedProgress.totalXp)||0}</strong><span>total XP</span></article>
-              <article><Target size={20}/><strong>{Number(sharedProgress.totalActions)||0}</strong><span>actions completed</span></article>
-              <article><Flame size={20}/><strong>{Number(sharedProgress.streak)||0}</strong><span>day streak</span></article>
-            </div>
-            <div className="community-daily member-daily"><div className="community-daily-label"><span>Today's commitments</span><strong>{Number(sharedProgress.todayCompleted)||0}/{Number(sharedProgress.todayDue)||0}</strong></div><div className="community-daily-track"><span style={{width:((Number(sharedProgress.todayDue)||0)?Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/(Number(sharedProgress.todayDue)||0)*100)):0)+"%"}}/></div></div>
-          </> : <div className="empty community-empty"><Users size={26}/><h3>{mutual ? "Progress not shared" : "Shared progress is locked"}</h3><p>{mutual ? "This member has chosen not to share their progress, or their summary is not available yet." : "You can see shared progress when you follow each other and this member has sharing enabled."}</p></div>}
+        <p className={member.isFounder ? "founder-subtitle own-profile-role" : "muted own-profile-role"}>{member.isFounder ? "Stoic Discipline Founder" : "Stoic Discipline member"}</p>
+        <p className="muted">Measure progress by the promises you keep, not by comparison with anyone else.</p>
+        <div className="member-profile-actions member-profile-follow-actions">
+          <button className={followsThem ? "secondary" : "primary"} onClick={() => toggleFollow(member)}>{followsThem ? <><UserCheck size={15}/> Following</> : <><UserPlus size={15}/> Follow</>}</button>
+          <span className="member-connection-status">{mutual ? "Mutual friends" : followsThem ? "You follow them" : theyFollow ? "Follows you" : "Not connected yet"}</span>
+        </div>
+        {canViewProgress ? <>
+          <div className="profile-stats"><article><Flame size={22}/><strong>{Number(sharedProgress.streak)||0}</strong><span>day streak</span></article><article><Target size={22}/><strong>{Number(sharedProgress.totalActions)||0}</strong><span>actions completed</span></article><article><Trophy size={22}/><strong>{memberUnlocked}/{memberTotalAchievements}</strong><span>achievements</span></article></div>
+          <section className="level-card rank-open-card member-rank-card"><div className="rank-open-card-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {memberRank.level} · {memberRank.name}</h2><p>{(Number(sharedProgress.totalXp)||0).toLocaleString()} total XP</p></div><div className="rank-open-card-action"><span>Rank progression</span><ChevronRight size={20}/></div></section>
+          <section className="consistency-card profile-collapsible member-profile-collapsible">
+            <div className="profile-collapse-toggle member-profile-static-toggle"><span><p className="eyebrow">SHOWING UP</p><strong>Consistency calendar</strong><small>{memberCalendar.length ? new Date().toLocaleDateString("en-GB",{month:"long",year:"numeric"}) : "Not shared yet"}</small></span></div>
+            {memberCalendar.length>0 ? <div className="profile-collapse-content"><p className="muted">Their current month at a glance. Gold marks completed days; darker squares are incomplete.</p><div className="consistency-grid">{memberCalendar.map(day=>day.blank?<div className="consistency-day blank" key={day.key}/>:<div key={day.key} className={"consistency-day "+(day.isComplete?"full":"incomplete")+" "+(day.isToday?"today":"")+" "+(day.future?"future":"")}><span>{day.number}</span></div>)}</div><div className="consistency-legend"><span><i className="incomplete"/> Incomplete</span><span><i className="full"/> Complete</span><span><i className="today-key"/> Today</span></div></div> : <p className="settings-description member-reading-empty">This member hasn't shared their consistency calendar.</p>}
+          </section>
+          <section className="achievements-section profile-collapsible member-profile-collapsible">
+            <div className="profile-collapse-toggle member-profile-static-toggle"><span><p className="eyebrow">PROOF OF PRACTICE</p><strong>Achievements</strong><small>{memberUnlocked} unlocked</small></span></div>
+            {memberAchievements.length>0 ? <div className="profile-collapse-content"><div className="achievement-grid">{memberAchievements.map((a,index)=>{const pct=Math.round((Number(a.progress||0)/Math.max(1,Number(a.goal)||1))*100);return <article className={"achievement "+(a.unlocked?"unlocked":"locked")+" achievement-group-"+String(a.group||"Discipline").toLowerCase()} key={a.title}><div className="achievement-icon"><span className="achievement-medal-ring"/><Award size={20}/><span className="achievement-medal-number">{String(index+1).padStart(2,"0")}</span></div><div className="achievement-copy"><strong>{a.title}</strong><span>{a.detail}</span><div className="achievement-progress-track"><span style={{width:pct+"%"}}/></div><small className="achievement-progress-label">{Number(a.progress)||0} / {Number(a.goal)||0} {a.unlocked?"· Earned":"· "+pct+"%"}</small></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>LOCKED</span>}</div></article>})}</div></div> : <p className="settings-description member-reading-empty">Achievement details haven't been shared yet.</p>}
+          </section>
+        </> : <section className="community-section member-shared-section"><div className="empty community-empty"><Users size={26}/><h3>Progress is private</h3><p>This member has chosen not to share their discipline progress.</p></div></section>}
+        <section className="community-section member-library-section">
+          <div className="member-library-toggle member-reading-heading"><span><BookOpen size={20}/><strong>Currently reading</strong><small>{Array.isArray(member.currentReading) ? member.currentReading.length+" books in progress" : "Books in progress"}</small></span></div>
+          {member.libraryShared === false ? <p className="settings-description member-reading-empty">This member hasn't shared their reading activity.</p> : Array.isArray(member.currentReading) && member.currentReading.length ? <div className="member-library-content member-current-reading-list">{member.currentReading.map((book,index)=><article className="member-library-book member-current-book" key={book.id||book.title+"-"+index}>{book.cover ? <img src={book.cover} alt="" loading="lazy"/> : <div className="member-library-book-placeholder"><BookOpen size={19}/></div>}<div><strong>{book.title}</strong><span>{book.author||"Author unknown"}</span><small>Started {book.startedAt ? new Date(book.startedAt+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "date not provided"}</small>{book.pageCount>0&&<small>Page {book.currentPage||1} of {book.pageCount}</small>}</div></article>)}</div> : <p className="settings-description member-reading-empty">No books currently being read have been shared.</p>}
         </section>
         <section className="community-section member-library-section">
-          <div className="member-library-toggle member-reading-heading">
-            <span><BookOpen size={20}/><strong>Currently reading</strong><small>{Array.isArray(member.currentReading) ? member.currentReading.length+" books in progress" : "Books in progress"}</small></span>
-          </div>
-          {Array.isArray(member.currentReading) && member.currentReading.length ? <div className="member-library-content member-current-reading-list">{member.currentReading.map((book,index)=><article className="member-library-book member-current-book" key={book.id||book.title+"-"+index}>{book.cover ? <img src={book.cover} alt="" loading="lazy"/> : <div className="member-library-book-placeholder"><BookOpen size={19}/></div>}<div><strong>{book.title}</strong><span>{book.author||"Author unknown"}</span><small>Started {book.startedAt ? new Date(book.startedAt+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "date not provided"}</small>{book.pageCount>0&&<small>Page {book.currentPage||1} of {book.pageCount}</small>}</div></article>)}</div> : <p className="settings-description member-reading-empty">{member.libraryShared === false ? "This member hasn’t shared their reading activity." : "No books currently being read have been shared."}</p>}
+          <div className="member-library-toggle member-reading-heading"><span><BookOpen size={20}/><strong>Library</strong><small>{Array.isArray(member.library) ? member.library.length+" books completed" : "Books completed"}</small></span></div>
+          {member.libraryShared === false ? <p className="settings-description member-reading-empty">This member hasn't shared their library.</p> : Array.isArray(member.library) && member.library.length ? <div className="member-library-content"><div className="member-library-list">{member.library.map((book,index)=><article className="member-library-book" key={book.id||book.title+"-"+index}>{book.cover ? <img src={book.cover} alt="" loading="lazy"/> : <div className="member-library-book-placeholder"><BookOpen size={19}/></div>}<div><strong>{book.title}</strong><span>{book.author||"Author unknown"}</span></div></article>)}</div></div> : <p className="settings-description member-reading-empty">No completed books to show yet.</p>}
         </section>
-        <section className="community-section member-library-section">
-          <button type="button" className="member-library-toggle" aria-expanded={showMemberLibrary} onClick={()=>setShowMemberLibrary(v=>!v)}>
-            <span><BookOpen size={20}/><strong>Library</strong><small>{Array.isArray(member.library) ? member.library.length+" books completed" : "Books completed"}</small></span>
-            <ChevronDown className={showMemberLibrary?"is-open":""} size={20}/>
-          </button>
-          {showMemberLibrary && <div className="member-library-content">
-            {Array.isArray(member.library) && member.library.length ? <div className="member-library-list">{member.library.map((book,index)=><article className="member-library-book" key={book.id||book.title+"-"+index}>{book.cover ? <img src={book.cover} alt="" loading="lazy"/> : <div className="member-library-book-placeholder"><BookOpen size={19}/></div>}<div><strong>{book.title}</strong><span>{book.author||"Author unknown"}</span></div></article>)}</div> : <p className="settings-description">{member.library === undefined ? "This member hasn’t shared a library yet." : "No completed books to show yet."}</p>}
-          </div>}
-        </section>
-        <p className="member-profile-privacy">Private journal entries and habits are not shown on this profile. Shared reading activity shows books in progress and their start dates; the Library shows completed books.</p>
+        <p className="member-profile-privacy">Private journal entries and non-negotiables are never shown. This profile only displays information the member has chosen to share.</p>
       </section>
       <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setActiveTab(label);setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label==="Non-negotiables"?"Non-neg.":label}</span></button>)}</nav>
     </main>;
