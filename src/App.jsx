@@ -514,20 +514,14 @@ export default function App() {
   useEffect(() => {
     if (!user || !progressionReady) { previousUnlockState.current = null; return; }
     const current = { level: levelInfo.level, achievements: achievements.filter(item => item.unlocked).map(item => item.title), xp: Number(progression.totalXp) || 0, actions: Number(progression.totalActions) || 0 };
-    let previous = previousUnlockState.current;
-    if (!previous) {
-      try {
-        const saved = localStorage.getItem("stoic-unlock-seen-" + user.uid);
-        previous = saved ? JSON.parse(saved) : null;
-      } catch { previous = null; }
+    const saved = progression.acknowledgedUnlocks;
+    if (!saved || typeof saved !== "object") {
       previousUnlockState.current = current;
-      if (!previous) {
-        try { localStorage.setItem("stoic-unlock-seen-" + user.uid, JSON.stringify(current)); } catch {}
-        return;
-      }
-    } else {
-      previousUnlockState.current = current;
+      setDoc(doc(db, "users", user.uid, "progression", "summary"), { acknowledgedUnlocks: current }, { merge: true }).catch(e => setError("Could not save unlock history: " + e.message));
+      return;
     }
+    const previous = previousUnlockState.current || saved;
+    previousUnlockState.current = current;
     if (current.level > (Number(previous.level) || 1)) {
       setUnlockCelebration({ type: "rank", title: "Rank achieved", name: levelInfo.name, level: levelInfo.level, detail: "You've earned your next rank.", id: "rank-" + levelInfo.level + "-" + current.xp });
       return;
@@ -535,7 +529,7 @@ export default function App() {
     const previousAchievements = Array.isArray(previous.achievements) ? previous.achievements : [];
     const newlyUnlocked = current.achievements.find(name => !previousAchievements.includes(name));
     if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, icon: item.icon, id: "achievement-" + item.title + "-" + current.actions }); }
-  }, [user, progressionReady, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, achievements]);
+  }, [user, progressionReady, progression.totalXp, progression.totalActions, progression.acknowledgedUnlocks, levelInfo.level, levelInfo.name, achievements]);
 
   async function saveAccountName(e) {
     e.preventDefault(); const cleanName = accountName.trim();
@@ -1085,7 +1079,7 @@ export default function App() {
         <h2 id="unlock-celebration-title">{unlockCelebration.name}</h2>
         {unlockCelebration.type === "rank" && <p className="unlock-celebration-level">Level {unlockCelebration.level}</p>}
         <p>{unlockCelebration.detail}</p>
-        <button type="button" className="unlock-celebration-continue" onClick={()=>{if(user){const acknowledged={level:levelInfo.level,achievements:achievements.filter(item=>item.unlocked).map(item=>item.title),xp:Number(progression.totalXp)||0,actions:Number(progression.totalActions)||0};previousUnlockState.current=acknowledged;try{localStorage.setItem("stoic-unlock-seen-"+user.uid,JSON.stringify(acknowledged));}catch{}}setUnlockCelebration(null);}}>Continue</button>
+        <button type="button" className="unlock-celebration-continue" onClick={async()=>{if(user&&db){const acknowledged={level:levelInfo.level,achievements:achievements.filter(item=>item.unlocked).map(item=>item.title),xp:Number(progression.totalXp)||0,actions:Number(progression.totalActions)||0};try{await setDoc(doc(db,"users",user.uid,"progression","summary"),{acknowledgedUnlocks:acknowledged},{merge:true});previousUnlockState.current=acknowledged;setProgression(current=>({...current,acknowledgedUnlocks:acknowledged}));}catch(e){setError("Could not save this unlock: "+e.message);return;}}setUnlockCelebration(null);}}>Continue</button>
       </div>
     </div>}
     {xpToast && <div className="xp-toast" role="status" aria-live="polite" key={xpToast.id}><div className="xp-toast-icon"><Sparkles size={22}/></div><div className="xp-toast-copy"><strong>+{xpToast.amount} XP</strong><span>Earned for {xpToast.reason}</span></div><button type="button" aria-label="Dismiss XP notification" onClick={()=>setXpToast(null)}><X size={17}/></button></div>}
