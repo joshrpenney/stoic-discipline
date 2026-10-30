@@ -802,3 +802,49 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
   background:var(--panel);
   box-shadow:none;
 }
+
+/* The Standard: reflective discipline dashboard */
+.standard-page{display:flex;flex-direction:column;gap:28px}
+.standard-page>.tab-title{margin:0 0 -18px}
+.standard-overview-card,.standard-code-card{border:1px solid rgba(195,164,105,.42);border-radius:24px;padding:24px;background:linear-gradient(145deg,rgba(183,147,78,.12),rgba(32,31,28,.97) 58%,rgba(25,25,24,.98));box-shadow:inset 0 1px rgba(255,255,255,.035)}
+.standard-overview-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.standard-overview-heading h2{font-family:'Playfair Display',Georgia,serif;font-size:54px;line-height:1;margin:10px 0 4px;color:#f2eee5}
+.standard-overview-heading h2 span{font-size:28px;color:#cbb27c}
+.standard-overview-heading p:last-child{margin:0;color:#9b9993;font-size:14px}
+.standard-ring{width:94px;height:94px;flex:0 0 94px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#cbb27c var(--completion),rgba(130,124,111,.2) 0);position:relative}
+.standard-ring::before{content:"";position:absolute;inset:8px;border-radius:50%;background:#24231f}
+.standard-ring strong{position:relative;color:#e0c98f;font-size:16px}
+.standard-overview-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;border-top:1px solid rgba(202,178,128,.2);margin-top:22px;padding-top:18px}
+.standard-overview-stats>div{display:flex;flex-direction:column;gap:4px}
+.standard-overview-stats strong{font-family:'Playfair Display',Georgia,serif;font-size:26px;color:#e8dfce}
+.standard-overview-stats span{font-size:12px;color:#999}
+.standard-section{display:flex;flex-direction:column;gap:16px}
+.standard-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.standard-section-heading h2,.standard-section>h2{font-family:'Playfair Display',Georgia,serif;font-size:29px;margin:0;color:#f2eee5}
+.standard-section-heading .eyebrow{margin:0 0 5px}
+.standard-habit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.standard-habit-card{min-width:0;border:1px solid rgba(193,164,111,.22);border-radius:17px;padding:15px;background:linear-gradient(145deg,rgba(190,156,91,.055),rgba(34,33,30,.95))}
+.standard-habit-top{display:flex;align-items:center;gap:9px}
+.standard-habit-number{font-size:11px;letter-spacing:.12em;color:#bda879}
+.standard-habit-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#d2b779;background:rgba(187,151,82,.12)}
+.standard-habit-rate{margin-left:auto;font-size:15px;font-weight:700;color:#d7c18f}
+.standard-habit-card h3{font-size:15px;line-height:1.3;margin:14px 0 4px;color:#eee9df;overflow-wrap:anywhere}
+.standard-habit-card p{font-size:12px;color:#999;margin:0;min-height:18px}
+.standard-habit-track{height:5px;border-radius:99px;background:rgba(130,126,117,.18);overflow:hidden;margin:14px 0 8px}
+.standard-habit-track span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#9e804a,#dfc68d)}
+.standard-habit-card small{font-size:10px;line-height:1.35;color:#96938c}
+.standard-calendar{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:8px}
+.standard-calendar-day{aspect-ratio:1;min-width:0;border-radius:8px;display:grid;place-items:center;border:1px solid rgba(160,155,144,.14);background:rgba(130,126,117,.09);color:#89877f;font-size:11px}
+.standard-calendar-day.kept{background:rgba(174,143,82,.24);border-color:rgba(207,178,119,.62);color:#ead8ad}
+.standard-calendar-day.missed{background:rgba(145,81,67,.22);border-color:rgba(165,100,83,.42);color:#d8aaa0}
+.standard-calendar-day.skip{background:rgba(130,126,117,.04);border-style:dashed}
+.standard-calendar-legend{display:flex;flex-wrap:wrap;gap:16px;color:#999;font-size:11px}
+.standard-calendar-legend span{display:flex;align-items:center;gap:6px}
+.standard-calendar-legend i{width:9px;height:9px;border-radius:3px;background:rgba(130,126,117,.2)}
+.standard-calendar-legend i.kept{background:#b99b61}.standard-calendar-legend i.missed{background:#a96c5c}.standard-calendar-legend i.unrecorded{background:rgba(130,126,117,.2)}
+.standard-code-card h2{font-family:'Playfair Display',Georgia,serif;font-size:34px;line-height:1.12;margin:12px 0}
+.standard-code-card h2 span{color:#d1b77d}
+.standard-code-card>p:not(.eyebrow){font-size:14px;line-height:1.65;color:#aaa;max-width:440px}
+.standard-code-rule{height:1px;background:linear-gradient(90deg,rgba(206,177,119,.65),transparent);margin:22px 0 14px}
+.standard-code-card>small{font-size:10px;letter-spacing:.2em;color:#c9ae77;font-weight:700}
+@media(max-width:420px){.standard-overview-card,.standard-code-card{padding:19px}.standard-habit-grid{gap:9px}.standard-habit-card{padding:12px}.standard-calendar{gap:6px}.standard-calendar-day{font-size:10px}.standard-overview-heading h2{font-size:46px}}
