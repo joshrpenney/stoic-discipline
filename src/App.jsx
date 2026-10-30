@@ -421,6 +421,37 @@ export default function App() {
     }
     return count;
   }, [dailyLogs, habits]);
+  const standardInsights = useMemo(() => {
+    const byDate = new Map(dailyLogs.map(log => [log.date || log.id, log]));
+    const ids = new Set(nonNegotiableHabits.map(h => h.id));
+    const days = [];
+    const today = new Date(); today.setHours(12,0,0,0);
+    for (let offset = 29; offset >= 0; offset--) {
+      const date = new Date(today); date.setDate(today.getDate() - offset);
+      const key = dayKey(date), log = byDate.get(key);
+      const dueIds = Array.isArray(log?.dueNonNegotiableIds)
+        ? log.dueNonNegotiableIds
+        : Array.isArray(log?.dueHabitIds) ? log.dueHabitIds.filter(id => ids.has(id))
+        : log ? Object.keys(log.completed || {}).filter(id => ids.has(id)) : null;
+      const completed = log?.completed || {};
+      const due = dueIds ? dueIds.filter(id => ids.has(id)) : [];
+      const kept = due.filter(id => completed[id] === true).length;
+      days.push({key, label:date.toLocaleDateString("en-GB",{day:"numeric",month:"short"}), status:!log || !dueIds ? "unrecorded" : !due.length ? "skip" : kept === due.length ? "kept" : "missed", due:due.length, kept});
+    }
+    const recorded = days.filter(day => day.due > 0);
+    const dueTotal = recorded.reduce((sum,day)=>sum+day.due,0);
+    const keptTotal = recorded.reduce((sum,day)=>sum+day.kept,0);
+    const standards = nonNegotiableHabits.map(habit => {
+      const eligible = days.filter(day => {
+        const log = byDate.get(day.key);
+        const dueIds = Array.isArray(log?.dueNonNegotiableIds) ? log.dueNonNegotiableIds : Array.isArray(log?.dueHabitIds) ? log.dueHabitIds : log ? Object.keys(log.completed || {}) : [];
+        return dueIds.includes(habit.id);
+      });
+      const kept = eligible.filter(day => byDate.get(day.key)?.completed?.[habit.id] === true).length;
+      return {...habit, kept, recorded:eligible.length, percent:eligible.length ? Math.round(kept/eligible.length*100) : 0};
+    });
+    return {days, standards, percent:dueTotal ? Math.round(keptTotal/dueTotal*100) : 0, recordedDays:recorded.length, keptTotal, dueTotal};
+  }, [dailyLogs, nonNegotiableHabits]);
   const levelInfo = useMemo(() => {
     const xp = Math.max(0, Number(progression.totalXp) || 0);
     const levels = RANKS;
@@ -1093,19 +1124,28 @@ export default function App() {
           <div className="book-list">{books.filter(b=>!!b.finishedAt).map((book,i)=><article className="book-item completed-book-item" key={book.id}><div className={"book-cover completed-cover"+(book.cover?" has-book-cover":"")}>{book.cover ? <img src={book.cover} alt={book.title+" book cover"} loading="lazy"/> : <><Check size={21}/><span>{String(i+1).padStart(2,"0")}</span></>}</div><div className="book-info"><strong>{book.title}</strong><span>{book.author || "Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt ? new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}) : "Not recorded"}</span><span><small>FINISHED</small>{new Date(book.finishedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span></div><button className="reopen-book" onClick={()=>updateBook(book,{finishedAt:""})}>Move back to reading</button></div><button className="remove-button" aria-label={"Remove "+book.title} onClick={()=>removeBook(book)}><Trash2 size={17}/></button></article>)}{!books.some(b=>!!b.finishedAt)&&<div className="empty"><Trophy size={30}/><h3>Your finished books will live here</h3><p>Choose a finish date on a book above and it will move into this section automatically.</p></div>}</div>
         </section>
       </>}
-      {activeTab === "Non-negotiables" && <div className="nonneg-page">
-        <p className="eyebrow">YOUR PERSONAL STANDARD</p><h1 className="tab-title">Non-negotiables</h1>
-        <p className="muted">Your baseline promises. Keep them small enough to repeat, important enough to matter.</p>
-        <div className="nonneg-overview">
-          <div className="nonneg-overview-top"><div><span className="eyebrow">TODAY'S STANDARD</span><h2>{dueNonNegotiables.filter(h=>checks[h.id]).length}<span> / {dueNonNegotiables.length}</span></h2><p>commitments due today kept</p></div><div className="nonneg-ring" style={{"--completion":`${dueNonNegotiables.length ? dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100 : 0}%`}}><strong>{dueNonNegotiables.length ? Math.round(dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100) : 0}%</strong></div></div>
-
-        </div>
-        <div className="nonneg-heading"><div><p className="eyebrow">THE PROMISES YOU KEEP</p><h2>Your five standards</h2><p className="settings-description">{nonNegotiableHabits.length} of 5 established</p></div><button className="secondary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Manage in Settings <Settings size={15}/></button></div>
-        {nonNegotiableHabits.length !== 5 && <div className="settings-panel"><strong>{nonNegotiableHabits.length < 5 ? "Complete your standard setup" : "Review your standard"}</strong><p className="settings-description">Choose exactly five daily non-negotiables in Settings. This page is for completing them, not changing them.</p><button className="primary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Set up your five standards</button></div>}
-        <div className="habit-list nonneg-habit-list">{dueNonNegotiables.map((h,i)=>{const Icon=categoryIcon(h.category);return <article className={`habit nonneg-habit ${checks[h.id]?"completed":""}`} key={h.id}><button className="habit-check" onClick={()=>toggleHabit(h)} aria-label={checks[h.id]?"Mark incomplete":"Mark complete"}>{checks[h.id]?<Check size={19}/>:<Circle size={21}/>}</button><div className="habit-icon"><Icon size={19}/></div><button className="habit-copy" onClick={()=>toggleHabit(h)}><strong>{h.title}</strong><span>{h.target||h.category}</span></button><span className="promise-number">{String(i+1).padStart(2,"0")}</span></article>})}
-          {!activeHabits.some(h=>h.nonNegotiable)&&<div className="empty"><ShieldCheck size={30}/><h3>Set your standard</h3><p>Choose a few promises you can keep consistently. Start small and build from there.</p><button className="primary" onClick={()=>{setNewNonNegotiable(true);setShowAdd(true);}}>Create your first promise</button></div>}
-        </div>
-        <div className="nonneg-reminder"><ShieldCheck size={20}/><div><strong>Consistency over intensity</strong><p>Missing a day is information, not a verdict. Return to your commitments at the next opportunity.</p></div></div>
+      {activeTab === "Non-negotiables" && <div className="standard-page">
+        <p className="eyebrow">YOUR PERSONAL CODE</p>
+        <h1 className="tab-title">The Standard.</h1>
+        <p className="muted">Five promises. Kept every day. This is where you measure the consistency behind your discipline.</p>
+        <section className="standard-overview-card">
+          <div className="standard-overview-heading"><div><p className="eyebrow">THE LAST 30 DAYS</p><h2>{standardInsights.percent}<span>%</span></h2><p>recorded non-negotiable completions</p></div><div className="standard-ring" style={{"--completion":standardInsights.percent+"%"}}><strong>{standardInsights.percent}%</strong></div></div>
+          <div className="standard-overview-stats"><div><strong>{streak}</strong><span>day streak</span></div><div><strong>{standardInsights.recordedDays}/30</strong><span>days recorded</span></div><div><strong>{nonNegotiableHabits.length}/5</strong><span>standards set</span></div></div>
+        </section>
+        <section className="standard-section">
+          <div className="standard-section-heading"><div><p className="eyebrow">THE PROMISES YOU KEEP</p><h2>Your five standards</h2></div><button className="secondary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Manage <Settings size={15}/></button></div>
+          {nonNegotiableHabits.length !== 5 && <div className="settings-panel"><strong>Complete your standard setup</strong><p className="settings-description">Your personal standard is built around exactly five daily non-negotiables. You currently have {nonNegotiableHabits.length}.</p><button className="primary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Set up your five standards</button></div>}
+          <div className="standard-habit-grid">{standardInsights.standards.map((habit,index)=>{const Icon=categoryIcon(habit.category);return <article className="standard-habit-card" key={habit.id}><div className="standard-habit-top"><span className="standard-habit-number">{String(index+1).padStart(2,"0")}</span><span className="standard-habit-icon"><Icon size={19}/></span><span className="standard-habit-rate">{habit.recorded ? habit.percent+"%" : "—"}</span></div><h3>{habit.title}</h3><p>{habit.target || habit.category}</p><div className="standard-habit-track"><span style={{width:habit.percent+"%"}}/></div><small>{habit.recorded ? habit.kept+" of "+habit.recorded+" recorded days kept" : "No completion history recorded yet"}</small></article>})}
+            {!nonNegotiableHabits.length && <div className="empty"><ShieldCheck size={30}/><h3>Set your standard</h3><p>Choose five promises in Settings. Your consistency history will build from there.</p><button className="primary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");}}>Set up your five standards</button></div>}
+          </div>
+        </section>
+        <section className="standard-section">
+          <p className="eyebrow">CONSISTENCY, NOT PERFECTION</p><h2>Thirty-day record</h2><p className="settings-description">Each mark shows whether you kept all of the non-negotiables recorded for that day. Unrecorded days are left neutral.</p>
+          <div className="standard-calendar">{standardInsights.days.map(day=><div key={day.key} className={"standard-calendar-day "+day.status} title={day.label+": "+(day.status==="kept"?"All recorded standards kept":day.status==="missed"?"One or more standards missed":day.status==="skip"?"No standards due":"No record")}><span>{new Date(day.key+"T12:00:00").getDate()}</span></div>)}</div>
+          <div className="standard-calendar-legend"><span><i className="kept"/> Kept</span><span><i className="missed"/> Missed</span><span><i className="unrecorded"/> No record</span></div>
+        </section>
+        <section className="standard-code-card"><p className="eyebrow">YOUR PERSONAL CODE</p><h2>Do what matters.<br/><span>Leave the rest.</span></h2><p>Keep the promises you make to yourself. Measure your progress by the standards you uphold, not by comparison with anyone else.</p><div className="standard-code-rule"/> <small>CONSISTENCY OVER INTENSITY</small></section>
+        <div className="nonneg-reminder"><ShieldCheck size={20}/><div><strong>Return to the work.</strong><p>A missed day is information, not a verdict. Review what happened, adjust where necessary, and begin again.</p></div></div>
       </div>}
       {activeTab === "Profile" && (showRanksPage ? <section className="ranks-page"><button className="community-back" onClick={()=>{setShowRanksPage(false);window.scrollTo({top:0,behavior:"smooth"});}}><ArrowLeft size={18}/> Back to profile</button><p className="eyebrow">THE PATH OF DISCIPLINE</p><h1 className="tab-title">Ranks & achievements</h1><p className="muted">Earn XP by keeping your promises. Locked badges remain hidden until you earn them.</p><section className="rank-list-section"><div className="reading-list-heading"><div><p className="eyebrow">YOUR PROGRESSION</p><h2>Ranks</h2></div><span className="book-count-finished">{levelInfo.xp.toLocaleString()} XP</span></div><div className="rank-list">{RANKS.map(rank=>{const reached=levelInfo.xp>=rank.xp;return <article key={rank.level} className={"rank-list-item "+(reached?"rank-reached":"rank-locked")}><RankStoneEmblem level={rank.level} Icon={RANK_ICONS[rank.level - 1]}/><div className="rank-list-copy"><strong>{reached?rank.name:"????"}</strong><span>Level {rank.level}</span></div><div className="rank-list-xp"><strong>{rank.xp.toLocaleString()} XP</strong><span>{reached?"Unlocked":(rank.xp-levelInfo.xp).toLocaleString()+" XP to go"}</span></div></article>})}</div></section><section className="rank-list-section"><div className="reading-list-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="book-count-finished">{achievements.filter(a=>a.unlocked).length}/{achievements.length}</span></div><div className="achievement-grid">{achievements.map((a,index)=>{const Icon=a.icon;const pct=Math.round((a.progress/a.goal)*100);return <article className={"achievement "+(a.unlocked?"unlocked":"locked")+" achievement-group-"+a.group.toLowerCase()} key={a.title} style={{"--achievement-index":index}}><div className="achievement-icon" aria-hidden="true"><span className="achievement-medal-ring"/><Icon size={20}/><span className="achievement-medal-number">{String(index+1).padStart(2,"0")}</span></div><div className="achievement-copy"><strong>{a.title}</strong><span>{a.detail}</span><div className="achievement-progress-track" role="progressbar" aria-label={a.title+" progress"} aria-valuemin={0} aria-valuemax={a.goal} aria-valuenow={a.progress}><span style={{width:pct+"%"}}/></div><small className="achievement-progress-label">{a.progress.toLocaleString()} / {a.goal.toLocaleString()} {a.unlocked?"· Earned": "· "+pct+"%"}</small></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>LOCKED</span>}</div></article>})}</div></section></section> : socialListView ? <section className="social-directory-page">
         <header className="social-directory-header"><button type="button" className="topbar-quiet-button" aria-label="Back to profile" onClick={()=>setSocialListView("")}><ArrowLeft size={18}/></button><div><h1>{socialListView === "following" ? "Following" : "Followers"}</h1><p>{socialListView === "following" ? followingRecords.length : followerRecords.length} {socialListView === "following" ? "people you follow" : "people following you"}</p></div><button type="button" className="quiet-icon-button" title="Refresh lists" onClick={refreshCommunity}><RefreshCw size={16}/></button></header>
