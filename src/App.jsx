@@ -946,7 +946,7 @@ export default function App() {
     const memberAchievements = canViewProgress && Array.isArray(sharedProgress.achievements) ? sharedProgress.achievements : [];
     const memberCalendar = canViewProgress && Array.isArray(sharedProgress.consistencyDays) ? sharedProgress.consistencyDays : [];
     const memberUnlocked = canViewProgress ? Number(sharedProgress.achievementCount)||0 : 0;
-    const memberTotalAchievements = canViewProgress ? Number(sharedProgress.achievementTotal)||memberAchievements.length : 0;
+    const memberTotalAchievements = canViewProgress ? Number(sharedProgress.achievementTotal)||memberAchievements.length||achievements.length : 0;
     const memberProgressPercent = sharedProgress?.todayDue ? Math.min(100,Math.round((Number(sharedProgress.todayCompleted)||0)/Number(sharedProgress.todayDue)*100)) : 0;
     if (showMemberRanksPage) return <main className="app-shell">
       <header className="topbar">
