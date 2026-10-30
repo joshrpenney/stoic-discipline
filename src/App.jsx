@@ -30,10 +30,18 @@ const todayKey = () => {
 };
 const prettyDate = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const RANKS = [
-  {level:1,name:"Initiate",xp:0},{level:2,name:"Aspirant",xp:100},{level:3,name:"Disciple",xp:300},
-  {level:4,name:"Practitioner",xp:650},{level:5,name:"Sentinel",xp:1200},{level:6,name:"Guardian",xp:2000},
-  {level:7,name:"Adept",xp:3200},{level:8,name:"Exemplar",xp:5000},{level:9,name:"Philosopher",xp:7500},
-  {level:10,name:"Paragon",xp:11000},{level:11,name:"Archon",xp:16000},{level:12,name:"Sage",xp:23000}
+  {level:1,name:"Initiate",xp:0},
+  {level:2,name:"Aspirant",xp:750},
+  {level:3,name:"Student",xp:2000},
+  {level:4,name:"Disciple",xp:4000},
+  {level:5,name:"Practitioner",xp:7000},
+  {level:6,name:"Stoic",xp:11000},
+  {level:7,name:"Scholar",xp:16000},
+  {level:8,name:"Thinker",xp:23000},
+  {level:9,name:"Philosopher",xp:32000},
+  {level:10,name:"Teacher",xp:44000},
+  {level:11,name:"Mentor",xp:60000},
+  {level:12,name:"Exemplar",xp:85000}
 ];
 const RANK_ICONS = [ShieldCheck, Shield, Swords, FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, InfinityIcon, Landmark];
 function RankStoneEmblem({ level, Icon }) {
@@ -354,7 +362,24 @@ export default function App() {
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
     const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
-    const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), (snapshot) => { setProgression(snapshot.exists() ? snapshot.data() : { totalXp: 0, totalActions: 0 }); setProgressionReady(true); }, (e) => setError(e.message));
+    const stopProgression = onSnapshot(doc(db, "users", user.uid, "progression", "summary"), async (snapshot) => {
+      const progressionRef = doc(db, "users", user.uid, "progression", "summary");
+      try {
+        const migrated = await runTransaction(db, async (transaction) => {
+          const currentSnap = await transaction.get(progressionRef);
+          const current = currentSnap.exists() ? currentSnap.data() : { totalXp: 0, totalActions: 0 };
+          if (current.xpSystemVersion !== 2) {
+            const scaledXp = Math.max(0, Number(current.totalXp) || 0) * 5;
+            const next = { ...current, totalXp: scaledXp, xpSystemVersion: 2, updatedAt: serverTimestamp() };
+            transaction.set(progressionRef, next, { merge: true });
+            return next;
+          }
+          return current;
+        });
+        setProgression(migrated);
+        setProgressionReady(true);
+      } catch (e) { setError("Could not update your XP progression: " + e.message); }
+    }, (e) => setError(e.message));
     const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
     const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))), (e) => setError(e.message));
     return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); stopBooks(); };
@@ -723,18 +748,23 @@ export default function App() {
     const dueHabitIds=dueHabits.map(h=>h.id);
     const dueNonNegotiableIds=dueNonNegotiables.map(h=>h.id);
     const progressionRef=doc(db,"users",user.uid,"progression","summary");
-    try { let earned=0, completing=false;
+    try { let earned=0, completing=false, perfectDayBonus=false;
       await runTransaction(db, async (transaction) => {
         const logSnap=await transaction.get(logRef); const pSnap=await transaction.get(progressionRef);
         const log=logSnap.exists()?logSnap.data():{}; const completed={...(log.completed||{})}; const xpAwarded={...(log.xpAwarded||{})};
         completing=!completed[habit.id]; completed[habit.id]=completing;
         const p=pSnap.exists()?pSnap.data():{totalXp:0,totalActions:0}; let totalXp=Number(p.totalXp)||0; let totalActions=Number(p.totalActions)||0;
-        if(completing&&!xpAwarded[habit.id]) { earned=10; xpAwarded[habit.id]=true; totalXp+=earned; totalActions++; }
-        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds,dueNonNegotiableIds,updatedAt:serverTimestamp()},{merge:true});
-        transaction.set(progressionRef,{totalXp,totalActions,updatedAt:serverTimestamp()},{merge:true});
+        if(p.xpSystemVersion!==2) totalXp*=5;
+        if(completing&&!xpAwarded[habit.id]) { const individualXp=habit.nonNegotiable?20:10; earned+=individualXp; xpAwarded[habit.id]=true; totalXp+=individualXp; totalActions++; }
+        const dayDueIds=Array.isArray(log.dueHabitIds)&&log.dueHabitIds.length?log.dueHabitIds:dueHabitIds;
+        if(completing&&!log.perfectDayXpAwarded&&dayDueIds.length>0&&dayDueIds.every(id=>completed[id]===true)) {
+          perfectDayBonus=true; earned+=50; totalXp+=50;
+        }
+        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds:dayDueIds,dueNonNegotiableIds,perfectDayXpAwarded:!!log.perfectDayXpAwarded||perfectDayBonus,updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(progressionRef,{totalXp,totalActions,xpSystemVersion:2,updatedAt:serverTimestamp()},{merge:true});
       });
-      if (!(completing && earned > 0)) setNotice(completing?"Promise kept. XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
-      if (completing && earned > 0) setXpToast({ amount: earned, reason: habit.title || "completing a commitment", id: Date.now() });
+      if (!(completing && earned > 0)) setNotice(completing?"XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
+      if (completing && earned > 0) setXpToast({ amount: earned, reason: perfectDayBonus ? (habit.nonNegotiable?"non-negotiable completed · perfect day bonus":"scheduled commitment completed · perfect day bonus") : (habit.nonNegotiable?"non-negotiable completed":"scheduled commitment completed"), id: Date.now() });
       if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyMutualFriends("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
     } catch(e) { setError(e.message); }
   }
@@ -755,9 +785,28 @@ export default function App() {
   async function updateBook(book, changes) {
     if (!user || !db) return;
     try {
-      await updateDoc(doc(db, "users", user.uid, "booksRead", book.id), changes);
+      const bookRef = doc(db, "users", user.uid, "booksRead", book.id);
+      const progressionRef = doc(db, "users", user.uid, "progression", "summary");
+      let bookXpEarned = 0;
+      await runTransaction(db, async (transaction) => {
+        const bookSnap = await transaction.get(bookRef);
+        const progressionSnap = await transaction.get(progressionRef);
+        if (!bookSnap.exists()) throw new Error("This book could not be found.");
+        const savedBook = bookSnap.data();
+        const shouldAwardBookXp = Boolean(changes.finishedAt) && !savedBook.finishedAt && !savedBook.completionXpAwarded;
+        transaction.set(bookRef, { ...changes, ...(shouldAwardBookXp ? { completionXpAwarded: true } : {}) }, { merge: true });
+        if (shouldAwardBookXp) {
+          const p = progressionSnap.exists() ? progressionSnap.data() : { totalXp: 0, totalActions: 0 };
+          let totalXp = Math.max(0, Number(p.totalXp) || 0);
+          if (p.xpSystemVersion !== 2) totalXp *= 5;
+          totalXp += 250;
+          transaction.set(progressionRef, { totalXp, totalActions: Number(p.totalActions) || 0, xpSystemVersion: 2, updatedAt: serverTimestamp() }, { merge: true });
+          bookXpEarned = 250;
+        }
+      });
+      if (bookXpEarned) setXpToast({ amount: bookXpEarned, reason: "book completed", id: Date.now() });
       if(changes.finishedAt&&!book.finishedAt) await notifyMutualFriends("book_finished",{bookTitle:book.title||"A book",bookAuthor:book.author||"",eventKey:"finished_"+book.id});
-      setNotice(changes.finishedAt ? "Book marked as completed." : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
+      setNotice(changes.finishedAt ? (bookXpEarned ? "Book completed. You earned 250 XP." : "Book marked as completed.") : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
     } catch (e) { setError(e.message); }
   }
 
