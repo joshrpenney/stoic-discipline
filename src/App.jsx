@@ -637,7 +637,7 @@ export default function App() {
       const progress = progressSnap.exists() ? progressSnap.data() : null;
       const socialListsShared = latestProfile.socialListsShared === true;
       const [sharedFollowing, sharedFollowers] = socialListsShared ? await Promise.all([Promise.all(followingSnap.docs.map(async row=>{const uid=row.data().followedUid;const p=await getDoc(doc(db,"publicProfiles",uid));return {uid,displayName:p.exists()?p.data().displayName||"Stoic member":"Stoic member"};})),Promise.all(followersSnap.docs.map(async row=>{const uid=row.data().followerUid;const p=await getDoc(doc(db,"publicProfiles",uid));return {uid,displayName:p.exists()?p.data().displayName||"Stoic member":"Stoic member"};}))]) : [[],[]];
-      setSelectedMemberProfile({ ...latestProfile, progress, sharedFollowing, sharedFollowers, followingCount:followingSnap.size, followerCount:followersSnap.size });
+      setSelectedMemberProfile({ ...latestProfile, progress, sharedFollowing, sharedFollowers, followingCount:Math.max(followingSnap.size, followingRecords.filter(row=>row.followedUid===profile.uid).length), followerCount:Math.max(followersSnap.size, followerRecords.filter(row=>row.followerUid===profile.uid).length) });
     } catch (e) {
       setSelectedMemberProfile(profile);
       setError("Could not refresh this member's profile details: " + e.message);
