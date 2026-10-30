@@ -990,23 +990,22 @@ export default function App() {
       <h1>Do what matters.<br/><span>Leave the rest.</span></h1>
       <p className="muted">Welcome back{user.displayName ? `, ${user.displayName}` : ""}. Focus on the actions within your control.</p>
     </section>
-    <section className="nonneg-progress-card today-nonneg-card">
-      <div className="nonneg-progress-top"><div className="nonneg-progress-icon"><ShieldCheck size={19}/></div><div className="nonneg-progress-copy"><p className="eyebrow">YOUR DAILY STANDARD</p><h2>Non-negotiables <span>{doneNonNegotiables}/{dueNonNegotiables.length}</span></h2></div><strong className="nonneg-percent">{dueNonNegotiables.length ? nonNegotiablePercent+"%" : "REST"}</strong></div>
-      <div className="nonneg-progress-track"><div style={{width:`${nonNegotiablePercent}%`}}/></div>
-      <div className="today-streak-row"><Flame className={`streak-flame streak-material-${streak>=100?"diamond":streak>=60?"gold":streak>=30?"bronze":streak>=14?"copper":streak>=7?"iron":"stone"}`} size={27}/><div><strong>{streak}-day streak</strong><span>{dueNonNegotiables.length===0 ? "No non-negotiables scheduled today. Your streak is safe." : allNonNegotiablesKept ? "Standard upheld. You've kept every promise scheduled for today." : `${dueNonNegotiables.length-doneNonNegotiables} promise${dueNonNegotiables.length-doneNonNegotiables===1?"":"s"} remaining to protect your streak.`}</span></div></div>
-    </section>
-    <section className="progress-card">
-      <div className="progress-heading"><div><p className="eyebrow">ALL COMMITMENTS</p><h2>{doneCount} <span>/ {dueHabits.length}</span></h2></div></div>
-      <div className="progress-track"><div style={{width:`${percent}%`}}/></div>
-      <div className="progress-foot"><span>{percent}% complete</span><span>{dueHabits.length===0 ? "No commitments scheduled today." : percent===100 ? "All promises kept today." : "Keep going, one action at a time."}</span></div>
-    </section>
-    <section className="level-card">
-      <div className="level-top"><div className="level-emblem"><RankStoneEmblem level={levelInfo.level} Icon={RANK_ICONS[levelInfo.level - 1]}/></div><div className="level-copy"><p className="eyebrow">YOUR PATH</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.xp.toLocaleString()} XP earned</p></div><div className="xp-total"><Sparkles size={15}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>XP</span></div></div>
-      <div className="level-track"><div style={{width:`${levelInfo.progress}%`}}/></div>
-      <div className="level-foot"><span>{levelInfo.next?`${levelInfo.remaining} XP to Level ${levelInfo.next.level}`:"Keep practising to honour the work."}</span><span>{levelInfo.progress}%</span></div>
-      <div className="stats-row"><div><Target size={16}/><strong>{Number(progression.totalActions||0).toLocaleString()}</strong><span>actions completed</span></div><div><Trophy size={16}/><strong>{achievements.filter(a=>a.unlocked).length}/{achievements.length}</strong><span>achievements</span></div></div>
-    </section>
-    <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2><p className="muted commitment-limit-summary">{nonNegotiableHabits.length}/5 daily non-negotiables · {flexibleHabits.length}/5 scheduled commitments</p></div><button className="add-button" onClick={()=>setShowAdd(v=>!v)}><Plus size={17}/><span>Add</span></button></section>
+    <section className="today-summary-card">
+      <div className="today-summary-top">
+        <div><p className="eyebrow">TODAY AT A GLANCE</p><h2>{doneCount}<span> / {dueHabits.length}</span></h2><p>{dueHabits.length===0?"Nothing scheduled today":percent===100?"Every commitment complete":"commitments completed"}</p></div>
+        <div className="today-summary-ring" style={{"--completion":`${percent}%`}}><strong>{percent}%</strong></div>
+      </div>
+      <div className="today-summary-track"><div style={{width:`${percent}%`}}/></div>
+      <div className="today-summary-bottom">
+        <div className="today-summary-streak"><Flame className={`streak-flame streak-material-${streak>=100?"diamond":streak>=60?"gold":streak>=30?"bronze":streak>=14?"copper":streak>=7?"iron":"stone"}`} size={19}/><strong>{streak}-day streak</strong></div>
+        <span>{dueNonNegotiables.length===0?"No daily standards due":allNonNegotiablesKept?"Daily standard upheld":`${dueNonNegotiables.length-doneNonNegotiables} standards left`}</span>
+      </div>
+      <div className="today-rank-strip">
+        <RankStoneEmblem level={levelInfo.level} Icon={RANK_ICONS[levelInfo.level - 1]}/>
+        <div><span className="eyebrow">CURRENT RANK</span><strong>{levelInfo.name} · Level {levelInfo.level}</strong><small>{levelInfo.next?`${levelInfo.remaining.toLocaleString()} XP to Level ${levelInfo.next.level}`:"Highest rank reached"}</small></div>
+        <b>{levelInfo.xp.toLocaleString()} XP</b>
+      </div>
+    </section>    <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2><p className="muted commitment-limit-summary">{nonNegotiableHabits.length}/5 daily non-negotiables · {flexibleHabits.length}/5 scheduled commitments</p></div><button className="add-button" onClick={()=>setShowAdd(v=>!v)}><Plus size={17}/><span>Add</span></button></section>
     {showAdd && <form className="add-form" onSubmit={addHabit}>
       <label>Commitment<input autoFocus required maxLength="80" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Walk for 20 minutes"/></label>
       <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
@@ -1071,8 +1070,7 @@ export default function App() {
         <p className="muted">Your baseline promises. Keep them small enough to repeat, important enough to matter.</p>
         <div className="nonneg-overview">
           <div className="nonneg-overview-top"><div><span className="eyebrow">TODAY'S STANDARD</span><h2>{dueNonNegotiables.filter(h=>checks[h.id]).length}<span> / {dueNonNegotiables.length}</span></h2><p>commitments due today kept</p></div><div className="nonneg-ring" style={{"--completion":`${dueNonNegotiables.length ? dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100 : 0}%`}}><strong>{dueNonNegotiables.length ? Math.round(dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100) : 0}%</strong></div></div>
-          <div className="nonneg-progress"><div style={{width:`${dueNonNegotiables.length ? dueNonNegotiables.filter(h=>checks[h.id]).length/dueNonNegotiables.length*100 : 0}%`}}/></div>
-          <p className="nonneg-quote">“First say to yourself what you would be; then do what you have to do.”</p>
+
         </div>
         <div className="nonneg-heading"><div><p className="eyebrow">THE PROMISES YOU KEEP</p><h2>Your five standards</h2><p className="settings-description">{nonNegotiableHabits.length} of 5 established</p></div><button className="secondary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Manage in Settings <Settings size={15}/></button></div>
         {nonNegotiableHabits.length !== 5 && <div className="settings-panel"><strong>{nonNegotiableHabits.length < 5 ? "Complete your standard setup" : "Review your standard"}</strong><p className="settings-description">Choose exactly five daily non-negotiables in Settings. This page is for completing them, not changing them.</p><button className="primary" onClick={()=>{setActiveTab("Settings");setSettingsSection("menu");window.scrollTo({top:0,behavior:"smooth"});}}>Set up your five standards</button></div>}
