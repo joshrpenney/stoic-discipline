@@ -164,48 +164,39 @@ export default function App() {
   useEffect(() => {
     const memberUid = selectedMemberProfile?.uid;
     if (!user || !db || !memberUid || memberUid === user.uid) return;
-    let active = true;
-    const profileRef = doc(db, "publicProfiles", memberUid);
-    const progressRef = doc(db, "userProgress", memberUid);
-    const followingQuery = query(collection(db, "follows"), where("followerUid", "==", memberUid));
-    const followersQuery = query(collection(db, "follows"), where("followedUid", "==", memberUid));
-    const unsubscribeProfile = onSnapshot(profileRef, snap => {
-      if (!active || !snap.exists()) return;
+    const unsubscribeProfile = onSnapshot(doc(db, "publicProfiles", memberUid), snap => {
+      if (!snap.exists()) return;
       setSelectedMemberProfile(current => current?.uid === memberUid ? { ...current, ...snap.data() } : current);
     }, err => setError("Live profile updates unavailable: " + err.message));
-    const unsubscribeProgress = onSnapshot(progressRef, snap => {
-      if (!active) return;
+    const unsubscribeProgress = onSnapshot(doc(db, "userProgress", memberUid), snap => {
       setSelectedMemberProfile(current => current?.uid === memberUid ? { ...current, progress: snap.exists() ? snap.data() : null } : current);
     }, err => setError("Live progress updates unavailable: " + err.message));
-    const updateSocialLists = async (followingSnap, followersSnap) => {
-      const followingCount = followingSnap.size;
-      const followerCount = followersSnap.size;
-      const currentProfile = selectedMemberProfile;
-      const canList = currentProfile?.socialListsShared === true;
-      let sharedFollowing = [], sharedFollowers = [];
-      if (canList) {
-        [sharedFollowing, sharedFollowers] = await Promise.all([
-          Promise.all(followingSnap.docs.map(async row => {
-            const uid = row.data().followedUid;
-            const p = await getDoc(doc(db, "publicProfiles", uid));
-            return { uid, displayName: p.exists() ? p.data().displayName || "Stoic member" : "Stoic member" };
-          })),
-          Promise.all(followersSnap.docs.map(async row => {
-            const uid = row.data().followerUid;
-            const p = await getDoc(doc(db, "publicProfiles", uid));
-            return { uid, displayName: p.exists() ? p.data().displayName || "Stoic member" : "Stoic member" };
-          }))
-        ]);
-      }
-      if (!active) return;
-      setSelectedMemberProfile(current => current?.uid === memberUid ? { ...current, followingCount, followerCount, sharedFollowing, sharedFollowers } : current);
-    };
-    let latestFollowing = null, latestFollowers = null;
-    const publish = () => { if (latestFollowing && latestFollowers) updateSocialLists(latestFollowing, latestFollowers).catch(err => { if (active) setError("Could not update live follower counts: " + err.message); }); };
-    const unsubscribeFollowing = onSnapshot(followingQuery, snap => { latestFollowing = snap; publish(); }, err => setError("Could not load live following count: " + err.message));
-    const unsubscribeFollowers = onSnapshot(followersQuery, snap => { latestFollowers = snap; publish(); }, err => setError("Could not load live follower count: " + err.message));
-    return () => { active = false; unsubscribeProfile(); unsubscribeProgress(); unsubscribeFollowing(); unsubscribeFollowers(); };
+    return () => { unsubscribeProfile(); unsubscribeProgress(); };
   }, [user, selectedMemberProfile?.uid]);
+
+  useEffect(() => {
+    if (!user || !db) return;
+    let followingSize = null, followersSize = null, writing = false;
+    const publishCounts = async () => {
+      if (followingSize === null || followersSize === null || writing) return;
+      writing = true;
+      try {
+        const profileRef = doc(db, "publicProfiles", user.uid);
+        const current = await getDoc(profileRef);
+        if (current.exists()) {
+          const data = current.data();
+          if (Number(data.followingCount) !== followingSize || Number(data.followerCount) !== followersSize) {
+            await setDoc(profileRef, { followingCount: followingSize, followerCount: followersSize, updatedAt: serverTimestamp() }, { merge: true });
+          }
+        }
+      } catch (e) { setError("Could not sync follower totals: " + e.message); }
+      finally { writing = false; }
+    };
+    const stopFollowing = onSnapshot(query(collection(db, "follows"), where("followerUid", "==", user.uid)), snap => { followingSize = snap.size; publishCounts(); }, e => setError("Could not sync following total: " + e.message));
+    const stopFollowers = onSnapshot(query(collection(db, "follows"), where("followedUid", "==", user.uid)), snap => { followersSize = snap.size; publishCounts(); }, e => setError("Could not sync follower total: " + e.message));
+    return () => { stopFollowing(); stopFollowers(); };
+  }, [user]);
+
   useEffect(() => { document.documentElement.dataset.theme = theme; localStorage.setItem("stoic-theme", theme); }, [theme]);
   useEffect(() => { if (user) setAccountName(user.displayName || ""); }, [user]);
   useEffect(() => {
