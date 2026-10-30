@@ -356,11 +356,11 @@ export default function App() {
 
   useEffect(() => {
     if (!auth) { setAuthReady(true); return; }
-    return onAuthStateChanged(auth, (current) => { setUser(current); setAuthReady(true); });
+    return onAuthStateChanged(auth, (current) => { previousUnlockState.current = null; setProgressionReady(false); setUnlockCelebration(null); setProgression({ totalXp: 0, totalActions: 0 }); setUser(current); setAuthReady(true); });
   }, []);
 
   useEffect(() => {
-    if (!user || !db) { setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); setBooks([]); return; }
+    if (!user || !db) { setProgressionReady(false); previousUnlockState.current = null; setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); setBooks([]); return; }
     const habitQuery = query(collection(db, "users", user.uid, "habits"), orderBy("createdAt", "asc"));
     const stopHabits = onSnapshot(habitQuery, async (snapshot) => {
       if (snapshot.empty) {
