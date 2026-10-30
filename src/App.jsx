@@ -949,7 +949,6 @@ export default function App() {
           <div className="member-profile-avatar">{(member.displayName || "S").trim().charAt(0).toUpperCase()}</div>
           <div className="member-profile-name-row">
             <h1>{member.displayName || "Stoic member"}</h1>
-            {visibleRank && <div className="member-profile-rank-badge"><RankStoneEmblem level={visibleRank.level}/><span><strong>{visibleRank.name}</strong><small>Level {visibleRank.level}</small></span></div>}
           </div>
           <p className={member.isFounder ? "founder-subtitle" : "muted"}>{member.isFounder ? "Stoic Discipline Founder" : "Stoic Discipline member"}</p>
           <div className="member-profile-actions">
@@ -958,7 +957,10 @@ export default function App() {
           </div>
         </div>
         <section className="community-section member-shared-section">
-          <p className="eyebrow">SHARED PROGRESS</p>
+          <div className="member-shared-heading">
+            <p className="eyebrow">SHARED PROGRESS</p>
+            {visibleRank && <div className="member-profile-rank-badge"><RankStoneEmblem level={visibleRank.level}/><span><strong>{visibleRank.name}</strong><small>Level {visibleRank.level}</small></span></div>}
+          </div>
           {mutual && sharedProgress ? <>
             <h2 className="member-profile-rank"><ShieldCheck size={25} aria-hidden="true"/> <span>Level {sharedProgress.level || 1} · {sharedProgress.rank || "Initiate"}</span></h2>
             <div className="profile-stats member-profile-stats">
