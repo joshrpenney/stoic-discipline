@@ -744,3 +744,13 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .rank-list-emblem.rank-tier-image .rank-emblem-number{position:absolute;right:-2px;bottom:-2px;z-index:3;color:#e7d4a6;text-shadow:0 1px 3px #000;font-size:10px;font-weight:600}
 .rank-list-item.rank-locked .rank-tier-image{filter:grayscale(.85) brightness(.58);opacity:.72}
 .rank-list-item.rank-reached .rank-tier-image{filter:drop-shadow(0 0 5px rgba(205,177,116,.2))}
+
+/* Rank identity beside names on other members' profile pages */
+.member-profile-name-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.member-profile-name-row h1{margin:0}
+.member-profile-rank-badge{display:inline-flex;align-items:center;gap:8px;padding:5px 10px 5px 5px;border:1px solid rgba(194,163,101,.28);border-radius:999px;background:rgba(194,163,101,.055)}
+.member-profile-rank-badge .rank-list-emblem{width:38px;height:38px;min-width:38px}
+.member-profile-rank-badge .rank-emblem-number{font-size:7px}
+.member-profile-rank-badge span{display:flex;flex-direction:column;gap:1px}
+.member-profile-rank-badge strong{font-family:inherit;font-size:13px;color:#d7bd83;line-height:1.2}
+.member-profile-rank-badge small{font-size:10px;color:var(--muted,#999);line-height:1.2}
