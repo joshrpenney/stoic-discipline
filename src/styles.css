@@ -898,3 +898,31 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .standard-principle p:not(.eyebrow){font-size:13px;line-height:1.6;max-width:100%;margin:0}
 .standard-principle>small{position:static;display:block;margin-top:3px;padding-top:12px;border-top:1px solid rgba(202,178,128,.18);font-size:9px;letter-spacing:.16em}
 @media(max-width:420px){.standard-code-item{padding:13px 14px;gap:10px}.standard-code-icon{width:36px;height:36px;flex-basis:36px}.standard-principle{padding:18px;gap:11px}.standard-principle h2{font-size:27px}.standard-principle>small{font-size:9px}}
+
+
+/* Member profiles mirror the owner's profile while respecting sharing settings */
+.member-profile-page{padding:31px 0 28px;min-height:calc(100dvh - 190px)}
+.member-profile-page>.muted{font-size:13px;margin:14px 0 24px}
+.member-profile-name-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-start;width:100%}
+.member-profile-name-row h1{margin:0;min-width:0}
+.member-profile-name-row>.rank-list-emblem{width:64px;height:64px;min-width:64px;flex:0 0 64px}
+.member-profile-name-row .profile-social-inline{display:flex;align-items:center;gap:14px;margin-left:4px}
+.member-profile-name-row .profile-social-inline>span{display:flex;align-items:baseline;gap:4px;color:#99958b;font-size:12px;white-space:nowrap}
+.member-profile-name-row .profile-social-inline>span strong{font-family:'Playfair Display',Georgia,serif;font-size:18px;color:#eee8dc}
+.member-profile-follow-actions{display:flex;align-items:center;gap:14px;margin:18px 0 25px}
+.member-profile-follow-actions .primary,.member-profile-follow-actions .secondary{display:inline-flex;align-items:center;gap:8px}
+.member-rank-card{width:100%;text-align:left;cursor:default}
+.member-rank-card .rank-open-card-action{pointer-events:none}
+.member-profile-collapsible{margin-top:26px}
+.member-profile-static-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:25px 22px;background:transparent;border:0;text-align:left}
+.member-profile-static-toggle>span{display:flex;flex-direction:column;gap:7px}
+.member-profile-static-toggle .eyebrow{margin:0}
+.member-profile-static-toggle strong{font:600 29px 'Playfair Display',Georgia,serif;color:#f1eee8}
+.member-profile-static-toggle small{font-size:13px;color:var(--muted)}
+.member-profile-collapsible .profile-collapse-content{padding:0 22px 22px}
+.member-profile-collapsible .consistency-grid{margin-top:8px}
+.member-profile-page .member-library-section{margin-top:26px}
+.member-profile-page .member-library-toggle{width:100%}
+.member-profile-page .member-reading-empty{padding:0 18px 18px}
+.member-profile-privacy{font-size:11px;line-height:1.6;color:#77746b;text-align:center;margin:34px 8px 8px}
+@media(max-width:430px){.member-profile-name-row{gap:9px}.member-profile-name-row>.rank-list-emblem{width:54px;height:54px;min-width:54px;flex-basis:54px}.member-profile-name-row .profile-social-inline{gap:9px;margin-left:0}.member-profile-name-row .profile-social-inline>span{font-size:10px}.member-profile-name-row .profile-social-inline>span strong{font-size:16px}.member-profile-static-toggle{padding:22px 18px}.member-profile-static-toggle strong{font-size:26px}.member-profile-collapsible .profile-collapse-content{padding:0 18px 18px}}
