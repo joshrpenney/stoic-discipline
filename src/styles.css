@@ -679,3 +679,31 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
  .today-rank-strip>.rank-list-emblem{width:39px;height:39px;flex-basis:39px}
  .today-rank-strip strong{font-size:13px}
 }
+
+/* Commitment manager: two distinct lists with independent capacity */
+.commitment-management-intro{margin:0 0 22px}
+.commitment-management-intro .tab-title{margin:0 0 9px}
+.commitment-group-panel{margin:18px 0 22px;padding:17px 15px;border:1px solid #403b31;border-radius:16px;background:linear-gradient(145deg,#22211e,#1b1b19)}
+.nonneg-group-panel{border-color:#665638;background:radial-gradient(ellipse at 100% 0,rgba(194,163,99,.08),transparent 48%),linear-gradient(145deg,#29261f,#1b1b19 78%)}
+.commitment-group-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.commitment-group-header>div{min-width:0}
+.commitment-group-header .eyebrow{font-size:9px;letter-spacing:1.7px;color:#cbb278;margin:0 0 6px}
+.commitment-group-header h3{font:600 23px/1.2 'Playfair Display',Georgia,serif;margin:0 0 5px;color:#eee7da}
+.commitment-group-header h3 span{font:500 12px/1.2 inherit;color:#cbb278;white-space:nowrap}
+.commitment-group-header p:last-child{font-size:11px;line-height:1.5;color:#a7a092;margin:0;max-width:330px}
+.commitment-group-header .quiet-account-button{flex:0 0 auto;white-space:nowrap}
+.commitment-group-header .quiet-account-button:disabled{opacity:.42;cursor:not-allowed}
+.commitment-capacity-note{font-size:11px;color:#d8c184;background:#2b271e;border:1px solid #5c4c30;border-radius:9px;padding:10px 11px;margin:12px 0}
+.commitment-group-panel .settings-habit-list{display:grid;gap:9px;margin-top:12px}
+.commitment-group-panel .settings-habit{margin:0}
+.commitment-form-type{display:flex;flex-direction:column;gap:4px;padding:12px 13px;border:1px solid #665638;border-radius:10px;background:#29251e;margin-bottom:15px}
+.commitment-form-type .eyebrow{font-size:9px;color:#cbb278;letter-spacing:1.7px;margin:0}
+.commitment-form-type strong{font:600 17px 'Playfair Display',Georgia,serif;color:#eee7da}
+.commitment-form-type small{font-size:11px;color:#a7a092}
+@media(max-width:480px){
+ .commitment-group-panel{padding:14px 11px}
+ .commitment-group-header{align-items:flex-start}
+ .commitment-group-header h3{font-size:20px}
+ .commitment-group-header p:last-child{font-size:10px}
+ .commitment-group-header .quiet-account-button{padding:8px 9px;font-size:10px}
+}
