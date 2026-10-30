@@ -762,3 +762,14 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .member-shared-heading .member-profile-rank-badge{flex-shrink:0}
 .member-shared-heading .rank-list-emblem{width:34px;height:34px;min-width:34px}
 .member-shared-heading .member-profile-rank-badge{padding:4px 9px 4px 4px}
+
+/* Preserve the true circular proportions and artwork detail in member shared-progress badges */
+.member-shared-heading .member-profile-rank-badge .rank-list-emblem{
+  width:46px!important;height:46px!important;min-width:46px!important;
+  flex:0 0 46px!important;aspect-ratio:1/1;border-radius:50%;
+}
+.member-shared-heading .member-profile-rank-badge .rank-emblem-image{
+  width:100%;height:100%;background-size:600% 200%;background-repeat:no-repeat;border-radius:50%;
+}
+.member-shared-heading .member-profile-rank-badge .rank-emblem-number{font-size:9px;right:-2px;bottom:-2px}
+.member-shared-heading .member-profile-rank-badge{gap:8px;padding:5px 11px 5px 5px}
