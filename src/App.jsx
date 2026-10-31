@@ -60,10 +60,15 @@ function RankStoneEmblem({ level }) {
 const categoryIcon = (category) => {
   if (category === "Training") return Dumbbell;
   if (category === "Running") return Activity;
-  if (category === "Walking" || category === "Movement") return Footprints;
-  if (category === "Reading") return BookOpen;
-  if (category === "Evening") return Moon;
+  if (category === "Walking" || category === "Mobility" || category === "Movement") return Footprints;
+  if (category === "Reading" || category === "Learning") return BookOpen;
+  if (category === "Sleep" || category === "Recovery") return Moon;
   if (category === "Morning") return Sunrise;
+  if (category === "Evening") return Moon;
+  if (category === "Health" || category === "Nutrition" || category === "Hydration") return ShieldCheck;
+  if (category === "Finance") return Landmark;
+  if (category === "Relationships") return Users;
+  if (category === "Discipline") return Target;
   return Target;
 };
 
@@ -1383,7 +1388,7 @@ export default function App() {
           {showAdd && <form className="add-form settings-add-form" onSubmit={addHabit}>
             <div className="commitment-form-type"><p className="eyebrow">ADDING {newNonNegotiable?"A NON-NEGOTIABLE":"A SCHEDULED COMMITMENT"}</p><strong>{newNonNegotiable?"Daily standard":"Flexible commitment"}</strong><small>{newNonNegotiable?"Due every day and counts towards your streak.":"Choose which days this commitment appears."}</small></div>
             <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
-            <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
+            <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Discipline","Training","Running","Walking","Mobility","Nutrition","Hydration","Sleep","Recovery","Health","Reading","Learning","Relationships","Work & Career","Finance","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
             {!newNonNegotiable && <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>}
             <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save {newNonNegotiable?"non-negotiable":"commitment"}</button></div>
           </form>}
@@ -1393,7 +1398,7 @@ export default function App() {
             <div className="settings-habit-list">{nonNegotiableHabits.map(h=>{const Icon=categoryIcon(h.category);return <article className="settings-habit" key={h.id}>
               {editingHabitId===h.id ? <form className="settings-edit-form" onSubmit={saveHabitEdit}>
                 <label>Commitment name<input required maxLength="100" value={editingTitle} onChange={e=>setEditingTitle(e.target.value)}/></label>
-                <div className="form-row"><label>Category<select value={editingCategory} onChange={e=>setEditingCategory(e.target.value)}>{["Mindset","Morning","Evening","Training","Running","Walking","Reading","Health","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target<input value={editingTarget} onChange={e=>setEditingTarget(e.target.value)} placeholder="Optional target"/></label></div>
+                <div className="form-row"><label>Category<select value={editingCategory} onChange={e=>setEditingCategory(e.target.value)}>{[...["Mindset","Discipline","Training","Running","Walking","Mobility","Nutrition","Hydration","Sleep","Recovery","Health","Reading","Learning","Relationships","Work & Career","Finance","Other"],...( ["Mindset","Discipline","Training","Running","Walking","Mobility","Nutrition","Hydration","Sleep","Recovery","Health","Reading","Learning","Relationships","Work & Career","Finance","Other"].includes(editingCategory)?[]:[editingCategory])].map(x=><option key={x}>{x}</option>)}</select></label><label>Target<input value={editingTarget} onChange={e=>setEditingTarget(e.target.value)} placeholder="Optional target"/></label></div>
                 <p className="settings-description">This is one of your five daily non-negotiables. It is due every day.</p>
                 <div className="form-actions"><button type="button" className="secondary" onClick={()=>setEditingHabitId(null)}>Cancel</button><button className="primary">Save changes</button></div>
               </form> : <div className="settings-habit-main"><div className="habit-icon"><Icon size={18}/></div><div className="settings-habit-copy"><strong>{h.title}</strong><span>{h.target||h.category}</span><small>NON-NEGOTIABLE</small></div><button className="quiet-icon-button" aria-label={"Edit "+h.title} onClick={()=>beginEditHabit(h)}><Pencil size={15}/></button></div>}
