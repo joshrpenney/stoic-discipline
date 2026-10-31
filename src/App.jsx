@@ -57,18 +57,26 @@ function RankStoneEmblem({ level }) {
   </div>;
 }
 
+const COMMITMENT_CATEGORIES = ["Mindset & Discipline","Training & Movement","Health & Recovery","Reading & Learning","Relationships","Work & Career","Finance","Other"];
+const normaliseCategory = (category) => {
+  if (COMMITMENT_CATEGORIES.includes(category)) return category;
+  if (["Mindset","Morning","Evening","Discipline"].includes(category)) return "Mindset & Discipline";
+  if (["Training","Running","Walking","Mobility","Movement"].includes(category)) return "Training & Movement";
+  if (["Nutrition","Hydration","Sleep","Recovery","Health"].includes(category)) return "Health & Recovery";
+  if (["Reading","Learning"].includes(category)) return "Reading & Learning";
+  if (category === "Relationships") return "Relationships";
+  if (["Work","Career"].includes(category)) return "Work & Career";
+  if (category === "Finance") return "Finance";
+  return "Other";
+};
 const categoryIcon = (category) => {
-  if (category === "Training") return Dumbbell;
-  if (category === "Running") return Activity;
-  if (category === "Walking" || category === "Mobility" || category === "Movement") return Footprints;
-  if (category === "Reading" || category === "Learning") return BookOpen;
-  if (category === "Sleep" || category === "Recovery") return Moon;
-  if (category === "Morning") return Sunrise;
-  if (category === "Evening") return Moon;
-  if (category === "Health" || category === "Nutrition" || category === "Hydration") return ShieldCheck;
-  if (category === "Finance") return Landmark;
+  if (category === "Training & Movement") return Dumbbell;
+  if (category === "Reading & Learning") return BookOpen;
+  if (category === "Health & Recovery") return ShieldCheck;
   if (category === "Relationships") return Users;
-  if (category === "Discipline") return Target;
+  if (category === "Finance") return Landmark;
+  if (category === "Mindset & Discipline") return Target;
+  if (category === "Work & Career") return Activity;
   return Target;
 };
 
@@ -380,7 +388,7 @@ export default function App() {
         }
         return;
       }
-      setHabits(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setHabits(snapshot.docs.map((d) => { const data=d.data(); return { id:d.id, ...data, category:normaliseCategory(data.category) }; }));
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
     const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
@@ -421,7 +429,7 @@ export default function App() {
   const doneCount = dueHabits.filter((h) => checks[h.id]).length;
   const percent = dueHabits.length ? Math.round(doneCount / dueHabits.length * 100) : 100;
   const nonNegotiableToday = dueHabits.filter(h => h.nonNegotiable);
-  const trainingToday = dueHabits.filter(h => !h.nonNegotiable && ["Training","Running","Walking","Movement"].includes(h.category));
+  const trainingToday = dueHabits.filter(h => !h.nonNegotiable && h.category === "Training & Movement");
   const otherToday = dueHabits.filter(h => !h.nonNegotiable && !["Training","Running","Walking","Movement"].includes(h.category));
   const consistencyDays = useMemo(() => {
     const byDate = new Map(dailyLogs.map(log => [log.date || log.id, log]));
@@ -481,7 +489,7 @@ export default function App() {
     const xp = Math.max(0, Number(progression.totalXp) || 0);
     const finishedBooks = books.filter(book => Boolean(book.finishedAt)).length;
     const startedBooks = books.length;
-    const trainingIds = new Set(habits.filter(h => ["Training", "Running", "Walking", "Movement"].includes(h.category)).map(h => h.id));
+    const trainingIds = new Set(habits.filter(h => h.category === "Training & Movement").map(h => h.id));
     const trainingDone = dailyLogs.reduce((total, log) => total + Object.entries(log.completed || {}).filter(([id, done]) => done && trainingIds.has(id)).length, 0);
     const perfectDays = dailyLogs.filter(log => {
       const due = Array.isArray(log.dueHabitIds) ? log.dueHabitIds : Array.isArray(log.dueNonNegotiableIds) ? log.dueNonNegotiableIds : null;
@@ -1388,7 +1396,7 @@ export default function App() {
           {showAdd && <form className="add-form settings-add-form" onSubmit={addHabit}>
             <div className="commitment-form-type"><p className="eyebrow">ADDING {newNonNegotiable?"A NON-NEGOTIABLE":"A SCHEDULED COMMITMENT"}</p><strong>{newNonNegotiable?"Daily standard":"Flexible commitment"}</strong><small>{newNonNegotiable?"Due every day and counts towards your streak.":"Choose which days this commitment appears."}</small></div>
             <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
-            <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{["Mindset","Discipline","Training","Running","Walking","Mobility","Nutrition","Hydration","Sleep","Recovery","Health","Reading","Learning","Relationships","Work & Career","Finance","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
+            <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{COMMITMENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
             {!newNonNegotiable && <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>}
             <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save {newNonNegotiable?"non-negotiable":"commitment"}</button></div>
           </form>}
