@@ -885,14 +885,14 @@ export default function App() {
           const p = progressionSnap.exists() ? progressionSnap.data() : { totalXp: 0, totalActions: 0 };
           let totalXp = Math.max(0, Number(p.totalXp) || 0);
           if (p.xpSystemVersion !== 2) totalXp *= 5;
-          totalXp += 250;
+          totalXp += 5000;
           transaction.set(progressionRef, { totalXp, totalActions: Number(p.totalActions) || 0, xpSystemVersion: 2, updatedAt: serverTimestamp() }, { merge: true });
-          bookXpEarned = 250;
+          bookXpEarned = 5000;
         }
       });
       if (bookXpEarned) setXpToast({ amount: bookXpEarned, reason: "book completed", id: Date.now() });
       if(changes.finishedAt&&!book.finishedAt) await notifyFollowers("book_finished",{bookTitle:book.title||"A book",bookAuthor:book.author||"",eventKey:"finished_"+book.id});
-      setNotice(changes.finishedAt ? (bookXpEarned ? "Book completed. You earned 250 XP." : "Book marked as completed.") : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
+      setNotice(changes.finishedAt ? (bookXpEarned ? "Book completed. You earned 5,000 XP." : "Book marked as completed.") : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
     } catch (e) { setError(e.message); }
   }
 
