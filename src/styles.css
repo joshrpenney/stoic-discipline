@@ -1050,3 +1050,11 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .member-calendar-card .profile-collapse-content{padding:0 20px 20px;border-top:1px solid #5a4a2f}
 :root[data-theme="light"] .member-calendar-card.consistency-card.profile-collapsible{background:linear-gradient(135deg,#eee6d5,#fffdf7 75%);border-color:#d5c39d}
 :root[data-theme="light"] .member-calendar-card .profile-collapse-content{border-top-color:#ded2bd}
+
+
+/* Match the personal consistency calendar to the profile's rank and library cards. */
+.consistency-card.profile-collapsible.profile-library-card{background:linear-gradient(135deg,#29261f,#1d1d1b 75%);border:1px solid #5a4a2f;border-radius:22px;margin:22px 0 28px;box-shadow:0 10px 30px #00000012}
+.consistency-card.profile-collapsible.profile-library-card>.profile-collapse-toggle{min-height:112px;padding:21px 22px}
+.consistency-card.profile-collapsible.profile-library-card .profile-collapse-content{padding:0 20px 20px;border-top:1px solid #5a4a2f}
+:root[data-theme="light"] .consistency-card.profile-collapsible.profile-library-card{background:linear-gradient(135deg,#eee6d5,#fffdf7 75%);border-color:#d5c39d}
+:root[data-theme="light"] .consistency-card.profile-collapsible.profile-library-card .profile-collapse-content{border-top-color:#ded2bd}
