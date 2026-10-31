@@ -525,19 +525,19 @@ export default function App() {
     }
     const previous = previousUnlockState.current || saved;
     previousUnlockState.current = current;
-    if (current.level > (Number(previous.level) || 1)) {
+    const levelIncreased = current.level > (Number(previous.level) || 1);
+    if (levelIncreased) {
       setUnlockCelebration({ type: "rank", title: "Rank achieved", name: levelInfo.name, level: levelInfo.level, detail: "You've earned your next rank.", id: "rank-" + levelInfo.level + "-" + current.xp });
       notifyFollowers("level_up", { eventKey: "rank_promotion_" + current.level, message: "Promoted to Level " + current.level + " · " + levelInfo.name + "." })
         .catch(e => setError("Could not notify followers about the rank promotion: " + e.message));
-      setDoc(doc(db, "users", user.uid, "progression", "summary"), { acknowledgedUnlocks: current }, { merge: true })
-        .catch(e => setError("Could not save progression history: " + e.message));
-      return;
     }
     const previousAchievements = Array.isArray(previous.achievements) ? previous.achievements : [];
     const newlyUnlocked = current.achievements.filter(name => !previousAchievements.includes(name));
     if (newlyUnlocked.length) {
-      const first = achievements.find(entry => entry.title === newlyUnlocked[0]);
-      if (first) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: first.title, detail: first.detail, icon: first.icon, id: "achievement-" + first.title + "-" + current.actions });
+      if (!levelIncreased) {
+        const first = achievements.find(entry => entry.title === newlyUnlocked[0]);
+        if (first) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: first.title, detail: first.detail, icon: first.icon, id: "achievement-" + first.title + "-" + current.actions });
+      }
       newlyUnlocked.forEach(title => notifyFollowers("achievement", {
         eventKey: "achievement_" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         message: "Unlocked the " + title + " achievement."
@@ -660,7 +660,9 @@ export default function App() {
       const recipientUid=followerDoc.data().followerUid;
       if(!recipientUid||recipientUid===user.uid)return;
       const ref=doc(db,"users",recipientUid,"notifications",eventKey);
-      if((await getDoc(ref)).exists())return;
+      // Do not read another member's private notification document: Firestore
+      // intentionally denies that read. The deterministic event ID makes this
+      // write idempotent without requiring recipient read access.
       await setDoc(ref,{type,actorUid:user.uid,actorName,eventKey,read:false,createdAt:serverTimestamp(),
         ...(details.bookTitle?{bookTitle:details.bookTitle.slice(0,180)}:{}),
         ...(details.bookAuthor?{bookAuthor:details.bookAuthor.slice(0,120)}:{}),
