@@ -591,7 +591,29 @@ export default function App() {
     }
     const categories = [...categoryTotals.entries()].map(([name,value])=>({name,...value,percent:value.due?Math.round(value.done/value.due*100):0})).sort((a,b)=>a.percent-b.percent);
     const pagesRead = books.reduce((total,book)=>total+(book.finishedAt?Number(book.pageCount)||0:Math.max(0,(Number(book.currentPage)||1)-1)),0);
-    return {days,monthPercent:monthDue?Math.round(monthDone/monthDue*100):0,monthDue,monthDone,trainingSessions,categories,lowestCategory:categories.find(item=>item.due>=3),pagesRead,finishedBooks:books.filter(book=>!!book.finishedAt).length,currentBooks:books.filter(book=>!book.finishedAt).length};
+    const heatmap = [];
+    const heatmapStart = new Date(today); heatmapStart.setDate(today.getDate()-181);
+    const mondayOffset = (heatmapStart.getDay()+6)%7; heatmapStart.setDate(heatmapStart.getDate()-mondayOffset);
+    const heatmapEnd = new Date(today); heatmapEnd.setHours(12,0,0,0);
+    const heatmapMonths = [];
+    const monthSeen = new Set();
+    for (let cursor = new Date(heatmapStart); cursor <= heatmapEnd; cursor.setDate(cursor.getDate()+1)) {
+      const key = dayKey(cursor), log = logs.get(key), completed = log?.completed || {};
+      const dueIds = Array.isArray(log?.dueHabitIds) ? log.dueHabitIds : Object.keys(completed);
+      const hasRecord = !!log && (Array.isArray(log.dueHabitIds) || Object.keys(completed).length>0);
+      const done = dueIds.filter(id=>completed[id]===true).length;
+      const percent = dueIds.length ? Math.round(done/dueIds.length*100) : 0;
+      const level = !hasRecord ? 0 : percent===0 ? 1 : percent<50 ? 2 : percent<100 ? 3 : 4;
+      heatmap.push({key,level,future:key>todayKey(),title:!hasRecord?key+": No recorded activity":key+": "+done+" of "+dueIds.length+" commitments completed ("+percent+"%)"});
+      const monthKey = key.slice(0,7);
+      if (!monthSeen.has(monthKey)) { monthSeen.add(monthKey); const monthDate=new Date(key+"T12:00:00"); heatmapMonths.push({key:monthKey,label:monthDate.toLocaleDateString("en-GB",{month:"short"})}); }
+    }
+    const monthKey = todayKey().slice(0,7);
+    const monthLogs = days.filter(day=>day.key.startsWith(monthKey)&&day.due>0);
+    const perfectDays = monthLogs.filter(day=>day.percent===100).length;
+    const bestMonthDay = monthLogs.filter(day=>day.done>0).sort((a,b)=>b.percent-a.percent||b.done-a.done)[0] || null;
+    const booksFinishedThisMonth = books.filter(book=>book.finishedAt && String(book.finishedAt).slice(0,7)===monthKey).length;
+    return {days,monthPercent:monthDue?Math.round(monthDone/monthDue*100):0,monthDue,monthDone,trainingSessions,categories,lowestCategory:categories.filter(item=>item.due>=3).sort((a,b)=>a.percent-b.percent)[0]||null,pagesRead,finishedBooks:books.filter(book=>!!book.finishedAt).length,currentBooks:books.filter(book=>!book.finishedAt).length,heatmap,heatmapMonths,monthLabel:today.toLocaleDateString("en-GB",{month:"long",year:"numeric"}),monthPerfectDays:perfectDays,bestMonthDay,booksFinishedThisMonth};
   },[dailyLogs,habits,books]);
   async function saveAccountName(e) {
     e.preventDefault(); const cleanName = accountName.trim();
@@ -1144,30 +1166,60 @@ export default function App() {
       <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>DISCIPLINE JOURNAL</span></div></div>
       <div className="topbar-actions"><button className="topbar-quiet-button add-friend-icon-button" title="Add friends" aria-label="Add friends" onClick={()=>{if(activeTab!=="Community"){setActiveTab("Community");setSelectedMemberProfile(null);setSocialListView("");}else if(selectedMemberProfile){setSelectedMemberProfile(null);}else{setCommunitySearch("");setCommunityResults([]);}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><UserPlus size={16}/></button><button className="topbar-quiet-button notification-bell-button" title="Notifications" aria-label="Notifications" onClick={()=>{const opening=!showNotifications;setShowNotifications(opening);if(opening)refreshNotifications();}}><Bell size={16}/>{(newFollowerNotifications.length+notificationItems.filter(n=>!n.read).length)>0&&<span className="notification-count">{newFollowerNotifications.length+notificationItems.filter(n=>!n.read).length>9?"9+":newFollowerNotifications.length+notificationItems.filter(n=>!n.read).length}</span>}</button><button className="topbar-quiet-button" title="Settings" aria-label="Settings" onClick={()=>{if(activeTab!=="Settings"){setActiveTab("Settings");setSettingsSection("menu");}else if(settingsSection!=="menu"){setSettingsSection("menu");}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><Settings size={16}/></button><button className="topbar-quiet-button" title="Sign out" aria-label="Sign out" onClick={() => signOut(auth)}><LogOut size={16}/></button></div>
     </header>
-    {activeTab === "Dashboard" && <section className="personal-dashboard">
-      <div className="dashboard-intro"><p className="eyebrow">YOUR PRACTICE, IN PERSPECTIVE</p><h1 className="tab-title">Personal dashboard</h1><p className="muted">A measured view of the work you're putting in. Review the pattern, then decide what to improve.</p></div>
-      <div className="dashboard-stat-grid">
-        <article className="dashboard-stat-card"><span>LAST 7 DAYS</span><strong>{ledgerStats.weeklyPercent}%</strong><small>commitments kept</small><div className="dashboard-mini-track"><i style={{width:ledgerStats.weeklyPercent+"%"}}/></div></article>
-        <article className="dashboard-stat-card"><span>LAST 30 DAYS</span><strong>{dashboardStats.monthPercent}%</strong><small>{dashboardStats.monthDone} of {dashboardStats.monthDue} actions</small><div className="dashboard-mini-track"><i style={{width:dashboardStats.monthPercent+"%"}}/></div></article>
-        <article className="dashboard-stat-card"><span>CURRENT STREAK</span><strong>{streak}</strong><small>{streak===1?"day of consistency":"consecutive days"}</small></article>
-        <article className="dashboard-stat-card"><span>TOTAL EXPERIENCE</span><strong>{Number(progression.totalXp||0).toLocaleString()}</strong><small>XP earned to date</small></article>
+
+    {activeTab === "Dashboard" && <section className="personal-dashboard command-dashboard">
+      <div className="command-intro">
+        <p className="eyebrow">STOIC DISCIPLINE · PERSONAL REVIEW</p>
+        <h1 className="tab-title">Your command centre</h1>
+        <p className="muted">A clear view of the habits, effort and progress that shape who you are becoming.</p>
       </div>
-      <section className="dashboard-panel">
-        <div className="dashboard-panel-heading"><div><p className="eyebrow">THE LAST 30 DAYS</p><h2>Consistency trend</h2></div><span>DAILY COMPLETION</span></div>
-        <div className="dashboard-30-chart">{dashboardStats.days.map(day=><div className="dashboard-30-column" key={day.key} title={day.key+": "+(day.due?day.percent+"% complete":"No recorded commitments")}><div className="dashboard-30-track"><i className={day.due&&day.percent===100?"complete":""} style={{height:(day.due?Math.max(4,day.percent):0)+"%"}}/></div></div>)}</div>
-        <div className="dashboard-chart-legend"><span>30 days ago</span><span>Today</span></div>
-        <p className="dashboard-panel-note">Each bar represents the percentage of scheduled commitments completed that day. Empty bars mean no completion record was available.</p>
+      <section className="command-position">
+        <div className="command-position-emblem"><RankStoneEmblem level={levelInfo.level}/></div>
+        <div className="command-position-copy">
+          <p className="eyebrow">YOUR CURRENT POSITION</p><h2>{levelInfo.name}</h2>
+          <div className="command-level-line"><span>LEVEL {levelInfo.level}</span><strong>{Number(progression.totalXp||0).toLocaleString()} XP</strong></div>
+          <div className="command-progress-track"><i style={{width:levelInfo.progress+"%"}}/></div>
+          <small>{levelInfo.next?levelInfo.remaining.toLocaleString()+" XP to "+levelInfo.next.name:"Highest rank reached"}</small>
+        </div>
+        <button type="button" className="command-rank-link" onClick={()=>{setActiveTab("Profile");setShowRanksPage(true);window.scrollTo({top:0,behavior:"smooth"});}}>Ranks <ChevronRight size={15}/></button>
       </section>
-      <section className="dashboard-panel">
-        <div className="dashboard-panel-heading"><div><p className="eyebrow">WHERE YOUR EFFORT GOES</p><h2>Areas of practice</h2></div></div>
-        {dashboardStats.categories.length ? <div className="dashboard-category-list">{dashboardStats.categories.map(item=><div className="dashboard-category-row" key={item.name}><div><strong>{item.name}</strong><small>{item.done}/{item.due} completed</small></div><div className="dashboard-category-progress"><span><i style={{width:item.percent+"%"}}/></span><b>{item.percent}%</b></div></div>)}</div> : <p className="dashboard-panel-note">Your category breakdown will appear as you record completed commitments.</p>}
-        {dashboardStats.lowestCategory && <div className="dashboard-insight"><Target size={18}/><p><strong>Area to strengthen: {dashboardStats.lowestCategory.name}.</strong> This is currently your lowest completion category over the last 30 days. Choose one small action to improve it this week.</p></div>}
+      <section className="command-section">
+        <div className="command-section-heading"><div><p className="eyebrow">THE PRESENT PICTURE</p><h2>Performance overview</h2></div><span>RECENT ACTIVITY</span></div>
+        <div className="command-stat-grid">
+          <article className="command-stat"><span>LAST 30 DAYS</span><strong>{dashboardStats.monthPercent}%</strong><small>{dashboardStats.monthDone} of {dashboardStats.monthDue} commitments kept</small><div className="command-mini-track"><i style={{width:dashboardStats.monthPercent+"%"}}/></div></article>
+          <article className="command-stat"><span>LAST 7 DAYS</span><strong>{ledgerStats.weeklyPercent}%</strong><small>Weekly completion rate</small><div className="command-mini-track"><i style={{width:ledgerStats.weeklyPercent+"%"}}/></div></article>
+          <article className="command-stat"><span>CURRENT STREAK</span><strong>{streak}</strong><small>{streak===1?"consecutive day":"consecutive days"}</small></article>
+          <article className="command-stat"><span>TOTAL EXPERIENCE</span><strong>{Number(progression.totalXp||0).toLocaleString()}</strong><small>Lifetime XP earned</small></article>
+        </div>
       </section>
-      <div className="dashboard-two-column">
-        <section className="dashboard-panel dashboard-feature-card"><div className="dashboard-feature-icon"><Dumbbell size={20}/></div><p className="eyebrow">TRAINING & MOVEMENT</p><h2>{dashboardStats.trainingSessions}</h2><p>completed training or movement commitments in the last 30 days</p></section>
-        <section className="dashboard-panel dashboard-feature-card"><div className="dashboard-feature-icon"><BookOpen size={20}/></div><p className="eyebrow">READING</p><h2>{dashboardStats.pagesRead.toLocaleString()}</h2><p>estimated pages read · {dashboardStats.finishedBooks} finished · {dashboardStats.currentBooks} in progress</p></section>
-      </div>
-      <section className="dashboard-rank-panel"><div className="dashboard-rank-emblem"><RankStoneEmblem level={levelInfo.level}/></div><div className="dashboard-rank-copy"><p className="eyebrow">YOUR CURRENT PATH</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p>{levelInfo.next?levelInfo.remaining.toLocaleString()+" XP until "+levelInfo.next.name:"You have reached the highest rank."}</p><div className="dashboard-rank-track"><i style={{width:levelInfo.progress+"%"}}/></div></div><button type="button" onClick={()=>{setActiveTab("Profile");setShowRanksPage(true);window.scrollTo({top:0,behavior:"smooth"});}}>View ranks <ChevronRight size={16}/></button></section>
+      <section className="command-section command-heatmap-panel">
+        <div className="command-section-heading"><div><p className="eyebrow">SHOWING UP, DAY BY DAY</p><h2>Consistency</h2></div><span>LAST 6 MONTHS</span></div>
+        <div className="command-heatmap-months">{dashboardStats.heatmapMonths.map(month=><span key={month.key}>{month.label}</span>)}</div>
+        <div className="command-heatmap-wrap"><div className="command-weekday-labels"><span>Mon</span><span>Wed</span><span>Fri</span></div><div className="command-heatmap">{dashboardStats.heatmap.map(day=><span key={day.key} className={"command-heat-cell level-"+day.level+(day.future?" future":"")} title={day.title} aria-label={day.title}/>)}</div></div>
+        <div className="command-heatmap-legend"><span>No record</span><div><i className="level-0"/><i className="level-1"/><i className="level-2"/><i className="level-3"/><i className="level-4"/></div><span>Fully kept</span></div>
+        <p className="command-note">Each square represents one day. Days without a saved record are kept separate from missed commitments.</p>
+      </section>
+      <section className="command-section">
+        <div className="command-section-heading"><div><p className="eyebrow">WHERE YOUR EFFORT GOES</p><h2>Areas of development</h2></div></div>
+        {dashboardStats.categories.length ? <div className="command-development-list">{dashboardStats.categories.slice().sort((a,b)=>b.percent-a.percent).map(item=><div className="command-development-row" key={item.name}><div className="command-development-meta"><strong>{item.name}</strong><span>{item.done}/{item.due} completed · {item.percent}%</span></div><div className="command-development-track"><i style={{width:item.percent+"%"}}/></div></div>)}</div> : <p className="command-empty">Your development breakdown will appear as you record completed commitments.</p>}
+        {dashboardStats.lowestCategory && <div className="command-attention"><div className="command-attention-icon"><Target size={18}/></div><div><strong>Area to strengthen · {dashboardStats.lowestCategory.name}</strong><p>This is currently your lowest completion area over the last 30 days. Consider one small, repeatable action to improve it.</p></div></div>}
+      </section>
+      <section className="command-section">
+        <div className="command-section-heading"><div><p className="eyebrow">BODY & MIND</p><h2>Physical and intellectual development</h2></div></div>
+        <div className="command-domain-grid">
+          <article className="command-domain-card"><div className="command-domain-icon"><Dumbbell size={19}/></div><p className="eyebrow">TRAINING & MOVEMENT</p><strong>{dashboardStats.trainingSessions}</strong><span>completed sessions or movement commitments</span><small>Last 30 days</small></article>
+          <article className="command-domain-card"><div className="command-domain-icon"><BookOpen size={19}/></div><p className="eyebrow">READING</p><strong>{dashboardStats.pagesRead.toLocaleString()}</strong><span>estimated pages read</span><small>{dashboardStats.finishedBooks} finished · {dashboardStats.currentBooks} in progress</small></article>
+        </div>
+      </section>
+      <section className="command-section">
+        <div className="command-section-heading"><div><p className="eyebrow">THIS MONTH</p><h2>Recent records & milestones</h2></div><span>{dashboardStats.monthLabel}</span></div>
+        <div className="command-record-list">
+          {dashboardStats.monthPerfectDays>0&&<div className="command-record-row"><div className="command-record-icon"><Award size={18}/></div><div><strong>{dashboardStats.monthPerfectDays} perfect {dashboardStats.monthPerfectDays===1?"day":"days"}</strong><small>Every scheduled commitment completed</small></div></div>}
+          {dashboardStats.bestMonthDay&&<div className="command-record-row"><div className="command-record-icon"><Trophy size={18}/></div><div><strong>Best completion day · {dashboardStats.bestMonthDay.percent}%</strong><small>{new Date(dashboardStats.bestMonthDay.key+"T12:00:00").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"short"})} · {dashboardStats.bestMonthDay.done} of {dashboardStats.bestMonthDay.due} commitments</small></div></div>}
+          {dashboardStats.booksFinishedThisMonth>0&&<div className="command-record-row"><div className="command-record-icon"><BookOpen size={18}/></div><div><strong>{dashboardStats.booksFinishedThisMonth} {dashboardStats.booksFinishedThisMonth===1?"book":"books"} completed</strong><small>Reading milestone this month</small></div></div>}
+          {!dashboardStats.monthPerfectDays&&!dashboardStats.bestMonthDay&&!dashboardStats.booksFinishedThisMonth&&<p className="command-empty">Your recent milestones will appear here as you build your record this month. Every entry is based on activity saved to your account.</p>}
+        </div>
+      </section>
       <p className="dashboard-closing-line">“First say to yourself what you would be; and then do what you have to do.” <span>— Epictetus</span></p>
     </section>}
     {activeTab === "Today" && <div className="today-page">
