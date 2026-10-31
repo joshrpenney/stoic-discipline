@@ -38,7 +38,7 @@ service cloud.firestore {
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
     // Notification recipients can read and manage their own notifications.
-    // A mutual friend may create only a limited, privacy-respecting activity notification.
+    // A followed member may create only a limited, privacy-respecting activity notification for their follower.
     match /users/{userId}/notifications/{notificationId} {
       allow read, update, delete: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
@@ -54,7 +54,6 @@ service cloud.firestore {
         && request.resource.data.eventKey is string
         && request.resource.data.read == false
         && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + userId))
-        && exists(/databases/$(database)/documents/follows/$(userId + '_' + request.auth.uid))
         && (
           (request.resource.data.type in ['book_started', 'book_finished']
             && exists(/databases/$(database)/documents/users/$(request.auth.uid)/settings/privacy)
