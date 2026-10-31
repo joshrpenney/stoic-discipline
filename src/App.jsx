@@ -631,7 +631,7 @@ export default function App() {
     }, { merge: true }).catch(e => setError(e.message));
   }, [user, accountName, progression.totalXp, progression.totalActions, levelInfo.level, levelInfo.name, streak, doneCount, dueHabits.length, shareProgress, consistencyDays, achievements]);
 
-  async function notifyMutualFriends(type, details = {}) {
+  async function notifyFollowers(type, details = {}) {
     if (!user || !db) return;
     const privacySnap = await getDoc(doc(db, "users", user.uid, "settings", "privacy"));
     const privacy = privacySnap.exists() ? privacySnap.data() : {};
@@ -644,7 +644,6 @@ export default function App() {
     await Promise.all(followersSnap.docs.map(async followerDoc => {
       const recipientUid=followerDoc.data().followerUid;
       if(!recipientUid||recipientUid===user.uid)return;
-      if(!(await getDoc(doc(db,"follows",user.uid+"_"+recipientUid))).exists())return;
       const ref=doc(db,"users",recipientUid,"notifications",eventKey);
       if((await getDoc(ref)).exists())return;
       await setDoc(ref,{type,actorUid:user.uid,actorName,eventKey,read:false,createdAt:serverTimestamp(),
@@ -761,34 +760,38 @@ export default function App() {
   }
 
   useEffect(() => { if (user && (activeTab === "Community" || activeTab === "Profile")) refreshCommunity(); }, [user, activeTab]);
-  useEffect(()=>{if(user)refreshNotifications();else setNotificationItems([]);},[user]);
+  useEffect(() => {
+    if (!user || !db) { setNotificationItems([]); return; }
+    const notificationsQuery = query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(100));
+    return onSnapshot(notificationsQuery, snap => setNotificationItems(snap.docs.map(item => ({ id: item.id, ...item.data() }))), e => setError("Could not sync notifications: " + e.message));
+  }, [user]);
   const previousLevelRef = useRef(null);
   const previousStreakRef = useRef(null);
   const previousAchievementsRef = useRef(null);
   useEffect(() => {
-    if (!user || !db) { previousLevelRef.current=null; return; }
+    if (!user || !db || !progressionReady) { previousLevelRef.current=null; return; }
     const current=Number(levelInfo.level)||1;
-    if(previousLevelRef.current===null){previousLevelRef.current=current;return;}
-    const previous=previousLevelRef.current; previousLevelRef.current=current;
-    if(current>previous) notifyMutualFriends("level_up",{eventKey:"level_"+current,message:"Reached Level "+current+"."}).catch(()=>{});
-  },[user,levelInfo.level]);
+    if(previousLevelRef.current===null || previousLevelRef.current.uid!==user.uid){previousLevelRef.current={uid:user.uid,level:current};return;}
+    const previous=previousLevelRef.current.level; previousLevelRef.current={uid:user.uid,level:current};
+    if(current>previous) notifyFollowers("level_up",{eventKey:"rank_promotion_"+current,message:"Promoted to Level "+current+" · "+levelInfo.name+"."}).catch(e=>setError("Could not notify followers about the rank promotion: "+e.message));
+  },[user,progressionReady,levelInfo.level,levelInfo.name]);
   useEffect(() => {
-    if (!user || !db) { previousStreakRef.current=null; return; }
+    if (!user || !db || !progressionReady) { previousStreakRef.current=null; return; }
     const current=Number(streak)||0;
-    if(previousStreakRef.current===null){previousStreakRef.current=current;return;}
-    const previous=previousStreakRef.current; previousStreakRef.current=current;
+    if(previousStreakRef.current===null || previousStreakRef.current.uid!==user.uid){previousStreakRef.current={uid:user.uid,value:current};return;}
+    const previous=previousStreakRef.current.value; previousStreakRef.current={uid:user.uid,value:current};
     const milestones=[3,7,14,30,60,100];
-    if(current>previous && milestones.includes(current)) notifyMutualFriends("streak_milestone",{eventKey:"streak_"+current,message:"Reached a "+current+"-day streak."}).catch(()=>{});
-  },[user,streak]);
+    if(current>previous && milestones.includes(current)) notifyFollowers("streak_milestone",{eventKey:"streak_"+current,message:"Reached a "+current+"-day streak."}).catch(()=>{});
+  },[user,progressionReady,streak]);
   useEffect(() => {
-    if (!user || !db) { previousAchievementsRef.current=null; return; }
+    if (!user || !db || !progressionReady) { previousAchievementsRef.current=null; return; }
     const unlocked=achievements.filter(a=>a.unlocked).map(a=>a.title);
-    if(previousAchievementsRef.current===null){previousAchievementsRef.current=unlocked;return;}
-    const previous=new Set(previousAchievementsRef.current);
+    if(previousAchievementsRef.current===null || previousAchievementsRef.current.uid!==user.uid){previousAchievementsRef.current={uid:user.uid,titles:unlocked};return;}
+    const previous=new Set(previousAchievementsRef.current.titles);
     const fresh=unlocked.filter(title=>!previous.has(title));
-    previousAchievementsRef.current=unlocked;
-    fresh.forEach(title=>notifyMutualFriends("achievement",{eventKey:"achievement_"+title.toLowerCase().replace(/[^a-z0-9]+/g,"-"),message:"Unlocked the "+title+" achievement."}).catch(()=>{}));
-  },[user,achievements]);
+    previousAchievementsRef.current={uid:user.uid,titles:unlocked};
+    fresh.forEach(title=>notifyFollowers("achievement",{eventKey:"achievement_"+title.toLowerCase().replace(/[^a-z0-9]+/g,"-"),message:"Unlocked the "+title+" achievement."}).catch(e=>setError("Could not notify followers about the achievement: "+e.message)));
+  },[user,progressionReady,achievements]);
 
 
   async function shareInvite() {
@@ -850,7 +853,7 @@ export default function App() {
       });
       if (!(completing && earned > 0)) setNotice(completing?"XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
       if (completing && earned > 0) setXpToast({ amount: earned, reason: perfectDayBonus ? (habit.nonNegotiable?"non-negotiable completed · perfect day bonus":"scheduled commitment completed · perfect day bonus") : (habit.nonNegotiable?"non-negotiable completed":"scheduled commitment completed"), id: Date.now() });
-      if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyMutualFriends("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
+      if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
     } catch(e) { setError(e.message); }
   }
 
@@ -862,7 +865,7 @@ export default function App() {
       await addDoc(collection(db, "users", user.uid, "booksRead"), {
         title: bookInput.trim(), author: bookAuthor.trim(), startedAt: bookStarted || "", finishedAt: "", currentPage: 1, pageCount, cover: bookCover || "", createdAt: serverTimestamp()
       });
-      await notifyMutualFriends("book_started", {bookTitle:bookInput.trim(),bookAuthor:bookAuthor.trim(),eventKey:"started_"+todayKey()+"_"+bookInput.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-")});
+      await notifyFollowers("book_started", {bookTitle:bookInput.trim(),bookAuthor:bookAuthor.trim(),eventKey:"started_"+todayKey()+"_"+bookInput.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-")});
       setBookInput(""); setBookAuthor(""); setBookStarted(todayKey()); setBookFinished(""); setBookPage("1"); setBookPageCount(""); setBookCover(""); setBookSearchResults([]); setBookSearchOpen(false); setNotice("Book added to Currently reading.");
     } catch (e) { setError(e.message); }
   }
@@ -890,7 +893,7 @@ export default function App() {
         }
       });
       if (bookXpEarned) setXpToast({ amount: bookXpEarned, reason: "book completed", id: Date.now() });
-      if(changes.finishedAt&&!book.finishedAt) await notifyMutualFriends("book_finished",{bookTitle:book.title||"A book",bookAuthor:book.author||"",eventKey:"finished_"+book.id});
+      if(changes.finishedAt&&!book.finishedAt) await notifyFollowers("book_finished",{bookTitle:book.title||"A book",bookAuthor:book.author||"",eventKey:"finished_"+book.id});
       setNotice(changes.finishedAt ? (bookXpEarned ? "Book completed. You earned 250 XP." : "Book marked as completed.") : changes.currentPage !== undefined ? "Reading progress saved." : "Book updated.");
     } catch (e) { setError(e.message); }
   }
