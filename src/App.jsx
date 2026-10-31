@@ -9,6 +9,7 @@ import {
 } from "firebase/firestore";
 import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
+import Training from "./Training";
 
 const starterHabits = [
   { title: "Morning routine", category: "Mindset", target: "Start the day deliberately", nonNegotiable: true },
@@ -1249,6 +1250,7 @@ export default function App() {
       <h1>Do what matters.<br/><span>Leave the rest.</span></h1>
       <p className="muted">Welcome back{user.displayName ? `, ${user.displayName}` : ""}. Focus on the actions within your control.</p>
     </section>
+    <button type="button" className="today-training-entry" onClick={()=>{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:"Training"},"");setActiveTab("Training");window.scrollTo({top:0,behavior:"smooth"});}}><span className="today-training-entry-icon"><Dumbbell size={19}/></span><span><strong>Training & Performance</strong><small>Build programmes, log workouts and track progress</small></span><ChevronRight size={18}/></button>
     <section className="today-summary-card">
       <div className="today-summary-top">
         <div><p className="eyebrow">TODAY AT A GLANCE</p><h2>{doneCount}<span> / {dueHabits.length}</span></h2><p>{dueHabits.length===0?"Nothing scheduled today":percent===100?"Every commitment complete":"commitments completed"}</p></div>
@@ -1286,7 +1288,7 @@ export default function App() {
     <section className="principle-card"><div className="quote-mark">“</div><p>You have power over your mind — not outside events. Realise this, and you will find strength.</p><span>— Marcus Aurelius, <i>Meditations</i> (paraphrased)</span></section>
     </div>}
     {activeTab !== "Today" && <section className="tab-page">
-      {activeTab === "Reading" && <>
+      {activeTab === "Training" && <Training user={user} db={db}/>}\n      {activeTab === "Reading" && <>
         <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
         <p className="muted">Track your progress as you read, then move finished books into your completed library.</p>
         <form className="book-form" onSubmit={addBook}>
