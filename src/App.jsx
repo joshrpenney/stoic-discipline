@@ -534,8 +534,15 @@ export default function App() {
       return;
     }
     const previousAchievements = Array.isArray(previous.achievements) ? previous.achievements : [];
-    const newlyUnlocked = current.achievements.find(name => !previousAchievements.includes(name));
-    if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, icon: item.icon, id: "achievement-" + item.title + "-" + current.actions }); }
+    const newlyUnlocked = current.achievements.filter(name => !previousAchievements.includes(name));
+    if (newlyUnlocked.length) {
+      const first = achievements.find(entry => entry.title === newlyUnlocked[0]);
+      if (first) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: first.title, detail: first.detail, icon: first.icon, id: "achievement-" + first.title + "-" + current.actions });
+      newlyUnlocked.forEach(title => notifyFollowers("achievement", {
+        eventKey: "achievement_" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        message: "Unlocked the " + title + " achievement."
+      }).catch(e => setError("Could not notify followers about the achievement: " + e.message)));
+    }
     if (current.level !== previous.level || current.xp !== previous.xp || current.actions !== previous.actions || current.achievements.join("|") !== previousAchievements.join("|")) {
       setDoc(doc(db, "users", user.uid, "progression", "summary"), { acknowledgedUnlocks: current }, { merge: true })
         .catch(e => setError("Could not save progression history: " + e.message));
@@ -773,34 +780,15 @@ export default function App() {
     const notificationsQuery = query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"), limit(100));
     return onSnapshot(notificationsQuery, snap => setNotificationItems(snap.docs.map(item => ({ id: item.id, ...item.data() }))), e => setError("Could not sync notifications: " + e.message));
   }, [user]);
-  const previousLevelRef = useRef(null);
   const previousStreakRef = useRef(null);
-  const previousAchievementsRef = useRef(null);
-  useEffect(() => {
-    if (!user || !db || !progressionReady) { previousLevelRef.current=null; return; }
-    const current=Number(levelInfo.level)||1;
-    if(previousLevelRef.current===null || previousLevelRef.current.uid!==user.uid){previousLevelRef.current={uid:user.uid,level:current};return;}
-    const previous=previousLevelRef.current.level; previousLevelRef.current={uid:user.uid,level:current};
-    if(current>previous) notifyFollowers("level_up",{eventKey:"rank_promotion_"+current,message:"Promoted to Level "+current+" · "+levelInfo.name+"."}).catch(e=>setError("Could not notify followers about the rank promotion: "+e.message));
-  },[user,progressionReady,levelInfo.level,levelInfo.name]);
   useEffect(() => {
     if (!user || !db || !progressionReady) { previousStreakRef.current=null; return; }
     const current=Number(streak)||0;
     if(previousStreakRef.current===null || previousStreakRef.current.uid!==user.uid){previousStreakRef.current={uid:user.uid,value:current};return;}
     const previous=previousStreakRef.current.value; previousStreakRef.current={uid:user.uid,value:current};
     const milestones=[3,7,14,30,60,100];
-    if(current>previous && milestones.includes(current)) notifyFollowers("streak_milestone",{eventKey:"streak_"+current,message:"Reached a "+current+"-day streak."}).catch(()=>{});
+    if(current>previous && milestones.includes(current)) notifyFollowers("streak_milestone",{eventKey:"streak_"+current,message:"Reached a "+current+"-day streak."}).catch(e=>setError("Could not notify followers about the streak: "+e.message));
   },[user,progressionReady,streak]);
-  useEffect(() => {
-    if (!user || !db || !progressionReady) { previousAchievementsRef.current=null; return; }
-    const unlocked=achievements.filter(a=>a.unlocked).map(a=>a.title);
-    if(previousAchievementsRef.current===null || previousAchievementsRef.current.uid!==user.uid){previousAchievementsRef.current={uid:user.uid,titles:unlocked};return;}
-    const previous=new Set(previousAchievementsRef.current.titles);
-    const fresh=unlocked.filter(title=>!previous.has(title));
-    previousAchievementsRef.current={uid:user.uid,titles:unlocked};
-    fresh.forEach(title=>notifyFollowers("achievement",{eventKey:"achievement_"+title.toLowerCase().replace(/[^a-z0-9]+/g,"-"),message:"Unlocked the "+title+" achievement."}).catch(e=>setError("Could not notify followers about the achievement: "+e.message)));
-  },[user,progressionReady,achievements]);
-
 
   async function shareInvite() {
     const inviteText = "Join me on Stoic Discipline and let's keep each other accountable. My profile name is " + (accountName.trim() || user?.displayName || "Stoic member") + ".";
