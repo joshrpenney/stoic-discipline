@@ -430,7 +430,7 @@ export default function App() {
   const percent = dueHabits.length ? Math.round(doneCount / dueHabits.length * 100) : 100;
   const nonNegotiableToday = dueHabits.filter(h => h.nonNegotiable);
   const trainingToday = dueHabits.filter(h => !h.nonNegotiable && h.category === "Training & Movement");
-  const otherToday = dueHabits.filter(h => !h.nonNegotiable && !["Training","Running","Walking","Movement"].includes(h.category));
+  const otherToday = dueHabits.filter(h => !h.nonNegotiable && h.category !== "Training & Movement");
   const consistencyDays = useMemo(() => {
     const byDate = new Map(dailyLogs.map(log => [log.date || log.id, log]));
     const now = new Date();
@@ -583,7 +583,7 @@ export default function App() {
     const today = new Date(); today.setHours(12,0,0,0);
     const days = [];
     const categoryTotals = new Map();
-    const trainingIds = new Set(habits.filter(h => ["Training","Running","Walking","Movement"].includes(h.category)).map(h => h.id));
+    const trainingIds = new Set(habits.filter(h => h.category === "Training & Movement").map(h => h.id));
     let monthDue = 0, monthDone = 0, trainingSessions = 0;
     for (let offset = 29; offset >= 0; offset--) {
       const date = new Date(today); date.setDate(today.getDate()-offset);
