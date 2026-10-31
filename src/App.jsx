@@ -1288,7 +1288,8 @@ export default function App() {
     <section className="principle-card"><div className="quote-mark">“</div><p>You have power over your mind — not outside events. Realise this, and you will find strength.</p><span>— Marcus Aurelius, <i>Meditations</i> (paraphrased)</span></section>
     </div>}
     {activeTab !== "Today" && <section className="tab-page">
-      {activeTab === "Training" && <Training user={user} db={db}/>}\n      {activeTab === "Reading" && <>
+      {activeTab === "Training" && <Training user={user} db={db}/>}
+      {activeTab === "Reading" && <>
         <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
         <p className="muted">Track your progress as you read, then move finished books into your completed library.</p>
         <form className="book-form" onSubmit={addBook}>
