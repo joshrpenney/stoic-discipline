@@ -527,11 +527,19 @@ export default function App() {
     previousUnlockState.current = current;
     if (current.level > (Number(previous.level) || 1)) {
       setUnlockCelebration({ type: "rank", title: "Rank achieved", name: levelInfo.name, level: levelInfo.level, detail: "You've earned your next rank.", id: "rank-" + levelInfo.level + "-" + current.xp });
+      notifyFollowers("level_up", { eventKey: "rank_promotion_" + current.level, message: "Promoted to Level " + current.level + " · " + levelInfo.name + "." })
+        .catch(e => setError("Could not notify followers about the rank promotion: " + e.message));
+      setDoc(doc(db, "users", user.uid, "progression", "summary"), { acknowledgedUnlocks: current }, { merge: true })
+        .catch(e => setError("Could not save progression history: " + e.message));
       return;
     }
     const previousAchievements = Array.isArray(previous.achievements) ? previous.achievements : [];
     const newlyUnlocked = current.achievements.find(name => !previousAchievements.includes(name));
     if (newlyUnlocked) { const item = achievements.find(entry => entry.title === newlyUnlocked); if (item) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: item.title, detail: item.detail, icon: item.icon, id: "achievement-" + item.title + "-" + current.actions }); }
+    if (current.level !== previous.level || current.xp !== previous.xp || current.actions !== previous.actions || current.achievements.join("|") !== previousAchievements.join("|")) {
+      setDoc(doc(db, "users", user.uid, "progression", "summary"), { acknowledgedUnlocks: current }, { merge: true })
+        .catch(e => setError("Could not save progression history: " + e.message));
+    }
   }, [user, progressionReady, progression.totalXp, progression.totalActions, progression.acknowledgedUnlocks, levelInfo.level, levelInfo.name, achievements]);
 
   const ledgerStats = useMemo(() => {
