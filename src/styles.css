@@ -1433,3 +1433,24 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .settings-add-form{scroll-margin-top:22px}
 
 .schedule-day:disabled{opacity:.28;cursor:not-allowed;border-style:dashed;background:transparent;color:#77716a}
+
+/* Performance overview: goals and real-world records, without decorative counters. */
+.performance-dashboard-goals{display:grid;gap:11px}
+.performance-mini-goal{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 16px;border:1px solid #403a2e;border-radius:14px;background:linear-gradient(120deg,#25231f,#1d1c1a)}
+.performance-mini-goal>div:first-child{display:grid;gap:6px;min-width:0}
+.performance-mini-goal>div:first-child span{font-size:8px;letter-spacing:1.5px;color:#c5a86b}
+.performance-mini-goal>div:first-child strong{font:500 18px 'Playfair Display',Georgia,serif;color:#f0e9dc}
+.performance-mini-values{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.performance-mini-values>div{display:grid;gap:4px;text-align:right}
+.performance-mini-values small{font-size:8px;letter-spacing:1px;color:#9d9689}
+.performance-mini-values b{font-size:15px;color:#d7b873;font-variant-numeric:tabular-nums}
+.performance-record-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.performance-record-grid article{display:flex;flex-direction:column;align-items:flex-start;gap:7px;border:1px solid #403a2e;border-radius:13px;background:#211f1b}
+.performance-record-grid article>span{font-size:10px;color:#c5a86b;letter-spacing:.5px}
+.performance-record-grid article strong{font:600 25px 'Playfair Display',Georgia,serif;color:#f0e9dc}
+.performance-record-grid article small{font-size:9px;color:#9d9689}
+.performance-dashboard-section{margin:26px 0 30px}
+:root[data-theme='light'] .performance-mini-goal{background:#f8f4eb;border-color:#ddd0b8}
+:root[data-theme='light'] .performance-mini-goal>div:first-child strong,:root[data-theme='light'] .performance-record-grid article strong{color:#302b22}
+:root[data-theme='light'] .performance-record-grid article{background:#f8f4eb;border-color:#ddd0b8}
+@media(max-width:380px){.performance-mini-goal{align-items:flex-start;flex-direction:column}.performance-mini-values{width:100%;justify-content:flex-start}.performance-mini-values>div{text-align:left}.performance-record-grid article strong{font-size:22px}}
