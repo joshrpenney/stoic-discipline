@@ -1318,3 +1318,36 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
     letter-spacing: -.15px;
   }
 }
+
+
+/* Simple strength and running performance goals */
+.performance-page{padding-bottom:28px}
+.performance-category{margin:25px 0 30px}
+.performance-category-heading{display:flex;align-items:center;gap:12px;margin-bottom:13px}
+.performance-category-icon{width:43px;height:43px;flex:0 0 43px;display:grid;place-items:center;border:1px solid #594a30;border-radius:12px;background:#2b271f;color:#d2b477}
+.performance-category-heading>div{flex:1;min-width:0}
+.performance-category-heading h2{margin:0;color:var(--text,#eee8dc);font:500 21px 'Playfair Display',Georgia,serif}
+.performance-category-heading p{margin:4px 0 0;color:var(--muted,#aaa08f);font-size:10px}
+.performance-category-heading>button{width:38px;height:38px;display:grid;place-items:center;border:1px solid #6b5736;border-radius:10px;background:transparent;color:#d7b979}
+.performance-goal-card{padding:15px;margin:10px 0;background:linear-gradient(120deg,#24221e,#1d1d1b);border:1px solid #3d3930;border-radius:12px}
+.performance-goal-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.performance-goal-type{font-size:8px;letter-spacing:1.5px;color:#b89b64;font-weight:700}
+.performance-goal-top h3{margin:4px 0 0;color:var(--text,#eee8dc);font:500 17px 'Playfair Display',Georgia,serif}
+.performance-edit{border:1px solid #55472f;border-radius:7px;padding:7px 11px;background:transparent;color:#d5b777;font-size:10px}
+.performance-values{display:flex;align-items:center;gap:22px;margin-top:17px}
+.performance-values>div{display:grid;gap:4px;min-width:0}
+.performance-values small{font-size:8px;letter-spacing:1.2px;color:var(--muted,#aaa08f)}
+.performance-values strong{font:600 24px 'Playfair Display',Georgia,serif;color:#eee5d3;font-variant-numeric:tabular-nums}
+.performance-values>svg{color:#8e8269}
+.performance-date{margin:12px 0 0;padding-top:9px;border-top:1px solid #37332b;color:var(--muted,#aaa08f);font-size:9px}
+.performance-empty{margin:0;padding:17px 14px;border:1px dashed #494235;border-radius:10px;color:var(--muted,#aaa08f);font-size:10px;line-height:1.5}
+.performance-footnote{display:flex;align-items:center;justify-content:center;gap:7px;margin:26px 0;color:var(--muted,#aaa08f);font-size:9px}
+.performance-modal>label{margin:13px 0}
+.performance-form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.performance-form-row label{display:grid;gap:6px;color:var(--muted,#aaa08f);font-size:10px}
+.performance-input-hint{margin:0;color:var(--muted,#aaa08f);font-size:9px;line-height:1.5}
+.performance-delete{display:block;margin:12px auto 0;padding:8px 12px;border:0;background:transparent;color:#c78b7e;font-size:10px}
+:root[data-theme="light"] .performance-goal-card{background:#f8f4eb;border-color:#ddd0b8}
+:root[data-theme="light"] .performance-category-heading h2,:root[data-theme="light"] .performance-goal-top h3,:root[data-theme="light"] .performance-values strong{color:#302b22}
+:root[data-theme="light"] .performance-category-icon{background:#eee6d5;border-color:#d5c39d;color:#8b6b32}
+@media(max-width:380px){.performance-values{gap:15px}.performance-values strong{font-size:21px}.performance-form-row{grid-template-columns:1fr}}
