@@ -1298,6 +1298,18 @@ export default function App() {
       {activeTab === "Reading" && <>
         <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
         <p className="muted">Track your progress as you read, then move finished books into your completed library.</p>
+        <section className="duolingo-card">
+          <div className="duolingo-card-heading">
+            <div><p className="eyebrow">LANGUAGE LEARNING</p><h2>Duolingo</h2><p>Keep your language practice consistent.</p></div>
+            <span className="duolingo-streak">719 <small>day streak*</small></span>
+          </div>
+          <div className="duolingo-card-stats"><span><strong>64,654</strong><small>XP last shared*</small></span><span><strong>3</strong><small>Courses</small></span></div>
+          <div className="duolingo-card-actions">
+            <a className="duolingo-open-link" href="https://www.duolingo.com/profile/JOSHPENNEY18" target="_blank" rel="noopener noreferrer">Open Duolingo <span>↗</span></a>
+            <button type="button" className={checks["duolingo-lesson"] ? "duolingo-complete is-complete" : "duolingo-complete"} disabled={!!checks["duolingo-lesson"]} onClick={()=>toggleHabit({id:"duolingo-lesson",nonNegotiable:false})}>{checks["duolingo-lesson"] ? "Lesson completed today" : "Mark lesson complete · +10 XP"}</button>
+          </div>
+          <small className="duolingo-disclaimer">*Streak and XP are from the profile screenshot you shared, not live synced. Lesson completion is recorded once per day.</small>
+        </section>
         <form className="book-form" onSubmit={addBook}>
           <div className="book-search-wrap"><label>Find a book<input required maxLength="140" value={bookInput} onFocus={()=>setBookSearchOpen(true)} onChange={e=>{setBookInput(e.target.value);setBookSearchOpen(true);setBookCover("");}} placeholder="Start typing a title or author…"/></label>
             {bookSearchOpen && bookInput.trim().length >= 3 && <div className="book-search-results">
