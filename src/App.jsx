@@ -1106,7 +1106,7 @@ export default function App() {
           </section>
         </> : <div className="empty community-empty"><h3>Progress is private</h3><p>This member has chosen not to share their discipline progress.</p></div>}
       </section>
-      <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon])=><button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setShowMemberRanksPage(false);setActiveTab(label);window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
+      <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Performance",Trophy],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon])=><button type="button" key={label} className={"nav-item "+(activeTab===label?"active":"")} onClick={()=>{setSelectedMemberProfile(null);setShowMemberRanksPage(false);setActiveTab(label);window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
     </main>;
     return <main className="app-shell">
       <header className="topbar">
