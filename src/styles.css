@@ -1454,24 +1454,3 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 :root[data-theme='light'] .performance-mini-goal>div:first-child strong,:root[data-theme='light'] .performance-record-grid article strong{color:#302b22}
 :root[data-theme='light'] .performance-record-grid article{background:#f8f4eb;border-color:#ddd0b8}
 @media(max-width:380px){.performance-mini-goal{align-items:flex-start;flex-direction:column}.performance-mini-values{width:100%;justify-content:flex-start}.performance-mini-values>div{text-align:left}.performance-record-grid article strong{font-size:22px}}
-
-
-/* Duolingo companion card on the Reading & Learning page */
-.duolingo-card{margin:20px 0 25px;padding:17px;border:1px solid #4b493f;border-radius:13px;background:linear-gradient(145deg,#24251f,#1c1d1b);display:grid;gap:15px}
-.duolingo-card-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.duolingo-card-heading .eyebrow{margin-bottom:5px}
-.duolingo-card-heading h2{margin:0;color:#eee7d9;font:600 23px 'Playfair Display',serif}
-.duolingo-card-heading p:last-child{margin:5px 0 0;color:var(--muted);font-size:11px}
-.duolingo-streak{font:600 24px 'DM Sans',sans-serif;color:#e2b65b;text-align:center;white-space:nowrap}
-.duolingo-streak small{display:block;color:#aaa18e;font-size:9px;font-weight:500}
-.duolingo-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.duolingo-card-stats span{display:grid;gap:3px;padding:10px 12px;background:#191a18;border:1px solid #35352f;border-radius:8px}
-.duolingo-card-stats strong{font-size:17px;color:#eee7d9}
-.duolingo-card-stats small{font-size:9px;color:#9d988b}
-.duolingo-card-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:9px}
-.duolingo-open-link,.duolingo-complete{min-height:43px;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;text-decoration:none}
-.duolingo-open-link{border:1px solid #6b5936;color:#e3c98f;background:#29251d}
-.duolingo-complete{border:1px solid #9c824f;background:#c4a66b;color:#1d1a14}
-.duolingo-complete:disabled{opacity:1;border-color:#4e6347;background:#283126;color:#b5c9a9;cursor:default}
-.duolingo-disclaimer{font-size:9px;line-height:1.5;color:#827e73}
-@media(max-width:380px){.duolingo-card-actions{grid-template-columns:1fr}.duolingo-card-heading h2{font-size:21px}}
