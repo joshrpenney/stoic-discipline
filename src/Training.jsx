@@ -20,6 +20,8 @@ function timeLabel(value) {
 
 export default function Training({user,db}) {
   const [goals,setGoals]=useState([]);
+  const [achievements,setAchievements]=useState([]);
+  const [celebration,setCelebration]=useState(null);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState("");
@@ -38,12 +40,13 @@ export default function Training({user,db}) {
   useEffect(()=>onSnapshot(ref,snap=>{
     const data=snap.exists()?snap.data():{};
     setGoals(Array.isArray(data.performanceGoals)?data.performanceGoals:[]);
+    setAchievements(Array.isArray(data.performanceAchievements)?data.performanceAchievements:[]);
     setLoading(false);
   },e=>{setError("Your performance goals could not be loaded: "+e.message);setLoading(false);}),[user.uid]);
 
-  const saveGoals=async(next)=>{
+  const saveGoals=async(next,nextAchievements=achievements,newCelebration=null)=>{
     setSaving(true);setError("");setNotice("");
-    try{await setDoc(ref,{performanceGoals:next,updatedAt:serverTimestamp()},{merge:true});setGoals(next);setNotice("Performance goals saved.");setShowAdd(false);setEditing(null);}
+    try{await setDoc(ref,{performanceGoals:next,performanceAchievements:nextAchievements,updatedAt:serverTimestamp()},{merge:true});setGoals(next);setAchievements(nextAchievements);setNotice("Performance goals saved.");setShowAdd(false);setEditing(null);if(newCelebration)setCelebration(newCelebration);}
     catch(e){setError("Could not save your goals: "+e.message);}
     finally{setSaving(false);}
   };
@@ -59,9 +62,14 @@ export default function Training({user,db}) {
     const running=category==="Running";
     if(running&&(seconds(current)<=0||seconds(target)<=0)){setError("Enter both times in minutes:seconds format, for example 24:30.");return;}
     if(!running&&(!(Number(current)>0)||!(Number(target)>0))){setError("Enter current and target values greater than zero.");return;}
-    const goal={id:editing||newId(),category,name,unit:running?"time":"kg",current:running?timeLabel(current):Number(current),target:running?timeLabel(target):Number(target),targetDate,updatedAt:new Date().toISOString()};
+    const previous=editing?goals.find(g=>g.id===editing):null;
+    const currentValue=running?timeLabel(current):Number(current);
+    const targetValue=running?timeLabel(target):Number(target);
+    const improved=previous && (running?seconds(currentValue)<seconds(previous.current):Number(currentValue)>Number(previous.current));
+    const goal={id:editing||newId(),category,name,unit:running?"time":"kg",current:currentValue,target:targetValue,targetDate,updatedAt:new Date().toISOString()};
     const next=editing?goals.map(g=>g.id===editing?{...g,...goal}:g):[...goals,goal];
-    await saveGoals(next);
+    const record=improved?{id:newId(),goalId:goal.id,name,category,value:currentValue,unit:goal.unit,previous:previous.current,improvement:running?seconds(previous.current)-seconds(currentValue):Number(currentValue)-Number(previous.current),date:new Date().toISOString()}:null;
+    await saveGoals(next,record?[record,...achievements]:achievements,record);
   };
   const remove=async id=>saveGoals(goals.filter(g=>g.id!==id));
   const groupGoals=group=>goals.filter(g=>g.category===group);
@@ -106,8 +114,18 @@ export default function Training({user,db}) {
         <div className="performance-section-heading"><div><p className="eyebrow">LATEST RECORDS</p><h2>Personal bests</h2></div></div>
         {bests.length ? <div className="performance-record-grid">{bests.map(goal=><article key={goal.id}><span>{goal.name}</span><strong>{goal.current}{goal.unit==="kg"?"kg":""}</strong><small>Current best</small><button type="button" onClick={()=>beginEdit(goal)}>Update record</button></article>)}</div> : <p className="performance-empty">Your personal bests will appear here as you add goals.</p>}
       </section>
+      <section className="performance-dashboard-section">
+        <div className="performance-section-heading"><div><p className="eyebrow">MILESTONES</p><h2>Recent achievements</h2></div></div>
+        {achievements.length ? <div className="performance-achievement-list">{achievements.slice(0,4).map(item=><article key={item.id}><span className="performance-achievement-icon"><Trophy size={16}/></span><div><strong>New {item.category==="Strength"?"strength":"running"} personal best</strong><b>{item.name} · {item.value}{item.unit==="kg"?"kg":""}</b><small>{new Date(item.date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</small></div></article>)}</div> : <p className="performance-empty">Your new personal bests will be celebrated and saved here.</p>}
+      </section>
       {records.length>0&&<p className="performance-footnote"><Trophy size={14}/> Keep raising your standard, one personal best at a time.</p>}
     </>}
+    {celebration&&<div className="training-modal-backdrop performance-celebration-backdrop"><section className="performance-celebration" role="dialog" aria-modal="true">
+      <span className="performance-celebration-trophy"><Trophy size={34}/></span><p className="eyebrow">NEW PERSONAL RECORD</p><h2>A new standard.</h2>
+      <strong className="performance-celebration-value">{celebration.value}{celebration.unit==="kg"?"kg":""}</strong><h3>{celebration.name}</h3>
+      <div className="performance-celebration-details"><div><small>PREVIOUS BEST</small><b>{celebration.previous}{celebration.unit==="kg"?"kg":""}</b></div><div><small>IMPROVEMENT</small><b>{celebration.unit==="kg"?"+"+celebration.improvement+"kg":timeLabel(celebration.improvement)}</b></div></div>
+      <button type="button" className="training-primary" onClick={()=>setCelebration(null)}>Continue</button>
+    </section></div>}
     {showAdd&&<div className="training-modal-backdrop" onClick={()=>setShowAdd(false)}><section className="training-modal performance-modal" onClick={e=>e.stopPropagation()}>
       <div className="training-modal-head"><div><p className="eyebrow">{editing?"UPDATE YOUR PROGRESS":"SET A PERFORMANCE GOAL"}</p><h2>{editing?"Update goal":"New goal"}</h2></div><button type="button" onClick={()=>setShowAdd(false)}><X size={18}/></button></div>
       <label>Focus<select value={category} onChange={e=>{setCategory(e.target.value);setGoalName("");setCustomName("");}}><option>Strength</option><option>Running</option></select></label>
