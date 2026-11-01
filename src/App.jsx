@@ -1148,7 +1148,7 @@ export default function App() {
 </> : <section className="community-section member-shared-section"><div className="empty community-empty"><Users size={26}/><h3>Progress is private</h3><p>This member has chosen not to share their discipline progress.</p></div></section>}
         <p className="member-profile-privacy">Only information enabled in the member’s Privacy & sharing settings is displayed here.</p>
       </section>
-      <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Dashboard",Activity],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setActiveTab(label);setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
+      <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Performance",Trophy],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className="nav-item" onClick={()=>{setSelectedMemberProfile(null);setActiveTab(label);setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
     </main>;
   }
 
@@ -1250,7 +1250,7 @@ export default function App() {
       <h1>Do what matters.<br/><span>Leave the rest.</span></h1>
       <p className="muted">Welcome back{user.displayName ? `, ${user.displayName}` : ""}. Focus on the actions within your control.</p>
     </section>
-    <button type="button" className="today-training-entry" onClick={()=>{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:"Training"},"");setActiveTab("Training");window.scrollTo({top:0,behavior:"smooth"});}}><span className="today-training-entry-icon"><Dumbbell size={19}/></span><span><strong>Performance Goals</strong><small>Set strength and running targets. Track your personal bests.</small></span><ChevronRight size={18}/></button>
+    <button type="button" className="today-training-entry" onClick={()=>{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:"Performance"},"");setActiveTab("Performance");window.scrollTo({top:0,behavior:"smooth"});}}><span className="today-training-entry-icon"><Dumbbell size={19}/></span><span><strong>Performance Goals</strong><small>Set strength and running targets. Track your personal bests.</small></span><ChevronRight size={18}/></button>
     <section className="today-summary-card">
       <div className="today-summary-top">
         <div><p className="eyebrow">TODAY AT A GLANCE</p><h2>{doneCount}<span> / {dueHabits.length}</span></h2><p>{dueHabits.length===0?"Nothing scheduled today":percent===100?"Every commitment complete":"commitments completed"}</p></div>
@@ -1288,7 +1288,7 @@ export default function App() {
     <section className="principle-card"><div className="quote-mark">“</div><p>You have power over your mind — not outside events. Realise this, and you will find strength.</p><span>— Marcus Aurelius, <i>Meditations</i> (paraphrased)</span></section>
     </div>}
     {activeTab !== "Today" && <section className="tab-page">
-      {activeTab === "Training" && <Training user={user} db={db}/>}
+      {activeTab === "Performance" && <Training user={user} db={db}/>}
       {activeTab === "Reading" && <>
         <p className="eyebrow">TRAIN THE MIND</p><h1 className="tab-title">Reading library</h1>
         <p className="muted">Track your progress as you read, then move finished books into your completed library.</p>
@@ -1434,7 +1434,7 @@ export default function App() {
 
       </>}
     </section>}
-    <nav className="bottom-nav">{[["Reading",BookOpen],["Dashboard",Activity],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""}`} onClick={() => {if(label===activeTab){if(label==="Profile"){if(showRanksPage||socialListView||showMemberLibrary){setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);}else{setShowProfileCalendar(false);setShowProfileAchievements(false);setShowProfileLibrary(false);}}else if(label==="Reading"){setBookSearchOpen(false);setBookSearchResults([]);}else if(label==="Non-negotiables"||label==="Today"){setShowAdd(false);setEditingHabitId(null);}}else{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:label},"");setActiveTab(label);if(label!=="Profile"){setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);}}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
+    <nav className="bottom-nav">{[["Reading",BookOpen],["Performance",Trophy],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon]) => <button type="button" key={label} className={`nav-item ${activeTab===label?"active":""}`} onClick={() => {if(label===activeTab){if(label==="Profile"){if(showRanksPage||socialListView||showMemberLibrary){setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);}else{setShowProfileCalendar(false);setShowProfileAchievements(false);setShowProfileLibrary(false);}}else if(label==="Reading"){setBookSearchOpen(false);setBookSearchResults([]);}else if(label==="Non-negotiables"||label==="Today"){setShowAdd(false);setEditingHabitId(null);}}else{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:label},"");setActiveTab(label);if(label!=="Profile"){setShowRanksPage(false);setSocialListView("");setShowMemberLibrary(false);}}setError("");setNotice("");window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
     <p className="footnote">XP is awarded once per commitment each day. Unticking a commitment does not remove earned XP. Your progress is saved to your private Firebase account.</p>
   </main>;
 }
