@@ -1431,3 +1431,5 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .member-profile-page .member-rank-open-button span{display:block;max-width:88px;line-height:1.4;font-size:inherit;}
 
 .settings-add-form{scroll-margin-top:22px}
+
+.schedule-day:disabled{opacity:.28;cursor:not-allowed;border-style:dashed;background:transparent;color:#77716a}
