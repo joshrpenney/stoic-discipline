@@ -1429,3 +1429,5 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 /* Keep the member-profile rank link identical in scale and spacing to the own-profile link. */
 .member-profile-page .member-rank-open-button{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-shrink:0;font-size:11px;line-height:1.4;padding:0;}
 .member-profile-page .member-rank-open-button span{display:block;max-width:88px;line-height:1.4;font-size:inherit;}
+
+.settings-add-form{scroll-margin-top:22px}
