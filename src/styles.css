@@ -1420,3 +1420,8 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 :root[data-theme='light'] .performance-celebration{background:#f8f4eb;color:#302b22}
 :root[data-theme='light'] .performance-celebration h2,:root[data-theme='light'] .performance-celebration-details b{color:#302b22}
 @media(max-width:380px){.performance-dashboard-heading .tab-title{font-size:34px}.performance-mini-goal{gap:8px}.performance-mini-values{font-size:12px}.performance-celebration{padding:25px 18px}}
+/* Profile stats: XP beside streak; action count sits beneath rank on both profile views. */
+.rank-open-card-copy .rank-actions-completed{margin-top:7px;font-size:12px;color:#a9a092;letter-spacing:.1px}
+.profile-stats article:first-child{min-width:0}
+.profile-stats article:first-child strong{font-variant-numeric:tabular-nums}
+.member-rank-card .rank-open-card-action span{max-width:88px}
