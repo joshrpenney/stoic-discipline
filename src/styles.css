@@ -1351,3 +1351,31 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 :root[data-theme="light"] .performance-category-heading h2,:root[data-theme="light"] .performance-goal-top h3,:root[data-theme="light"] .performance-values strong{color:#302b22}
 :root[data-theme="light"] .performance-category-icon{background:#eee6d5;border-color:#d5c39d;color:#8b6b32}
 @media(max-width:380px){.performance-values{gap:15px}.performance-values strong{font-size:21px}.performance-form-row{grid-template-columns:1fr}}
+
+
+/* Performance is a first-class destination with a clean overview and separate settings. */
+.performance-dashboard-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:25px}
+.performance-settings-button{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:1px solid #655337;border-radius:50%;background:#24211c;color:#d4b574}
+.performance-overview-stats{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:20px 0 30px}
+.performance-overview-stats article{display:grid;gap:5px;padding:16px;border:1px solid #3c382f;border-radius:13px;background:linear-gradient(135deg,#25231f,#1c1c1a)}
+.performance-overview-stats span,.performance-record-grid article>span{font-size:8px;letter-spacing:1.3px;color:#b89b64;font-weight:700}
+.performance-overview-stats strong{font:600 30px 'Playfair Display',Georgia,serif;color:#eee6d7}
+.performance-overview-stats small,.performance-record-grid small{font-size:9px;color:var(--muted,#aaa08f)}
+.performance-dashboard-section{margin:26px 0 32px}
+.performance-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:13px}
+.performance-section-heading h2,.performance-settings-title h2{margin:3px 0 0;font:500 22px 'Playfair Display',Georgia,serif;color:var(--text,#eee8dc)}
+.performance-section-heading>button,.performance-back{display:flex;align-items:center;gap:5px;padding:7px 10px;border:1px solid #55472f;border-radius:8px;background:transparent;color:#d5b777;font-size:10px}
+.performance-dashboard-goals{display:grid;gap:9px}
+.performance-mini-goal{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px;border:1px solid #3d3930;border-radius:11px;background:#211f1c}
+.performance-mini-goal>div:first-child{display:grid;gap:4px;min-width:0}
+.performance-mini-goal span{font-size:8px;letter-spacing:1px;color:#b89b64}
+.performance-mini-goal strong{font:500 16px 'Playfair Display',Georgia,serif;color:#eee6d7}
+.performance-mini-values{display:flex;align-items:center;gap:7px;color:#c7ae79;font-size:12px;white-space:nowrap}
+.performance-record-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.performance-record-grid article{display:grid;gap:7px;padding:14px;border:1px solid #3d3930;border-radius:11px;background:#211f1c}
+.performance-record-grid article strong{font:600 24px 'Playfair Display',Georgia,serif;color:#eee6d7}
+.performance-record-grid article button{justify-self:start;padding:6px 0;border:0;background:transparent;color:#d5b777;font-size:9px}
+.performance-settings-title{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:22px 0 12px}
+:root[data-theme="light"] .performance-overview-stats article,:root[data-theme="light"] .performance-mini-goal,:root[data-theme="light"] .performance-record-grid article{background:#f8f4eb;border-color:#ddd0b8}
+:root[data-theme="light"] .performance-overview-stats strong,:root[data-theme="light"] .performance-mini-goal strong,:root[data-theme="light"] .performance-record-grid article strong,:root[data-theme="light"] .performance-section-heading h2,:root[data-theme="light"] .performance-settings-title h2{color:#302b22}
+@media(max-width:380px){.performance-settings-title{align-items:flex-start;flex-direction:column}.performance-mini-goal{align-items:flex-start;flex-direction:column}.performance-record-grid article strong{font-size:21px}}
