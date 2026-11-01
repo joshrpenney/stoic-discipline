@@ -424,7 +424,8 @@ export default function App() {
   const nonNegotiableHabits = activeHabits.filter(h => h.nonNegotiable);
   const flexibleHabits = activeHabits.filter(h => !h.nonNegotiable);
   const MAX_NON_NEGOTIABLES = 5;
-  const MAX_FLEXIBLE_COMMITMENTS = 5;
+  const MAX_FLEXIBLE_COMMITMENTS = 15;
+  const MAX_COMMITMENTS_PER_DAY = 5;
   const isDueOn = (habit, date) => { if (habit.nonNegotiable) return true; const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
   const dueHabits = activeHabits.filter(h => isDueOn(h, new Date()));
   const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
@@ -1006,6 +1007,7 @@ export default function App() {
     const limit = newNonNegotiable ? MAX_NON_NEGOTIABLES : MAX_FLEXIBLE_COMMITMENTS;
     if (currentCount >= limit) { setError(`You can have up to ${limit} ${newNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Edit or archive one before adding another.`); return; }
     if (!newNonNegotiable && newSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
+    if (!newNonNegotiable && newSchedule.some(day => flexibleHabits.filter(h => (h.daysOfWeek || []).includes(day)).length >= MAX_COMMITMENTS_PER_DAY)) { setError("One or more selected days already has five scheduled commitments. Remove a commitment from that day before adding another."); return; }
     try {
       await addDoc(collection(db, "users", user.uid, "habits"), {
         title: newTitle.trim(), category: newCategory, target: newTarget.trim(),
@@ -1030,6 +1032,7 @@ export default function App() {
     if (habits.find(h => h.id === editingHabitId)?.nonNegotiable && !editingIsNonNegotiable) { setError("Your five daily standards can only be replaced by editing their details in Settings, not by switching them off."); return; }
     if (countInSelectedGroup >= limit) { setError(`You can have up to ${limit} ${editingIsNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Change or archive one before moving this commitment.`); return; }
     if (!editingIsNonNegotiable && editingSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
+    if (!editingIsNonNegotiable && editingSchedule.some(day => flexibleHabits.filter(h => h.id !== editingHabitId && (h.daysOfWeek || []).includes(day)).length >= MAX_COMMITMENTS_PER_DAY)) { setError("One or more selected days already has five scheduled commitments. Remove a commitment from that day before adding it."); return; }
     try {
       await updateDoc(doc(db, "users", user.uid, "habits", editingHabitId), {
         title: editingTitle.trim(), category: editingCategory, target: editingTarget.trim(),
@@ -1269,7 +1272,7 @@ export default function App() {
         <div><span className="eyebrow">CURRENT RANK</span><strong>{levelInfo.name} · Level {levelInfo.level}</strong><small>{levelInfo.next?`${levelInfo.remaining.toLocaleString()} XP to Level ${levelInfo.next.level}`:"Highest rank reached"}</small></div>
         <b>{levelInfo.xp.toLocaleString()} XP</b>
       </div>
-    </section>    <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2><p className="muted commitment-limit-summary">{nonNegotiableHabits.length}/5 daily non-negotiables · {flexibleHabits.length}/5 scheduled commitments</p></div></section>
+    </section>    <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2><p className="muted commitment-limit-summary">{nonNegotiableHabits.length}/5 daily non-negotiables · {flexibleHabits.length}/{MAX_FLEXIBLE_COMMITMENTS} scheduled commitments</p></div></section>
     {error && <div className="error-banner">{error}</div>}
     {notice && <p className="notice">{notice}</p>}
     <div className="commitment-groups">
@@ -1403,7 +1406,7 @@ export default function App() {
             <div className="commitment-form-type"><p className="eyebrow">ADDING {newNonNegotiable?"A NON-NEGOTIABLE":"A SCHEDULED COMMITMENT"}</p><strong>{newNonNegotiable?"Daily standard":"Flexible commitment"}</strong><small>{newNonNegotiable?"Due every day and counts towards your streak.":"Choose which days this commitment appears."}</small></div>
             <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
             <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{COMMITMENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
-            {!newNonNegotiable && <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>}
+            {!newNonNegotiable && <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} disabled={!newSchedule.includes(day.value)&&flexibleHabits.filter(h=>(h.daysOfWeek||[]).includes(day.value)).length>=MAX_COMMITMENTS_PER_DAY} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>}
             <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save {newNonNegotiable?"non-negotiable":"commitment"}</button></div>
           </form>}
           <section className="commitment-group-panel nonneg-group-panel">
@@ -1420,16 +1423,16 @@ export default function App() {
             {nonNegotiableHabits.length===0&&<p className="empty">Add five non-negotiables to complete your daily standard.</p>}
           </section>
           <section className="commitment-group-panel flexible-group-panel">
-            <div className="commitment-group-header"><div><p className="eyebrow">OPTIONAL · CHOOSE YOUR DAYS</p><h3>Scheduled commitments <span>{flexibleHabits.length}/5</span></h3><p>Additional habits that appear only on selected days.</p></div><button className="quiet-account-button" disabled={flexibleHabits.length>=MAX_FLEXIBLE_COMMITMENTS} onClick={()=>{setNewTitle("");setNewTarget("");setNewCategory("Mindset");setNewNonNegotiable(false);setNewSchedule([0,1,2,3,4,5,6]);setShowAdd(true);setEditingHabitId(null);}}><Plus size={14}/> Add</button></div>
+            <div className="commitment-group-header"><div><p className="eyebrow">OPTIONAL · CHOOSE YOUR DAYS</p><h3>Scheduled commitments <span>{flexibleHabits.length}/{MAX_FLEXIBLE_COMMITMENTS}</span></h3><p>Up to 15 commitments overall, with no more than five on any day.</p></div><button className="quiet-account-button" disabled={flexibleHabits.length>=MAX_FLEXIBLE_COMMITMENTS} onClick={()=>{setNewTitle("");setNewTarget("");setNewCategory("Mindset");setNewNonNegotiable(false);setNewSchedule([0,1,2,3,4,5,6]);setShowAdd(true);setEditingHabitId(null);}}><Plus size={14}/> Add</button></div>
             <div className="settings-habit-list">{flexibleHabits.map(h=>{const Icon=categoryIcon(h.category);return <article className="settings-habit" key={h.id}>
               {editingHabitId===h.id ? <form className="settings-edit-form" onSubmit={saveHabitEdit}>
                 <label>Commitment name<input required maxLength="100" value={editingTitle} onChange={e=>setEditingTitle(e.target.value)}/></label>
                 <div className="form-row"><label>Category<select value={editingCategory} onChange={e=>setEditingCategory(e.target.value)}>{COMMITMENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label><label>Target<input value={editingTarget} onChange={e=>setEditingTarget(e.target.value)} placeholder="Optional target"/></label></div>
-                <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} className={"schedule-day "+(editingSchedule.includes(day.value)?"selected":"")} onClick={()=>setEditingSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>
+                <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} disabled={!editingSchedule.includes(day.value)&&flexibleHabits.filter(item=>item.id!==h.id&&(item.daysOfWeek||[]).includes(day.value)).length>=MAX_COMMITMENTS_PER_DAY} className={"schedule-day "+(editingSchedule.includes(day.value)?"selected":"")} onClick={()=>setEditingSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>
                 <div className="form-actions"><button type="button" className="secondary" onClick={()=>setEditingHabitId(null)}>Cancel</button><button className="primary">Save changes</button></div>
               </form> : <div className="settings-habit-main"><div className="habit-icon"><Icon size={18}/></div><div className="settings-habit-copy"><strong>{h.title}</strong><span>{h.target||h.category}</span><small>SCHEDULED COMMITMENT</small></div><button className="quiet-icon-button" aria-label={"Edit "+h.title} onClick={()=>beginEditHabit(h)}><Pencil size={15}/></button><button className="quiet-icon-button danger" aria-label={"Remove "+h.title} onClick={()=>removeHabit(h)}><Trash2 size={15}/></button></div>}
             </article>})}</div>
-            {flexibleHabits.length===0&&<p className="empty">No scheduled commitments yet. Add up to five optional habits.</p>}
+            {flexibleHabits.length===0&&<p className="empty">No scheduled commitments yet. Add up to 15 optional habits, with a maximum of five per day.</p>}
           </section>
           <p className="settings-note">Changes apply to your daily checklist and Non-negotiables page. Past completion records and earned XP are retained when you archive a commitment.</p>
         </>}
