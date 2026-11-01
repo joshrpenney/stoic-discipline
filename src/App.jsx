@@ -1250,7 +1250,7 @@ export default function App() {
       <h1>Do what matters.<br/><span>Leave the rest.</span></h1>
       <p className="muted">Welcome back{user.displayName ? `, ${user.displayName}` : ""}. Focus on the actions within your control.</p>
     </section>
-    <button type="button" className="today-training-entry" onClick={()=>{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:"Training"},"");setActiveTab("Training");window.scrollTo({top:0,behavior:"smooth"});}}><span className="today-training-entry-icon"><Dumbbell size={19}/></span><span><strong>Training & Performance</strong><small>Build programmes, log workouts and track progress</small></span><ChevronRight size={18}/></button>
+    <button type="button" className="today-training-entry" onClick={()=>{tabHistoryRef.current.push(activeTab);window.history.pushState({stoicDiscipline:true,tab:"Training"},"");setActiveTab("Training");window.scrollTo({top:0,behavior:"smooth"});}}><span className="today-training-entry-icon"><Dumbbell size={19}/></span><span><strong>Performance Goals</strong><small>Set strength and running targets. Track your personal bests.</small></span><ChevronRight size={18}/></button>
     <section className="today-summary-card">
       <div className="today-summary-top">
         <div><p className="eyebrow">TODAY AT A GLANCE</p><h2>{doneCount}<span> / {dueHabits.length}</span></h2><p>{dueHabits.length===0?"Nothing scheduled today":percent===100?"Every commitment complete":"commitments completed"}</p></div>
