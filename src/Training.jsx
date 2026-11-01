@@ -85,10 +85,10 @@ export default function Training({user,db}) {
   if(loading)return <section className="training-page"><p className="eyebrow">YOUR PERFORMANCE</p><h1 className="tab-title">Loading your goals…</h1></section>;
   const strengthGoals=groupGoals("Strength"), runningGoals=groupGoals("Running");
   const records=[...goals].slice().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
-  const bests=[...strengthGoals.slice(0,2),...runningGoals.slice(0,2)];
+  const bests=[...strengthGoals,...runningGoals];
   return <section className="training-page performance-page">
     <div className="performance-dashboard-heading">
-      <div><p className="eyebrow">YOUR PHYSICAL PROGRESS</p><h1 className="tab-title">Performance</h1><p className="muted">Measure your standards. Recognise your progress.</p></div>
+      <div><p className="eyebrow">YOUR PHYSICAL PROGRESS</p><h1 className="tab-title">Performance</h1><p className="muted">Choose your targets. Track your best. Keep improving.</p></div>
       <button type="button" className="performance-settings-button" aria-label="Performance settings" onClick={()=>setShowSettings(v=>!v)}><Settings size={19}/></button>
     </div>
     {error&&<div className="training-message error">{error}</div>}{notice&&<div className="training-message">{notice}</div>}
@@ -105,17 +105,13 @@ export default function Training({user,db}) {
         {!runningGoals.length&&<p className="performance-empty">No running goals yet. Add a distance or race time to work towards.</p>}
       </section>
     </> : <>
-      <div className="performance-overview-stats">
-        <article><span>STRENGTH GOALS</span><strong>{strengthGoals.length}</strong><small>Active targets</small></article>
-        <article><span>RUNNING GOALS</span><strong>{runningGoals.length}</strong><small>Active targets</small></article>
-      </div>
-      <section className="performance-dashboard-section">
-        <div className="performance-section-heading"><div><p className="eyebrow">YOUR CURRENT STANDARDS</p><h2>Performance goals</h2></div><button type="button" onClick={()=>setShowSettings(true)}>Manage <ArrowRight size={14}/></button></div>
-        {goals.length ? <div className="performance-dashboard-goals">{goals.map(goal=><article key={goal.id} className="performance-mini-goal"><div><span>{goal.category==="Strength"?"STRENGTH":"RUNNING"}</span><strong>{goal.name}</strong></div><div className="performance-mini-values"><b>{formatValue(goal.current,goal.unit)}</b><ArrowRight size={14}/><b>{formatValue(goal.target,goal.unit)}</b></div></article>)}</div> : <p className="performance-empty">Your goals will appear here. Start by choosing the strength or running targets you want to pursue.</p>}
+            <section className="performance-dashboard-section">
+        <div className="performance-section-heading"><div><p className="eyebrow">WHAT YOU ARE WORKING TOWARDS</p><h2>Your current standards</h2></div><button type="button" onClick={()=>setShowSettings(true)}>Manage <ArrowRight size={14}/></button></div>
+        {goals.length ? <div className="performance-dashboard-goals">{goals.map(goal=><article key={goal.id} className="performance-mini-goal"><div><span>{goal.category==="Strength"?"STRENGTH":"RUNNING"}</span><strong>{goal.name}</strong></div><div className="performance-mini-values"><div><small>CURRENT</small><b>{formatValue(goal.current,goal.unit)}</b></div><ArrowRight size={14}/><div><small>TARGET</small><b>{formatValue(goal.target,goal.unit)}</b></div></div></article>)}</div> : <p className="performance-empty">No active targets yet. Open Performance settings to choose the strength or running targets you want to pursue.</p>}
       </section>
       <section className="performance-dashboard-section">
-        <div className="performance-section-heading"><div><p className="eyebrow">LATEST RECORDS</p><h2>Personal bests</h2></div></div>
-        {bests.length ? <div className="performance-record-grid">{bests.map(goal=><article key={goal.id}><span>{goal.name}</span><strong>{formatValue(goal.current,goal.unit)}</strong><small>Current best</small><button type="button" onClick={()=>beginEdit(goal)}>Update record</button></article>)}</div> : <p className="performance-empty">Your personal bests will appear here as you add goals.</p>}
+        <div className="performance-section-heading"><div><p className="eyebrow">YOUR LATEST STANDARDS</p><h2>Personal bests</h2></div></div>
+        {bests.length ? <div className="performance-record-grid">{bests.map(goal=><article key={goal.id}><span>{goal.name}</span><strong>{formatValue(goal.current,goal.unit)}</strong><small>Current best</small></article>)}</div> : <p className="performance-empty">Your personal bests will appear here as you add goals in Performance settings.</p>}
       </section>
       <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">MILESTONES</p><h2>Recent achievements</h2></div></div>
