@@ -42,7 +42,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
   { id:"physical-100-sessions", title:"Built by Practice", detail:"Complete 100 training or movement sessions.", category:"Physical Excellence", rarity:"Gold", metric:"trainingDone", goal:100, icon:"Dumbbell" },
   { id:"physical-first-record", title:"Getting Stronger", detail:"Record your first personal best.", category:"Physical Excellence", rarity:"Silver", metric:"personalBests", goal:1, icon:"Trophy" },
 
-  { id:"growth-five-standards", title:"New Horizons", detail:"Establish all five daily non-negotiables.", category:"Personal Growth", rarity:"Bronze", metric:"nonNegotiables", goal:5, icon:"Target" },
+  { id:"growth-five-standards", title:"Define Your Code", detail:"Establish all five daily non-negotiables.", category:"Personal Growth", rarity:"Bronze", metric:"nonNegotiables", goal:5, icon:"Target" },
   { id:"growth-first-commitment", title:"Goal Setter", detail:"Create your first scheduled personal commitment.", category:"Personal Growth", rarity:"Bronze", metric:"scheduledCommitments", goal:1, icon:"Target" },
   { id:"growth-five-commitments", title:"Forward Motion", detail:"Build a practice with five scheduled commitments.", category:"Personal Growth", rarity:"Silver", metric:"scheduledCommitments", goal:5, icon:"Compass" },
 
