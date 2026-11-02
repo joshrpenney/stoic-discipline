@@ -1504,3 +1504,17 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .achievement.unlocked .achievement-meta small:first-child{color:var(--gold-bright)}
 .unlock-celebration-reward{color:var(--gold-bright)!important;font-weight:700;letter-spacing:.5px}
 @media(max-width:520px){.achievement-category-filters{margin-left:-2px;margin-right:-2px}.achievement-category-filters button{padding:8px 11px;font-size:10px}}
+
+
+/* Full-day commitment limit warning */
+.schedule-day-full{border-color:#9a7448;color:#d7b47a;background:rgba(154,116,72,.12);font-weight:700}
+.schedule-day-full:focus-visible{outline-color:#d7b47a}
+.schedule-cap-backdrop{z-index:1300}
+.schedule-cap-panel{max-width:390px}
+.schedule-cap-emblem{position:relative;z-index:1;display:grid;place-items:center;width:104px;height:104px;margin:24px auto 20px;border:2px solid #b69a5d;border-radius:50%;background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.12),transparent 45%),linear-gradient(145deg,#4a402c,#1b1a17);box-shadow:inset 0 0 0 6px rgba(9,9,8,.4),0 0 32px rgba(193,162,94,.14);color:#e5cb8e;font:700 28px 'Playfair Display',serif;letter-spacing:1px}
+.schedule-cap-panel h2{margin:0 0 12px;font:600 27px 'Playfair Display',serif;color:#f0e8d8}
+.schedule-cap-panel>p:not(.unlock-celebration-overline){margin:0 auto 22px;max-width:300px;color:#b8b0a1;font-size:13px;line-height:1.65}
+.schedule-cap-panel .unlock-celebration-continue{width:100%;margin-top:6px}
+.schedule-cap-day-list{position:relative;z-index:1;list-style:none;margin:0 0 18px;padding:0;text-align:left}
+.schedule-cap-day-list li{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid #48402f;border-radius:8px;margin:7px 0;background:rgba(0,0,0,.18);color:#e8dfce;font-size:12px}
+.schedule-cap-day-list li span{color:#d7b47a;font-weight:700}
