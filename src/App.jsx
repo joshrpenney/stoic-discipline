@@ -7,7 +7,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
   serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark, CalendarCheck, Bookmark, Library, GraduationCap, ScrollText, Brain, BookMarked, Footprints, Medal, Timer, Route, Sunrise, Flag, Infinity as InfinityIcon } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 import Training from "./Training";
 import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_DEFINITIONS, CATEGORY_BASE_ACHIEVEMENTS, RARITY } from "./achievements";
@@ -547,7 +547,7 @@ export default function App() {
       scheduledCommitments: flexibleHabits.length
     };
     const earnedIds = new Set(achievementRecords.map(item => item.id));
-    const iconMap = { Star, ShieldCheck, Flame, Crown, BookOpen, Library: BookOpen, GraduationCap: BookOpen, Dumbbell, Trophy, Target, Compass, Landmark };
+    const iconMap = { Star, ShieldCheck, Flame, Crown, BookOpen, Library, GraduationCap, Dumbbell, Trophy, Target, Compass, Landmark, CalendarCheck, Bookmark, ScrollText, Brain, BookMarked, Footprints, Medal, Timer, Route, Sunrise, Flag, Infinity: InfinityIcon, Shield, Mountain, Gem };
     const base = ACHIEVEMENT_DEFINITIONS.filter(item => !item.mastery).map(item => {
       const progress = Math.min(Number(metrics[item.metric]) || 0, item.goal);
       const record = achievementRecords.find(saved => saved.id === item.id);
