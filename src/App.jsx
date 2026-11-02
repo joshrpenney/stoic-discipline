@@ -951,7 +951,15 @@ export default function App() {
       if (!(completing && earned > 0)) setNotice(completing?"XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
       if (completing && earned > 0) setXpToast({ amount: earned, reason: perfectDayBonus ? (habit.nonNegotiable?"non-negotiable completed · perfect day bonus":"scheduled commitment completed · perfect day bonus") : (habit.nonNegotiable?"non-negotiable completed":"scheduled commitment completed"), id: Date.now() });
       if(shouldShowStreakCelebration)setStreakCelebration({count:Math.max(1,streak+1),date:todayKey()});
-      if(completing&&habit.nonNegotiable&&completedDailyStandard)await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});
+      if(completing&&habit.nonNegotiable&&completedDailyStandard) {
+        // Community notification is optional; it must never make a successful
+        // daily completion look like a failed save if notification rules deny it.
+        try {
+          await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});
+        } catch(notificationError) {
+          console.warn("Daily completion saved, but follower notification could not be sent:",notificationError);
+        }
+      }
     } catch(e) { setError(e.message); }
   }
 
