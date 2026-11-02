@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { arrayUnion, doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { ArrowRight, Dumbbell, Footprints, Plus, Save, Target, Trophy, X } from "lucide-react";
 
 const STRENGTH_GOALS = ["Bench press","Squat","Deadlift","Overhead press","Pull-ups","Push-ups","Custom strength exercise"];
@@ -48,7 +48,7 @@ export default function Training({user,db}) {
 
   const saveGoals=async(next,nextAchievements=achievements,newCelebration=null)=>{
     setSaving(true);setError("");setNotice("");
-    try{await setDoc(ref,{performanceGoals:next,performanceAchievements:nextAchievements,updatedAt:serverTimestamp()},{merge:true});setGoals(next);setAchievements(nextAchievements);setNotice("Performance goals saved.");setShowAdd(false);setEditing(null);if(newCelebration)setCelebration(newCelebration);}
+    try{await setDoc(ref,{performanceGoals:next,performanceAchievements:nextAchievements,achievementFeatures:arrayUnion("Physical Excellence"),updatedAt:serverTimestamp()},{merge:true});setGoals(next);setAchievements(nextAchievements);setNotice("Performance goals saved.");setShowAdd(false);setEditing(null);if(newCelebration)setCelebration(newCelebration);}
     catch(e){setError("Could not save your goals: "+e.message);}
     finally{setSaving(false);}
   };
