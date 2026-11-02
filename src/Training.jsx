@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
-import { ArrowRight, Dumbbell, Footprints, Plus, Save, Settings, Target, Trophy, X } from "lucide-react";
+import { ArrowRight, Dumbbell, Footprints, Plus, Save, Target, Trophy, X } from "lucide-react";
 
 const STRENGTH_GOALS = ["Bench press","Squat","Deadlift","Overhead press","Pull-ups","Push-ups","Custom strength exercise"];
 const strengthUnit = name => ["Pull-ups","Push-ups"].includes(name) ? "reps" : "kg";
@@ -89,7 +89,6 @@ export default function Training({user,db}) {
   return <section className="training-page performance-page">
     <div className="performance-dashboard-heading">
       <div><p className="eyebrow">YOUR PHYSICAL PROGRESS</p><h1 className="tab-title">Performance</h1><p className="muted">Choose your targets. Track your best. Keep improving.</p></div>
-      <button type="button" className="performance-settings-button" aria-label="Performance settings" onClick={()=>setShowSettings(v=>!v)}><Settings size={19}/></button>
     </div>
     {error&&<div className="training-message error">{error}</div>}{notice&&<div className="training-message">{notice}</div>}
     {showSettings ? <>
