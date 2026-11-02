@@ -10,6 +10,7 @@ import {
 import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 import Training from "./Training";
+import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_DEFINITIONS, CATEGORY_BASE_ACHIEVEMENTS, RARITY } from "./achievements";
 
 const starterHabits = [
   { title: "Morning routine", category: "Mindset", target: "Start the day deliberately", nonNegotiable: true },
@@ -121,6 +122,12 @@ export default function App() {
     return () => window.removeEventListener("popstate", handleAppBack);
   }, []);
   const [books, setBooks] = useState([]);
+  const [achievementRecords, setAchievementRecords] = useState([]);
+  const [achievementRecordsReady, setAchievementRecordsReady] = useState(false);
+  const [achievementSystemReady, setAchievementSystemReady] = useState(false);
+  const [achievementFilter, setAchievementFilter] = useState("All");
+  const [trainingData, setTrainingData] = useState({});
+  const achievementAwardingRef = useRef(new Set());
   const [bookInput, setBookInput] = useState("");
   const [bookAuthor, setBookAuthor] = useState("");
   const [bookStarted, setBookStarted] = useState(todayKey());
@@ -421,6 +428,16 @@ export default function App() {
     return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); stopBooks(); };
   }, [user]);
 
+  useEffect(() => {
+    if (!user || !db) { setAchievementRecords([]); setAchievementRecordsReady(false); setAchievementSystemReady(false); setTrainingData({}); return; }
+    const stopAchievements = onSnapshot(collection(db, "users", user.uid, "achievements"), snapshot => {
+      setAchievementRecords(snapshot.docs.map(item => ({ id: item.id, ...item.data() })));
+      setAchievementRecordsReady(true);
+    }, e => setError("Could not load your achievement collection: " + e.message));
+    const stopTraining = onSnapshot(doc(db, "users", user.uid, "training", "data"), snapshot => setTrainingData(snapshot.exists() ? snapshot.data() : {}), e => setError("Could not load Performance records: " + e.message));
+    return () => { stopAchievements(); stopTraining(); };
+  }, [user]);
+
   const activeHabits = habits.filter((h) => h.active !== false);
   const nonNegotiableHabits = activeHabits.filter(h => h.nonNegotiable);
   const flexibleHabits = activeHabits.filter(h => !h.nonNegotiable);
@@ -493,46 +510,102 @@ export default function App() {
   }, [progression.totalXp]);
   const achievements = useMemo(() => {
     const actions = Math.max(0, Number(progression.totalActions) || 0);
-    const xp = Math.max(0, Number(progression.totalXp) || 0);
     const finishedBooks = books.filter(book => Boolean(book.finishedAt)).length;
     const startedBooks = books.length;
     const trainingIds = new Set(habits.filter(h => h.category === "Training & Movement").map(h => h.id));
     const trainingDone = dailyLogs.reduce((total, log) => total + Object.entries(log.completed || {}).filter(([id, done]) => done && trainingIds.has(id)).length, 0);
-    const perfectDays = dailyLogs.filter(log => {
-      const due = Array.isArray(log.dueHabitIds) ? log.dueHabitIds : Array.isArray(log.dueNonNegotiableIds) ? log.dueNonNegotiableIds : null;
-      if (!due) return false;
+    const qualifyingDays = dailyLogs.filter(log => {
+      const due = Array.isArray(log.dueNonNegotiableIds) ? log.dueNonNegotiableIds : [];
       const completed = log.completed || {};
-      return due.length > 0 && due.every(id => completed[id] === true);
+      return due.length === 5 && due.every(id => completed[id] === true);
     }).length;
-    const items = [
-      {title:"First Promise",detail:"Complete your first commitment",progress:actions,goal:1,icon:Star,group:"Discipline"},
-      {title:"Fifty Victories",detail:"Complete 50 commitments",progress:actions,goal:50,icon:Award,group:"Discipline"},
-      {title:"A Hundred Deeds",detail:"Complete 100 commitments",progress:actions,goal:100,icon:Award,group:"Discipline"},
-      {title:"Five Hundred Deeds",detail:"Complete 500 commitments",progress:actions,goal:500,icon:Trophy,group:"Discipline"},
-      {title:"The Standard",detail:"Complete every scheduled commitment on 10 recorded days",progress:perfectDays,goal:10,icon:ShieldCheck,group:"Discipline"},
-      {title:"Seven in Motion",detail:"Keep a 7-day streak",progress:streak,goal:7,icon:Flame,group:"Streaks"},
-      {title:"Fortnight of Resolve",detail:"Keep a 14-day streak",progress:streak,goal:14,icon:Flame,group:"Streaks"},
-      {title:"A Month of Resolve",detail:"Keep a 30-day streak",progress:streak,goal:30,icon:Flame,group:"Streaks"},
-      {title:"Century of Commitment",detail:"Keep a 100-day streak",progress:streak,goal:100,icon:Flame,group:"Streaks"},
-      {title:"Five Hundred Days",detail:"Keep a 500-day streak",progress:streak,goal:500,icon:Flame,group:"Streaks"},
-      {title:"A Thousand Days",detail:"Keep a 1,000-day streak",progress:streak,goal:1000,icon:Flame,group:"Streaks"},
-      {title:"Quartermaster",detail:"Keep a 90-day streak",progress:streak,goal:90,icon:ShieldCheck,group:"Streaks"},
-      {title:"The Long Game",detail:"Keep a 365-day streak",progress:streak,goal:365,icon:Trophy,group:"Streaks"},
-      {title:"First Chapter",detail:"Add your first book to the library",progress:startedBooks,goal:1,icon:BookOpen,group:"Reading"},
-      {title:"Reader's Resolve",detail:"Finish five books",progress:finishedBooks,goal:5,icon:BookOpen,group:"Reading"},
-      {title:"Well Read",detail:"Finish 10 books",progress:finishedBooks,goal:10,icon:BookOpen,group:"Reading"},
-      {title:"Library Builder",detail:"Finish 25 books",progress:finishedBooks,goal:25,icon:BookOpen,group:"Reading"},
-      {title:"Lifelong Student",detail:"Finish 50 books",progress:finishedBooks,goal:50,icon:BookOpen,group:"Reading"},
-      {title:"Strength Through Effort",detail:"Complete 25 training or movement commitments",progress:trainingDone,goal:25,icon:Dumbbell,group:"Movement"},
-      {title:"Built by Practice",detail:"Complete 100 training or movement commitments",progress:trainingDone,goal:100,icon:Dumbbell,group:"Movement"},
-      {title:"First XP",detail:"Earn your first experience point",progress:xp,goal:1,icon:Sparkles,group:"Progression"},
-      {title:"Rising",detail:"Earn 2,500 XP",progress:xp,goal:2500,icon:Star,group:"Progression"},
-      {title:"Dedicated",detail:"Earn 12,500 XP",progress:xp,goal:12500,icon:Award,group:"Progression"},
-      {title:"Elite",detail:"Earn 50,000 XP",progress:xp,goal:50000,icon:ShieldCheck,group:"Progression"},
-      {title:"Living Legend",detail:"Earn 125,000 XP",progress:xp,goal:125000,icon:Trophy,group:"Progression"}
-    ];
-    return items.map(item => ({...item, progress:Math.min(item.progress,item.goal), unlocked:item.progress>=item.goal, progressLabel:Math.min(item.progress,item.goal)+"/"+item.goal}));
-  }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs]);
+    const pagesRead = books.reduce((total, book) => total + (book.finishedAt ? Number(book.pageCount) || 0 : Math.max(0, (Number(book.currentPage) || 1) - 1)), 0);
+    const personalBests = (trainingData.performanceAchievements || []).filter(item => !item.milestone).length;
+    const activeCategory = {
+      "Discipline": true,
+      "Knowledge": startedBooks > 0,
+      "Physical Excellence": Boolean((trainingData.performanceGoals || []).length || (trainingData.performanceAchievements || []).length || trainingDone > 0),
+      "Personal Growth": true
+    };
+    const metrics = {
+      actions, qualifyingDays, streak, startedBooks, finishedBooks, pagesRead, trainingDone, personalBests,
+      nonNegotiables: nonNegotiableHabits.length,
+      scheduledCommitments: flexibleHabits.length
+    };
+    const earnedIds = new Set(achievementRecords.map(item => item.id));
+    const iconMap = { Star, ShieldCheck, Flame, Crown, BookOpen, Library: BookOpen, GraduationCap: BookOpen, Dumbbell, Trophy, Target, Compass, Landmark };
+    const base = ACHIEVEMENT_DEFINITIONS.filter(item => !item.mastery).map(item => {
+      const progress = Math.min(Number(metrics[item.metric]) || 0, item.goal);
+      const record = achievementRecords.find(saved => saved.id === item.id);
+      return { ...item, icon: iconMap[item.icon] || Award, progress, unlocked: !!record, progressLabel: progress + "/" + item.goal, earnedAt: record?.unlockedAt || null, xpReward: RARITY[item.rarity]?.xp || 0, active: activeCategory[item.category] };
+    });
+    const mastery = ACHIEVEMENT_DEFINITIONS.filter(item => item.mastery).map(item => {
+      let complete = false;
+      if (item.metric === "mastery:all") complete = ["mastery-discipline","mastery-knowledge","mastery-physical","mastery-growth"].every(id => earnedIds.has(id));
+      else {
+        const category = item.metric.slice("mastery:".length);
+        complete = activeCategory[category] && (CATEGORY_BASE_ACHIEVEMENTS[category] || []).every(entry => earnedIds.has(entry.id));
+      }
+      const record = achievementRecords.find(saved => saved.id === item.id);
+      return { ...item, icon: iconMap[item.icon] || Award, progress: complete ? 1 : 0, unlocked: !!record, progressLabel: (complete ? 1 : 0) + "/1", earnedAt: record?.unlockedAt || null, xpReward: RARITY[item.rarity]?.xp || 0, active: item.metric === "mastery:all" ? true : activeCategory[item.category] };
+    });
+    return [...base, ...mastery].filter(item => item.active);
+  }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs, trainingData, achievementRecords, nonNegotiableHabits.length, flexibleHabits.length]);
+
+  // Existing users keep their historical accomplishments. The first migration
+  // records anything already achieved without granting retroactive XP.
+  useEffect(() => {
+    if (!user || !db || !progressionReady || !achievementRecordsReady || achievementSystemReady) return;
+    if (Number(progression.achievementSystemVersion) === 1) { setAchievementSystemReady(true); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const alreadyEarned = achievements.filter(item => item.progress >= item.goal && !item.mastery);
+        await Promise.all(alreadyEarned.map(item => setDoc(doc(db, "users", user.uid, "achievements", item.id), {
+          id: item.id, title: item.title, detail: item.detail, category: item.category,
+          rarity: item.rarity, xpReward: item.xpReward, progressAtUnlock: item.goal,
+          legacyImported: true, unlockedAt: serverTimestamp()
+        }, { merge: true })));
+        const acknowledged = {
+          level: levelInfo.level,
+          achievements: [...new Set([...alreadyEarned.map(item => item.title), ...(Array.isArray(progression.acknowledgedUnlocks?.achievements) ? progression.acknowledgedUnlocks.achievements : [])])],
+          xp: Number(progression.totalXp) || 0,
+          actions: Number(progression.totalActions) || 0
+        };
+        await setDoc(doc(db, "users", user.uid, "progression", "summary"), {
+          achievementSystemVersion: 1, acknowledgedUnlocks: acknowledged, updatedAt: serverTimestamp()
+        }, { merge: true });
+        if (!cancelled) { previousUnlockState.current = acknowledged; setAchievementSystemReady(true); }
+      } catch (e) { if (!cancelled) setError("Could not prepare your achievement collection: " + e.message); }
+    })();
+    return () => { cancelled = true; };
+  }, [user, db, progressionReady, achievementRecordsReady, achievementSystemReady, progression.achievementSystemVersion, progression.acknowledgedUnlocks, progression.totalXp, progression.totalActions, levelInfo.level, achievements]);
+
+  // Unlocks are permanent Firestore records. A transaction awards the XP once,
+  // even if multiple app sessions notice the same milestone at the same time.
+  useEffect(() => {
+    if (!user || !db || !achievementSystemReady) return;
+    achievements.filter(item => item.progress >= item.goal && !item.unlocked).forEach(item => {
+      if (achievementAwardingRef.current.has(item.id)) return;
+      achievementAwardingRef.current.add(item.id);
+      const achievementRef = doc(db, "users", user.uid, "achievements", item.id);
+      const progressionRef = doc(db, "users", user.uid, "progression", "summary");
+      runTransaction(db, async transaction => {
+        const [saved, progressionSnap] = await Promise.all([transaction.get(achievementRef), transaction.get(progressionRef)]);
+        if (saved.exists()) return false;
+        const p = progressionSnap.exists() ? progressionSnap.data() : { totalXp: 0, totalActions: 0 };
+        const totalXp = Math.max(0, Number(p.totalXp) || 0) + item.xpReward;
+        transaction.set(achievementRef, {
+          id: item.id, title: item.title, detail: item.detail, category: item.category,
+          rarity: item.rarity, xpReward: item.xpReward, progressAtUnlock: item.goal,
+          legacyImported: false, unlockedAt: serverTimestamp()
+        });
+        transaction.set(progressionRef, { totalXp, totalActions: Number(p.totalActions) || 0, xpSystemVersion: 2, achievementSystemVersion: 1, updatedAt: serverTimestamp() }, { merge: true });
+        return true;
+      }).catch(e => setError("Could not unlock " + item.title + ": " + e.message))
+        .finally(() => achievementAwardingRef.current.delete(item.id));
+    });
+  }, [user, achievementSystemReady, achievements]);
 
   useEffect(() => {
     if (!user || !progressionReady) { previousUnlockState.current = null; return; }
