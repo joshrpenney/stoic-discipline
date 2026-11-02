@@ -1518,3 +1518,5 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .schedule-cap-day-list{position:relative;z-index:1;list-style:none;margin:0 0 18px;padding:0;text-align:left}
 .schedule-cap-day-list li{display:flex;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid #48402f;border-radius:8px;margin:7px 0;background:rgba(0,0,0,.18);color:#e8dfce;font-size:12px}
 .schedule-cap-day-list li span{color:#d7b47a;font-weight:700}
+.commitment-days-display{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0 2px}.commitment-day-tag{display:inline-flex;align-items:center;justify-content:center;min-width:29px;padding:3px 6px;border:1px solid #625337;border-radius:5px;background:#2a261e;color:#d2b978;font-size:8px;font-weight:700;letter-spacing:.45px;line-height:1.2}
+:root[data-theme="light"] .commitment-day-tag{background:#f3ecdc;border-color:#d5c39d;color:#80632f}
