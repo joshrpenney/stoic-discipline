@@ -147,6 +147,7 @@ export default function App() {
   const [readingWpm, setReadingWpm] = useState(() => Number(localStorage.getItem("stoic-reading-wpm")) || 163);
   const [wordsPerPage, setWordsPerPage] = useState(() => { const saved = Number(localStorage.getItem("stoic-words-per-page")); return !saved || saved === 300 ? 233 : saved; });
   const [showAdd, setShowAdd] = useState(false);
+  const [fullDaysAlert, setFullDaysAlert] = useState([]);
   const addCommitmentFormRef = useRef(null);
   useEffect(() => {
     if (showAdd) addCommitmentFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -456,6 +457,9 @@ export default function App() {
   const MAX_FLEXIBLE_COMMITMENTS = 15;
   const MAX_COMMITMENTS_PER_DAY = 5;
   const isDueOn = (habit, date) => { if (habit.nonNegotiable) return true; const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
+  const getFullScheduleDays = (schedule, excludeId = null) => (schedule || [])
+    .filter(day => flexibleHabits.filter(h => h.id !== excludeId && (h.daysOfWeek || []).includes(day)).length >= MAX_COMMITMENTS_PER_DAY)
+    .map(day => ({ day, label: WEEKDAYS.find(item => item.value === day)?.label || "Day", count: flexibleHabits.filter(h => h.id !== excludeId && (h.daysOfWeek || []).includes(day)).length }));
   const dueHabits = activeHabits.filter(h => isDueOn(h, new Date()));
   const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
   const doneNonNegotiables = dueNonNegotiables.filter(h => checks[h.id]).length;
@@ -1158,7 +1162,8 @@ export default function App() {
     const limit = newNonNegotiable ? MAX_NON_NEGOTIABLES : MAX_FLEXIBLE_COMMITMENTS;
     if (currentCount >= limit) { setError(`You can have up to ${limit} ${newNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Edit or archive one before adding another.`); return; }
     if (!newNonNegotiable && newSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
-    if (!newNonNegotiable && newSchedule.some(day => flexibleHabits.filter(h => (h.daysOfWeek || []).includes(day)).length >= MAX_COMMITMENTS_PER_DAY)) { setError("One or more selected days already has five scheduled commitments. Remove a commitment from that day before adding another."); return; }
+    const fullDays = !newNonNegotiable ? getFullScheduleDays(newSchedule) : [];
+    if (fullDays.length) { setFullDaysAlert(fullDays); return; }
     try {
       await addDoc(collection(db, "users", user.uid, "habits"), {
         title: newTitle.trim(), category: newCategory, target: newTarget.trim(),
@@ -1183,7 +1188,8 @@ export default function App() {
     if (habits.find(h => h.id === editingHabitId)?.nonNegotiable && !editingIsNonNegotiable) { setError("Your five daily standards can only be replaced by editing their details in Settings, not by switching them off."); return; }
     if (countInSelectedGroup >= limit) { setError(`You can have up to ${limit} ${editingIsNonNegotiable ? "daily non-negotiables" : "scheduled commitments"}. Change or archive one before moving this commitment.`); return; }
     if (!editingIsNonNegotiable && editingSchedule.length === 0) { setError("Choose at least one day for this commitment."); return; }
-    if (!editingIsNonNegotiable && editingSchedule.some(day => flexibleHabits.filter(h => h.id !== editingHabitId && (h.daysOfWeek || []).includes(day)).length >= MAX_COMMITMENTS_PER_DAY)) { setError("One or more selected days already has five scheduled commitments. Remove a commitment from that day before adding it."); return; }
+    const fullEditDays = !editingIsNonNegotiable ? getFullScheduleDays(editingSchedule, editingHabitId) : [];
+    if (fullEditDays.length) { setFullDaysAlert(fullEditDays); return; }
     try {
       await updateDoc(doc(db, "users", user.uid, "habits", editingHabitId), {
         title: editingTitle.trim(), category: editingCategory, target: editingTarget.trim(),
@@ -1267,6 +1273,16 @@ export default function App() {
       <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Performance",Trophy],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon])=><button type="button" key={label} className={"nav-item "+(activeTab===label?"active":"")} onClick={()=>{setSelectedMemberProfile(null);setShowMemberRanksPage(false);setActiveTab(label);window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
     </main>;
     return <main className="app-shell">
+    {fullDaysAlert.length > 0 && <div className="unlock-celebration-backdrop schedule-cap-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-cap-title">
+      <section className="unlock-celebration-panel schedule-cap-panel">
+        <div className="unlock-celebration-overline">COMMITMENT LIMIT REACHED</div>
+        <div className="schedule-cap-emblem" aria-hidden="true">5/5</div>
+        <h2 id="schedule-cap-title">{fullDaysAlert.length === 1 ? fullDaysAlert[0].label + " is full" : "Selected days are full"}</h2>
+        <p>{fullDaysAlert.length === 1 ? fullDaysAlert[0].label + " already has " + fullDaysAlert[0].count + "/5 scheduled commitments allocated. You can't add another commitment to this day." : "These days have reached their limit of five scheduled commitments:"}</p>
+        {fullDaysAlert.length > 1 && <ul className="schedule-cap-day-list">{fullDaysAlert.map(item=><li key={item.day}><strong>{item.label}</strong><span>{item.count}/5 allocated</span></li>)}</ul>}
+        <button type="button" className="unlock-celebration-continue" onClick={()=>setFullDaysAlert([])}>Understood</button>
+      </section>
+    </div>}
       <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
         <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
@@ -1570,7 +1586,7 @@ export default function App() {
             <div className="commitment-form-type"><p className="eyebrow">ADDING {newNonNegotiable?"A NON-NEGOTIABLE":"A SCHEDULED COMMITMENT"}</p><strong>{newNonNegotiable?"Daily standard":"Flexible commitment"}</strong><small>{newNonNegotiable?"Due every day and counts towards your streak.":"Choose which days this commitment appears."}</small></div>
             <label>Commitment<input required maxLength="100" value={newTitle} onChange={e=>setNewTitle(e.target.value)} placeholder="e.g. Read 10 pages"/></label>
             <div className="form-row"><label>Category<select value={newCategory} onChange={e=>setNewCategory(e.target.value)}>{COMMITMENT_CATEGORIES.map(x=><option key={x}>{x}</option>)}</select></label><label>Target (optional)<input value={newTarget} onChange={e=>setNewTarget(e.target.value)} placeholder="e.g. 10 pages"/></label></div>
-            {!newNonNegotiable && <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => <button type="button" key={day.value} disabled={!newSchedule.includes(day.value)&&flexibleHabits.filter(h=>(h.daysOfWeek||[]).includes(day.value)).length>=MAX_COMMITMENTS_PER_DAY} className={"schedule-day "+(newSchedule.includes(day.value)?"selected":"")} onClick={()=>setNewSchedule(prev=>prev.includes(day.value)?prev.filter(d=>d!==day.value):[...prev,day.value].sort((a,b)=>a-b))}>{day.label}</button>)}</div><small>This commitment appears only on selected days.</small></div>}
+            {!newNonNegotiable && <div className="schedule-picker"><span>Scheduled days</span><div className="schedule-days">{WEEKDAYS.map(day => { const count=flexibleHabits.filter(h=>(h.daysOfWeek||[]).includes(day.value)).length; const full=count>=MAX_COMMITMENTS_PER_DAY; const selected=newSchedule.includes(day.value); return <button type="button" key={day.value} aria-label={day.label+": "+count+"/5 commitments"+(full?" - full":"")} className={"schedule-day "+(selected?"selected ":"")+(full&&!selected?"schedule-day-full":"")} onClick={()=>{ if(selected){setNewSchedule(prev=>prev.filter(d=>d!==day.value));return;} if(full){setFullDaysAlert([{day:day.value,label:day.label,count}]);return;} setNewSchedule(prev=>[...prev,day.value].sort((a,b)=>a-b)); }}>{day.label}{full&&!selected?" · 5/5":""}</button>; })}</div><small>This commitment appears only on selected days.</small></div>}
             <div className="form-actions"><button type="button" className="secondary" onClick={()=>setShowAdd(false)}>Cancel</button><button className="primary">Save {newNonNegotiable?"non-negotiable":"commitment"}</button></div>
           </form>}
           <section className="commitment-group-panel nonneg-group-panel">
