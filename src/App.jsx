@@ -153,6 +153,7 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [xpToast, setXpToast] = useState(null);
   const [unlockCelebration, setUnlockCelebration] = useState(null);
+  const [streakCelebration, setStreakCelebration] = useState(null);
   const [progressionReady, setProgressionReady] = useState(false);
   const previousUnlockState = useRef(null);
   const [accountName, setAccountName] = useState("");
@@ -875,7 +876,7 @@ export default function App() {
     const dueHabitIds=dueHabits.map(h=>h.id);
     const dueNonNegotiableIds=dueNonNegotiables.map(h=>h.id);
     const progressionRef=doc(db,"users",user.uid,"progression","summary");
-    try { let earned=0, completing=false, perfectDayBonus=false;
+    try { let earned=0, completing=false, perfectDayBonus=false, completedDailyStandard=false, streakAlreadyCelebrated=false;
       await runTransaction(db, async (transaction) => {
         const logSnap=await transaction.get(logRef); const pSnap=await transaction.get(progressionRef);
         const log=logSnap.exists()?logSnap.data():{}; const completed={...(log.completed||{})}; const xpAwarded={...(log.xpAwarded||{})};
@@ -884,15 +885,18 @@ export default function App() {
         if(p.xpSystemVersion!==2) totalXp*=5;
         if(completing&&!xpAwarded[habit.id]) { const individualXp=habit.nonNegotiable?20:10; earned+=individualXp; xpAwarded[habit.id]=true; totalXp+=individualXp; totalActions++; }
         const dayDueIds=Array.isArray(log.dueHabitIds)&&log.dueHabitIds.length?log.dueHabitIds:dueHabitIds;
+        const dayNonNegIds=Array.isArray(log.dueNonNegotiableIds)&&log.dueNonNegotiableIds.length?log.dueNonNegotiableIds:dueNonNegotiableIds;
+        completedDailyStandard=dayNonNegIds.length===5&&dayNonNegIds.every(id=>completed[id]===true);
+        streakAlreadyCelebrated=!!log.streakCelebrationShown;
         if(completing&&!log.perfectDayXpAwarded&&dayDueIds.length>0&&dayDueIds.every(id=>completed[id]===true)) {
           perfectDayBonus=true; earned+=50; totalXp+=50;
         }
-        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds:dayDueIds,dueNonNegotiableIds,perfectDayXpAwarded:!!log.perfectDayXpAwarded||perfectDayBonus,updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds:dayDueIds,dueNonNegotiableIds:dayNonNegIds,perfectDayXpAwarded:!!log.perfectDayXpAwarded||perfectDayBonus,streakCelebrationShown:streakAlreadyCelebrated||(completing&&completedDailyStandard),updatedAt:serverTimestamp()},{merge:true});
         transaction.set(progressionRef,{totalXp,totalActions,xpSystemVersion:2,updatedAt:serverTimestamp()},{merge:true});
       });
       if (!(completing && earned > 0)) setNotice(completing?"XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
       if (completing && earned > 0) setXpToast({ amount: earned, reason: perfectDayBonus ? (habit.nonNegotiable?"non-negotiable completed · perfect day bonus":"scheduled commitment completed · perfect day bonus") : (habit.nonNegotiable?"non-negotiable completed":"scheduled commitment completed"), id: Date.now() });
-      if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const done=latest.exists()?latest.data().completed||{}:{};if(dueNonNegotiableIds.every(id=>done[id]))await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}
+      if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const saved=latest.exists()?latest.data():{};const done=saved.completed||{};if(dueNonNegotiableIds.length===5&&dueNonNegotiableIds.every(id=>done[id])){if(!streakAlreadyCelebrated)setStreakCelebration({count:Math.max(1,streak+1),date:todayKey()});await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}}
     } catch(e) { setError(e.message); }
   }
 
@@ -1160,6 +1164,18 @@ export default function App() {
   }
 
   return <main className="app-shell">
+    {streakCelebration && <div className="streak-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="streak-celebration-title">
+      <div className="streak-celebration-frame">
+        <div className="streak-celebration-sparks" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i><i>✧</i><i>✦</i><i>✧</i></div>
+        <div className="streak-celebration-flame"><Flame size={34}/></div>
+        <p className="streak-celebration-eyebrow">DAILY STANDARD COMPLETE</p>
+        <h2 id="streak-celebration-title">Another day, kept.</h2>
+        <p className="streak-celebration-subtitle">Five promises. All honoured.</p>
+        <div className="streak-number-ring"><span className="streak-number">{streakCelebration.count}</span><span className="streak-days-label">DAY STREAK</span></div>
+        <p className="streak-celebration-message">{streakCelebration.count===1?"The first day of consistency.":"Your discipline is becoming a habit."}</p>
+        <button type="button" className="streak-celebration-continue" onClick={()=>setStreakCelebration(null)}>Continue</button>
+      </div>
+    </div>}
     {unlockCelebration && <div className="unlock-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="unlock-celebration-title">
       <div className="unlock-celebration-panel">
         <div className="unlock-celebration-overline">{unlockCelebration.type === "rank" ? "THE PATH OF DISCIPLINE" : "PROOF OF PRACTICE"}</div>
