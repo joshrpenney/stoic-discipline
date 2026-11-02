@@ -430,7 +430,11 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !db) { setAchievementRecords([]); setAchievementRecordsReady(false); setAchievementSystemReady(false); setTrainingData({}); return; }
+    setAchievementRecordsReady(false);
+    setAchievementInputsReady(false);
+    setAchievementSystemReady(false);
+    achievementAwardingRef.current.clear();
+    if (!user || !db) { setAchievementRecords([]); setTrainingData({}); return; }
     const stopAchievements = onSnapshot(collection(db, "users", user.uid, "achievements"), snapshot => {
       setAchievementRecords(snapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       setAchievementRecordsReady(true);
