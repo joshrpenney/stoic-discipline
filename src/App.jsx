@@ -7,7 +7,7 @@ import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
   serverTimestamp, setDoc, updateDoc, runTransaction
 } from "firebase/firestore";
-import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark, CalendarCheck, Bookmark, Library, GraduationCap, ScrollText, Brain, BookMarked, Footprints, Medal, Timer, Route, Sunrise, Flag, Infinity as InfinityIcon } from "lucide-react";
+import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark, CalendarCheck, Bookmark, Library, GraduationCap, ScrollText, Brain, BookMarked, Medal, Timer, Route, Flag } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
 import Training from "./Training";
 import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_DEFINITIONS, CATEGORY_BASE_ACHIEVEMENTS, RARITY } from "./achievements";
