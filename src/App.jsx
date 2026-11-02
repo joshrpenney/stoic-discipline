@@ -439,7 +439,7 @@ export default function App() {
     setAchievementRecordsReady(false);
     setAchievementSystemReady(false);
     achievementAwardingRef.current.clear();
-    if (!user || !db) { setAchievementRecords([]); setTrainingData({}); return; }
+    if (!user || !db) { setAchievementRecords([]); setTrainingData({}); setTrainingDataReady(false); return; }
     const stopAchievements = onSnapshot(collection(db, "users", user.uid, "achievements"), snapshot => {
       setAchievementRecords(snapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       setAchievementRecordsReady(true);
