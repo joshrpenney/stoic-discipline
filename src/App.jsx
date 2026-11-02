@@ -876,7 +876,7 @@ export default function App() {
     const dueHabitIds=dueHabits.map(h=>h.id);
     const dueNonNegotiableIds=dueNonNegotiables.map(h=>h.id);
     const progressionRef=doc(db,"users",user.uid,"progression","summary");
-    try { let earned=0, completing=false, perfectDayBonus=false, completedDailyStandard=false, streakAlreadyCelebrated=false;
+    try { let earned=0, completing=false, perfectDayBonus=false, completedDailyStandard=false, shouldShowStreakCelebration=false;
       await runTransaction(db, async (transaction) => {
         const logSnap=await transaction.get(logRef); const pSnap=await transaction.get(progressionRef);
         const log=logSnap.exists()?logSnap.data():{}; const completed={...(log.completed||{})}; const xpAwarded={...(log.xpAwarded||{})};
@@ -887,16 +887,17 @@ export default function App() {
         const dayDueIds=Array.isArray(log.dueHabitIds)&&log.dueHabitIds.length?log.dueHabitIds:dueHabitIds;
         const dayNonNegIds=Array.isArray(log.dueNonNegotiableIds)&&log.dueNonNegotiableIds.length?log.dueNonNegotiableIds:dueNonNegotiableIds;
         completedDailyStandard=dayNonNegIds.length===5&&dayNonNegIds.every(id=>completed[id]===true);
-        streakAlreadyCelebrated=!!log.streakCelebrationShown;
+        shouldShowStreakCelebration=completing&&completedDailyStandard&&!log.streakCelebrationShown;
         if(completing&&!log.perfectDayXpAwarded&&dayDueIds.length>0&&dayDueIds.every(id=>completed[id]===true)) {
           perfectDayBonus=true; earned+=50; totalXp+=50;
         }
-        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds:dayDueIds,dueNonNegotiableIds:dayNonNegIds,perfectDayXpAwarded:!!log.perfectDayXpAwarded||perfectDayBonus,streakCelebrationShown:streakAlreadyCelebrated||(completing&&completedDailyStandard),updatedAt:serverTimestamp()},{merge:true});
+        transaction.set(logRef,{date:todayKey(),completed,xpAwarded,dueHabitIds:dayDueIds,dueNonNegotiableIds:dayNonNegIds,perfectDayXpAwarded:!!log.perfectDayXpAwarded||perfectDayBonus,streakCelebrationShown:!!log.streakCelebrationShown||shouldShowStreakCelebration,updatedAt:serverTimestamp()},{merge:true});
         transaction.set(progressionRef,{totalXp,totalActions,xpSystemVersion:2,updatedAt:serverTimestamp()},{merge:true});
       });
       if (!(completing && earned > 0)) setNotice(completing?"XP for this commitment was already earned today.":"Record updated. Earned XP is kept.");
       if (completing && earned > 0) setXpToast({ amount: earned, reason: perfectDayBonus ? (habit.nonNegotiable?"non-negotiable completed · perfect day bonus":"scheduled commitment completed · perfect day bonus") : (habit.nonNegotiable?"non-negotiable completed":"scheduled commitment completed"), id: Date.now() });
-      if(completing&&habit.nonNegotiable&&dueNonNegotiableIds.length>0){const latest=await getDoc(logRef);const saved=latest.exists()?latest.data():{};const done=saved.completed||{};if(dueNonNegotiableIds.length===5&&dueNonNegotiableIds.every(id=>done[id])){if(!streakAlreadyCelebrated)setStreakCelebration({count:Math.max(1,streak+1),date:todayKey()});await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});}}
+      if(shouldShowStreakCelebration)setStreakCelebration({count:Math.max(1,streak+1),date:todayKey()});
+      if(completing&&habit.nonNegotiable&&completedDailyStandard)await notifyFollowers("all_non_negotiables",{eventKey:"all_non_negotiables_"+todayKey(),message:"Completed all non-negotiables for today."});
     } catch(e) { setError(e.message); }
   }
 
