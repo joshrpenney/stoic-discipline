@@ -1520,3 +1520,15 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .schedule-cap-day-list li span{color:#d7b47a;font-weight:700}
 .commitment-days-display{display:flex;flex-wrap:wrap;gap:4px;margin:3px 0 2px}.commitment-day-tag{display:inline-flex;align-items:center;justify-content:center;min-width:29px;padding:3px 6px;border:1px solid #625337;border-radius:5px;background:#2a261e;color:#d2b978;font-size:8px;font-weight:700;letter-spacing:.45px;line-height:1.2}
 :root[data-theme="light"] .commitment-day-tag{background:#f3ecdc;border-color:#d5c39d;color:#80632f}
+
+.weekly-commitment-overview{margin:18px 0 16px;padding:15px 12px;border:1px solid #675638;border-radius:11px;background:linear-gradient(145deg,#29261f,#1d1d1b)}
+.weekly-overview-heading{display:flex;align-items:center;gap:9px;margin:0 2px 13px;color:#d2b978;font-size:10px;font-weight:700;letter-spacing:2px}.weekly-overview-heading svg{width:17px;height:17px}
+.weekly-overview-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.weekly-overview-day{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:9px 1px 8px;border:1px solid #514938;border-radius:8px;background:#20201e;color:#cfc5ae}
+.weekly-overview-day>span{font-size:9px;font-weight:700;letter-spacing:.5px;color:#cbb278}
+.weekly-overview-day strong{font-family:'Playfair Display',serif;font-size:21px;line-height:1.1;color:#eee5d3}.weekly-overview-day strong small{font-family:inherit;font-size:12px;color:#938a78;font-weight:400}
+.weekly-overview-day.busy{border-color:#9b7b40;background:linear-gradient(145deg,#39301e,#24211b)}.weekly-overview-day.busy>span{color:#e2c47e}
+.weekly-overview-day.empty{border-color:#39362e;background:#1b1b19}.weekly-overview-day.empty>span{color:#777166}.weekly-overview-day.empty strong{color:#817b70}
+.weekly-overview-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px;margin-top:12px;color:#a69d8c;font-size:9px}.weekly-overview-legend span{display:flex;align-items:center;gap:5px}.weekly-overview-legend i{width:8px;height:8px;border-radius:50%;display:inline-block}.busy-dot{background:#d2b16c}.moderate-dot{background:#756b58}.empty-dot{border:1px solid #827966}
+:root[data-theme="light"] .weekly-commitment-overview{background:linear-gradient(145deg,#eee6d5,#fffdf7);border-color:#d5c39d}:root[data-theme="light"] .weekly-overview-day{background:#fffdf7;border-color:#ded6c5}:root[data-theme="light"] .weekly-overview-day strong{color:#514a3d}:root[data-theme="light"] .weekly-overview-day.busy{background:#f2ead8;border-color:#c7ad78}:root[data-theme="light"] .weekly-overview-day.empty{background:#f7f4ed}
+@media(max-width:360px){.weekly-overview-legend{gap:7px 9px;font-size:8px}.weekly-overview-day{padding-left:0;padding-right:0}.weekly-overview-day>span{font-size:8px}}
