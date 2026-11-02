@@ -1487,3 +1487,20 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 :root[data-theme='light'] .performance-mini-goal>div:first-child strong,:root[data-theme='light'] .performance-record-grid article strong{color:#302b22}
 :root[data-theme='light'] .performance-record-grid article{background:#f8f4eb;border-color:#ddd0b8}
 @media(max-width:380px){.performance-mini-goal{align-items:flex-start;flex-direction:column}.performance-mini-values{width:100%;justify-content:flex-start}.performance-mini-values>div{text-align:left}.performance-record-grid article strong{font-size:22px}}
+
+
+/* Central achievement collection */
+.achievement-category-filters{display:flex;gap:8px;overflow-x:auto;padding:3px 1px 12px;margin:0 0 12px;scrollbar-width:thin}
+.achievement-category-filters button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:999px;padding:9px 13px;font-size:11px;font-weight:600;white-space:nowrap}
+.achievement-category-filters button.selected{border-color:var(--gold);background:rgba(196,166,107,.13);color:var(--gold-bright)}
+.achievement-meta{display:flex;gap:10px;align-items:center;margin:7px 0 2px}
+.achievement-meta small{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.achievement-rarity-bronze .achievement-icon{color:#c88c5b}
+.achievement-rarity-silver .achievement-icon{color:#b9c2cc}
+.achievement-rarity-gold .achievement-icon{color:#d6b45f}
+.achievement-rarity-platinum .achievement-icon{color:#d4dce6}
+.achievement-rarity-mastery .achievement-icon{color:#e0c27d;filter:drop-shadow(0 0 8px rgba(196,166,107,.22))}
+.achievement-rarity-legendary .achievement-icon{color:#f0d58c;filter:drop-shadow(0 0 10px rgba(221,194,139,.35))}
+.achievement.unlocked .achievement-meta small:first-child{color:var(--gold-bright)}
+.unlock-celebration-reward{color:var(--gold-bright)!important;font-weight:700;letter-spacing:.5px}
+@media(max-width:520px){.achievement-category-filters{margin-left:-2px;margin-right:-2px}.achievement-category-filters button{padding:8px 11px;font-size:10px}}
