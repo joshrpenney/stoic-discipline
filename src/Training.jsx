@@ -69,10 +69,24 @@ export default function Training({user,db}) {
     const targetValue=running?timeLabel(target):Number(target);
     const improved=previous && (running?seconds(currentValue)<seconds(previous.current):Number(currentValue)>Number(previous.current));
     const unit=running?"time":strengthUnit(name);
-    const goal={id:editing||newId(),category,name,unit,current:currentValue,target:targetValue,targetDate,updatedAt:new Date().toISOString()};
+    const goal={id:editing||newId(),category,name,unit,current:currentValue,target:targetValue,targetDate,baseline:previous?.baseline??(running?seconds(currentValue):Number(currentValue)),updatedAt:new Date().toISOString()};
     const next=editing?goals.map(g=>g.id===editing?{...g,...goal}:g):[...goals,goal];
     const record=improved?{id:newId(),goalId:goal.id,name,category,value:currentValue,unit:goal.unit,previous:previous.current,improvement:running?seconds(previous.current)-seconds(currentValue):Number(currentValue)-Number(previous.current),date:new Date().toISOString()}:null;
-    await saveGoals(next,record?[record,...achievements]:achievements,record);
+    const baseline=Number(goal.baseline);
+    const start=running?baseline:baseline;
+    const finish=running?seconds(targetValue):Number(targetValue);
+    const now=running?seconds(currentValue):Number(currentValue);
+    const total=running?start-finish:finish-start;
+    const progress=total>0?(running?start-now:now-start)/total:0;
+    const alreadyUnlocked=new Set(achievements.filter(a=>a.milestone&&a.goalId===goal.id).map(a=>a.milestone));
+    const milestoneEvents=[25,50,75,100].filter(step=>progress>=step/100&&!alreadyUnlocked.has(step)).map(step=>({
+      id:newId(),goalId:goal.id,name,category,value:currentValue,unit:goal.unit,milestone:step,
+      title:step===100?"Target achieved":step+"% of target reached",
+      detail:step===100?"You reached the standard you set.":"A new milestone on the way to your target.",
+      date:new Date().toISOString()
+    }));
+    const nextAchievements=[...milestoneEvents,...(record?[record]:[]),...achievements];
+    await saveGoals(next,nextAchievements,milestoneEvents.length?{...milestoneEvents[milestoneEvents.length-1],type:"milestone"}:record);
   };
   const remove=async id=>saveGoals(goals.filter(g=>g.id!==id));
   const groupGoals=group=>goals.filter(g=>g.category===group);
@@ -114,14 +128,14 @@ export default function Training({user,db}) {
       </section>
       <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">MILESTONES</p><h2>Recent achievements</h2></div></div>
-        {achievements.length ? <div className="performance-achievement-list">{achievements.slice(0,4).map(item=><article key={item.id}><span className="performance-achievement-icon"><Trophy size={16}/></span><div><strong>New {item.category==="Strength"?"strength":"running"} personal best</strong><b>{item.name} · {formatValue(item.value,item.unit)}</b><small>{new Date(item.date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</small></div></article>)}</div> : <p className="performance-empty">Your new personal bests will be celebrated and saved here.</p>}
+        {achievements.length ? <div className="performance-achievement-list">{achievements.slice(0,6).map(item=><article key={item.id}><span className="performance-achievement-icon"><Trophy size={16}/></span><div><strong>{item.milestone?item.title:"New "+(item.category==="Strength"?"strength":"running")+" personal best"}</strong><b>{item.name} · {formatValue(item.value,item.unit)}</b><small>{new Date(item.date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</small></div></article>)}</div> : <p className="performance-empty">Your milestone achievements and personal bests will appear here as you progress.</p>}
       </section>
       {records.length>0&&<p className="performance-footnote"><Trophy size={14}/> Keep raising your standard, one personal best at a time.</p>}
     </>}
     {celebration&&<div className="training-modal-backdrop performance-celebration-backdrop"><section className="performance-celebration" role="dialog" aria-modal="true">
-      <span className="performance-celebration-trophy"><Trophy size={34}/></span><p className="eyebrow">NEW PERSONAL RECORD</p><h2>A new standard.</h2>
-      <strong className="performance-celebration-value">{formatValue(celebration.value,celebration.unit)}</strong><h3>{celebration.name}</h3>
-      <div className="performance-celebration-details"><div><small>PREVIOUS BEST</small><b>{formatValue(celebration.previous,celebration.unit)}</b></div><div><small>IMPROVEMENT</small><b>{celebration.unit==="kg"?"+"+celebration.improvement+"kg":celebration.unit==="reps"?"+"+celebration.improvement+" reps":timeLabel(celebration.improvement)}</b></div></div>
+      <span className="performance-celebration-trophy"><Trophy size={34}/></span><p className="eyebrow">{celebration.type==="milestone"?"MILESTONE UNLOCKED":"NEW PERSONAL RECORD"}</p><h2>{celebration.type==="milestone"?celebration.title:"A new standard."}</h2>
+      <strong className="performance-celebration-value">{celebration.type==="milestone"?celebration.milestone+"%":formatValue(celebration.value,celebration.unit)}</strong><h3>{celebration.name}</h3>
+      {celebration.type==="milestone"?<p className="performance-input-hint">{celebration.detail}</p>:<div className="performance-celebration-details"><div><small>PREVIOUS BEST</small><b>{formatValue(celebration.previous,celebration.unit)}</b></div><div><small>IMPROVEMENT</small><b>{celebration.unit==="kg"?"+"+celebration.improvement+"kg":celebration.unit==="reps"?"+"+celebration.improvement+" reps":timeLabel(celebration.improvement)}</b></div></div>}
       <button type="button" className="training-primary" onClick={()=>setCelebration(null)}>Continue</button>
     </section></div>}
     {showAdd&&<div className="training-modal-backdrop" onClick={()=>setShowAdd(false)}><section className="training-modal performance-modal" onClick={e=>e.stopPropagation()}>
