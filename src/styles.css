@@ -565,6 +565,18 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .unlock-celebration-panel h2{margin:10px 0 5px;color:#f0e8d9;font:600 clamp(27px,7vw,36px)/1.15 'Playfair Display',Georgia,serif}
 .unlock-celebration-panel p{margin:8px auto 0;max-width:290px;color:#aaa69b;font-size:14px;line-height:1.6}
 .unlock-celebration-panel .unlock-celebration-level{margin-top:5px;color:#d4bd80;font-size:12px;letter-spacing:1px}
+/* Make the daily streak the clear focal point within its celebration */
+.unlock-celebration-panel .streak-unlock-count{
+  display:inline-flex;align-items:center;justify-content:center;
+  margin:20px auto 15px;padding:13px 24px;
+  min-width:190px;border:1px solid #c6a65f;border-radius:14px;
+  background:linear-gradient(145deg,rgba(193,162,94,.22),rgba(193,162,94,.08));
+  color:#f0d58f;font:700 clamp(23px,6vw,29px)/1.2 'Playfair Display',Georgia,serif;
+  letter-spacing:2px;text-shadow:0 0 18px rgba(230,199,126,.25);
+  box-shadow:0 0 0 4px rgba(193,162,94,.07),0 8px 25px rgba(0,0,0,.2);
+}
+.unlock-celebration-panel .streak-unlock-count + p{margin-top:10px;font-size:15px;color:#c2bdae}
+
 .unlock-celebration-continue{width:100%;margin-top:28px;padding:14px 18px;border:1px solid #c4a767;border-radius:12px;background:linear-gradient(135deg,#e1c782,#b99a58);color:#17150f;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(196,167,103,.15)}
 @keyframes unlock-backdrop-in{from{opacity:0}to{opacity:1}}
 @keyframes unlock-panel-in{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
