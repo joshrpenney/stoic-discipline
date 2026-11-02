@@ -916,7 +916,6 @@ export default function App() {
           }
         });
       });
-      previousUnlockState.current = null;
       setXpToast(null); setUnlockCelebration(null); setStreakCelebration(null);
       setNotice("Today's test activity has been reset. You can run through the pop-ups again.");
     } catch (e) {
