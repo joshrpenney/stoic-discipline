@@ -124,6 +124,7 @@ export default function App() {
   const [books, setBooks] = useState([]);
   const [achievementRecords, setAchievementRecords] = useState([]);
   const [achievementRecordsReady, setAchievementRecordsReady] = useState(false);
+  const [achievementInputsReady, setAchievementInputsReady] = useState(false);
   const [achievementSystemReady, setAchievementSystemReady] = useState(false);
   const [achievementFilter, setAchievementFilter] = useState("All");
   const [trainingData, setTrainingData] = useState({});
@@ -438,6 +439,19 @@ export default function App() {
     return () => { stopAchievements(); stopTraining(); };
   }, [user]);
 
+  useEffect(() => {
+    if (!user || !db) { setAchievementInputsReady(false); return; }
+    let ready = { habits:false, logs:false, books:false, training:false };
+    const mark = key => { ready[key] = true; if (Object.values(ready).every(Boolean)) setAchievementInputsReady(true); };
+    const stops = [
+      onSnapshot(collection(db, "users", user.uid, "habits"), () => mark("habits"), e => setError(e.message)),
+      onSnapshot(collection(db, "users", user.uid, "dailyLogs"), () => mark("logs"), e => setError(e.message)),
+      onSnapshot(collection(db, "users", user.uid, "booksRead"), () => mark("books"), e => setError(e.message)),
+      onSnapshot(doc(db, "users", user.uid, "training", "data"), () => mark("training"), e => setError(e.message))
+    ];
+    return () => stops.forEach(stop => stop());
+  }, [user]);
+
   const activeHabits = habits.filter((h) => h.active !== false);
   const nonNegotiableHabits = activeHabits.filter(h => h.nonNegotiable);
   const flexibleHabits = activeHabits.filter(h => !h.nonNegotiable);
@@ -555,7 +569,7 @@ export default function App() {
   // Existing users keep their historical accomplishments. The first migration
   // records anything already achieved without granting retroactive XP.
   useEffect(() => {
-    if (!user || !db || !progressionReady || !achievementRecordsReady || achievementSystemReady) return;
+    if (!user || !db || !progressionReady || !achievementRecordsReady || !achievementInputsReady || achievementSystemReady) return;
     if (Number(progression.achievementSystemVersion) === 1) { setAchievementSystemReady(true); return; }
     let cancelled = false;
     (async () => {
@@ -579,12 +593,12 @@ export default function App() {
       } catch (e) { if (!cancelled) setError("Could not prepare your achievement collection: " + e.message); }
     })();
     return () => { cancelled = true; };
-  }, [user, db, progressionReady, achievementRecordsReady, achievementSystemReady, progression.achievementSystemVersion, progression.acknowledgedUnlocks, progression.totalXp, progression.totalActions, levelInfo.level, achievements]);
+  }, [user, db, progressionReady, achievementRecordsReady, achievementInputsReady, achievementSystemReady, progression.achievementSystemVersion, progression.acknowledgedUnlocks, progression.totalXp, progression.totalActions, levelInfo.level, achievements]);
 
   // Unlocks are permanent Firestore records. A transaction awards the XP once,
   // even if multiple app sessions notice the same milestone at the same time.
   useEffect(() => {
-    if (!user || !db || !achievementSystemReady) return;
+    if (!user || !db || !achievementSystemReady || !achievementInputsReady) return;
     achievements.filter(item => item.progress >= item.goal && !item.unlocked).forEach(item => {
       if (achievementAwardingRef.current.has(item.id)) return;
       achievementAwardingRef.current.add(item.id);
@@ -629,7 +643,7 @@ export default function App() {
     if (newlyUnlocked.length) {
       if (!levelIncreased) {
         const first = achievements.find(entry => entry.title === newlyUnlocked[0]);
-        if (first) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: first.title, detail: first.detail, icon: first.icon, id: "achievement-" + first.title + "-" + current.actions });
+        if (first) setUnlockCelebration({ type: "achievement", title: "Achievement unlocked", name: first.title, detail: first.detail, icon: first.icon, rarity: first.rarity, xpReward: first.xpReward, id: "achievement-" + first.title + "-" + current.actions });
       }
       newlyUnlocked.forEach(title => notifyFollowers("achievement", {
         eventKey: "achievement_" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
@@ -1320,6 +1334,7 @@ export default function App() {
         <h2 id="unlock-celebration-title">{unlockCelebration.name}</h2>
         {unlockCelebration.type === "rank" && <p className="unlock-celebration-level">Level {unlockCelebration.level}</p>}
         <p>{unlockCelebration.detail}</p>
+        {unlockCelebration.type === "achievement" && <p className="unlock-celebration-reward">{unlockCelebration.rarity} honour · +{unlockCelebration.xpReward} XP</p>}
         <button type="button" className="unlock-celebration-continue" onClick={async()=>{if(user&&db){const acknowledged={level:levelInfo.level,achievements:achievements.filter(item=>item.unlocked).map(item=>item.title),xp:Number(progression.totalXp)||0,actions:Number(progression.totalActions)||0};try{await setDoc(doc(db,"users",user.uid,"progression","summary"),{acknowledgedUnlocks:acknowledged},{merge:true});previousUnlockState.current=acknowledged;setProgression(current=>({...current,acknowledgedUnlocks:acknowledged}));}catch(e){setError("Could not save this unlock: "+e.message);return;}}setUnlockCelebration(null);}}>Continue</button>
       </div>
     </div>}
