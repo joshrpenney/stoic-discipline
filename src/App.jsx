@@ -958,7 +958,7 @@ export default function App() {
 
   async function resetTestDay() {
     if (!user || !db || user.displayName !== "Josh Test") return;
-    if (!window.confirm("Reset today's test activity? This reverses today's commitment XP and actions, reopens any books completed today, and clears today's pop-up flags. Historical days are untouched.")) return;
+    if (!window.confirm("Reset today's test activity? This reverses today's commitment XP and actions and reopens any books completed today. Earned achievements remain permanent. Historical days are untouched.")) return;
     setBusy(true); setError(""); setNotice("");
     try {
       const date = todayKey();
@@ -979,7 +979,7 @@ export default function App() {
         }, 0);
         const actionCount = Object.values(xpAwarded).filter(Boolean).length;
         const perfectBonus = log.perfectDayXpAwarded ? 50 : 0;
-        const bookBonus = bookSnaps.reduce((sum, snap) => sum + (snap.exists() && snap.data().completionXpAwarded ? 5000 : 0), 0);
+        const bookBonus = bookSnaps.reduce((sum, snap) => sum + (snap.exists() && snap.data().completionXpAwarded ? 250 : 0), 0);
         const p = progressionSnap.exists() ? progressionSnap.data() : {};
         const totalXp = Math.max(0, (Number(p.totalXp) || 0) - commitmentXp - perfectBonus - bookBonus);
         const totalActions = Math.max(0, (Number(p.totalActions) || 0) - actionCount);
@@ -991,7 +991,7 @@ export default function App() {
         });
         transaction.set(progressionRef, {
           totalXp, totalActions, xpSystemVersion: 2,
-          acknowledgedUnlocks: { level: 1, achievements: [], xp: totalXp, actions: totalActions },
+          acknowledgedUnlocks: { level: 1, achievements: achievements.filter(item => item.unlocked).map(item => item.title), xp: totalXp, actions: totalActions },
           updatedAt: serverTimestamp()
         }, { merge: true });
         todaysBooks.forEach((book, index) => {
@@ -1603,7 +1603,7 @@ export default function App() {
           </section>
           <p className="settings-note">Changes apply to your daily checklist and Non-negotiables page. Past completion records and earned XP are retained when you archive a commitment.</p>
         </>}
-        {settingsSection === "menu" && user?.displayName === "Josh Test" && <section className="settings-panel test-reset-panel"><p className="eyebrow">TEST ACCOUNT ONLY</p><h2>Daily test reset</h2><p className="settings-description">Undo today's test activity so you can repeat XP, rank, achievement and streak celebrations. Previous days remain unchanged.</p><button type="button" className="secondary" disabled={busy} onClick={resetTestDay}><RefreshCw size={16}/>{busy?"Resetting…":"Reset today's test activity"}</button></section>}
+        {settingsSection === "menu" && user?.displayName === "Josh Test" && <section className="settings-panel test-reset-panel"><p className="eyebrow">TEST ACCOUNT ONLY</p><h2>Daily test reset</h2><p className="settings-description">Undo today's test activity so you can repeat commitment, rank and streak celebrations. Earned achievement honours remain permanent. Previous days are unchanged.</p><button type="button" className="secondary" disabled={busy} onClick={resetTestDay}><RefreshCw size={16}/>{busy?"Resetting…":"Reset today's test activity"}</button></section>}
         {settingsSection === "menu" && <div className="settings-panel reading-pace-panel"><p className="eyebrow">READING PREFERENCES</p><h2>Reading pace</h2><p className="settings-description">Set your personal reading speed. The app uses it to estimate how long books will take.</p><div className="settings-reading-pace"><label htmlFor="personal-reading-wpm">Words per minute</label><input id="personal-reading-wpm" type="number" min="20" max="2000" value={readingWpm} onChange={e=>setReadingWpm(Math.max(20,Math.min(2000,Number(e.target.value)||20)))}/><small>Current estimate: {wordsPerPage} words per page.</small></div></div>}
 
       </>}
