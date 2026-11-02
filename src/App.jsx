@@ -124,7 +124,11 @@ export default function App() {
   const [books, setBooks] = useState([]);
   const [achievementRecords, setAchievementRecords] = useState([]);
   const [achievementRecordsReady, setAchievementRecordsReady] = useState(false);
-  const [achievementInputsReady, setAchievementInputsReady] = useState(false);
+  const [habitsReady, setHabitsReady] = useState(false);
+  const [dailyLogsReady, setDailyLogsReady] = useState(false);
+  const [booksReady, setBooksReady] = useState(false);
+  const [trainingDataReady, setTrainingDataReady] = useState(false);
+  const achievementInputsReady = habitsReady && dailyLogsReady && booksReady && trainingDataReady;
   const [achievementSystemReady, setAchievementSystemReady] = useState(false);
   const [achievementFilter, setAchievementFilter] = useState("All");
   const [trainingData, setTrainingData] = useState({});
@@ -390,7 +394,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || !db) { setProgressionReady(false); previousUnlockState.current = null; setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); setBooks([]); return; }
+    if (!user || !db) { setProgressionReady(false); previousUnlockState.current = null; setHabits([]); setChecks({}); setProgression({ totalXp: 0, totalActions: 0 }); setDailyLogs([]); setBooks([]); setHabitsReady(false); setDailyLogsReady(false); setBooksReady(false); return; }
+    setHabitsReady(false); setDailyLogsReady(false); setBooksReady(false);
     const habitQuery = query(collection(db, "users", user.uid, "habits"), orderBy("createdAt", "asc"));
     const stopHabits = onSnapshot(habitQuery, async (snapshot) => {
       if (snapshot.empty) {
@@ -403,6 +408,7 @@ export default function App() {
         return;
       }
       setHabits(snapshot.docs.map((d) => { const data=d.data(); return { id:d.id, ...data, category:normaliseCategory(data.category) }; }));
+      setHabitsReady(true);
     }, (e) => setError(e.message));
     const checkRef = doc(db, "users", user.uid, "dailyLogs", todayKey());
     const stopChecks = onSnapshot(checkRef, (snapshot) => setChecks(snapshot.exists() ? (snapshot.data().completed || {}) : {}), (e) => setError(e.message));
@@ -424,14 +430,13 @@ export default function App() {
         setProgressionReady(true);
       } catch (e) { setError("Could not update your XP progression: " + e.message); }
     }, (e) => setError(e.message));
-    const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))), (e) => setError(e.message));
-    const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))), (e) => setError(e.message));
+    const stopLogs = onSnapshot(collection(db, "users", user.uid, "dailyLogs"), (snapshot) => { setDailyLogs(snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))); setDailyLogsReady(true); }, (e) => setError(e.message));
+    const stopBooks = onSnapshot(collection(db, "users", user.uid, "booksRead"), (snapshot) => { setBooks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))); setBooksReady(true); }, (e) => setError(e.message));
     return () => { stopHabits(); stopChecks(); stopProgression(); stopLogs(); stopBooks(); };
   }, [user]);
 
   useEffect(() => {
     setAchievementRecordsReady(false);
-    setAchievementInputsReady(false);
     setAchievementSystemReady(false);
     achievementAwardingRef.current.clear();
     if (!user || !db) { setAchievementRecords([]); setTrainingData({}); return; }
@@ -439,21 +444,9 @@ export default function App() {
       setAchievementRecords(snapshot.docs.map(item => ({ id: item.id, ...item.data() })));
       setAchievementRecordsReady(true);
     }, e => setError("Could not load your achievement collection: " + e.message));
-    const stopTraining = onSnapshot(doc(db, "users", user.uid, "training", "data"), snapshot => setTrainingData(snapshot.exists() ? snapshot.data() : {}), e => setError("Could not load Performance records: " + e.message));
+    setTrainingDataReady(false);
+    const stopTraining = onSnapshot(doc(db, "users", user.uid, "training", "data"), snapshot => { setTrainingData(snapshot.exists() ? snapshot.data() : {}); setTrainingDataReady(true); }, e => setError("Could not load Performance records: " + e.message));
     return () => { stopAchievements(); stopTraining(); };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user || !db) { setAchievementInputsReady(false); return; }
-    let ready = { habits:false, logs:false, books:false, training:false };
-    const mark = key => { ready[key] = true; if (Object.values(ready).every(Boolean)) setAchievementInputsReady(true); };
-    const stops = [
-      onSnapshot(collection(db, "users", user.uid, "habits"), () => mark("habits"), e => setError(e.message)),
-      onSnapshot(collection(db, "users", user.uid, "dailyLogs"), () => mark("logs"), e => setError(e.message)),
-      onSnapshot(collection(db, "users", user.uid, "booksRead"), () => mark("books"), e => setError(e.message)),
-      onSnapshot(doc(db, "users", user.uid, "training", "data"), () => mark("training"), e => setError(e.message))
-    ];
-    return () => stops.forEach(stop => stop());
   }, [user]);
 
   const activeHabits = habits.filter((h) => h.active !== false);
