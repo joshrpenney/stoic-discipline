@@ -1608,6 +1608,11 @@ export default function App() {
           </section>
           <section className="commitment-group-panel flexible-group-panel">
             <div className="commitment-group-header"><div><p className="eyebrow">OPTIONAL · CHOOSE YOUR DAYS</p><h3>Scheduled commitments <span>{flexibleHabits.length}/{MAX_FLEXIBLE_COMMITMENTS}</span></h3><p>Up to 15 commitments overall, with no more than five on any day.</p></div><button className="quiet-account-button" disabled={flexibleHabits.length>=MAX_FLEXIBLE_COMMITMENTS} onClick={()=>{setNewTitle("");setNewTarget("");setNewCategory("Mindset");setNewNonNegotiable(false);setNewSchedule([0,1,2,3,4,5,6]);setShowAdd(true);setEditingHabitId(null);}}><Plus size={14}/> Add</button></div>
+            <div className="weekly-commitment-overview">
+              <div className="weekly-overview-heading"><CalendarDays size={17}/><span>YOUR WEEK AT A GLANCE</span></div>
+              <div className="weekly-overview-days">{WEEKDAYS.map(day=>{const count=flexibleHabits.filter(h=>(Array.isArray(h.daysOfWeek)&&h.daysOfWeek.length?h.daysOfWeek:[0,1,2,3,4,5,6]).includes(day.value)).length;return <div className={"weekly-overview-day "+(count>=3?"busy":count===0?"empty":"")} key={day.value}><span>{day.label}</span><strong>{count}<small>/5</small></strong></div>;})}</div>
+              <div className="weekly-overview-legend"><span><i className="busy-dot"/>3–5 commitments</span><span><i className="moderate-dot"/>1–2 commitments</span><span><i className="empty-dot"/>No commitments</span></div>
+            </div>
             <div className="settings-habit-list">{flexibleHabits.map(h=>{const Icon=categoryIcon(h.category);return <article className="settings-habit" key={h.id}>
               {editingHabitId===h.id ? <form className="settings-edit-form" onSubmit={saveHabitEdit}>
                 <label>Commitment name<input required maxLength="100" value={editingTitle} onChange={e=>setEditingTitle(e.target.value)}/></label>
