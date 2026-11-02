@@ -1219,16 +1219,16 @@ export default function App() {
   }
 
   return <main className="app-shell">
-    {streakCelebration && <div className="streak-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="streak-celebration-title">
-      <div className="streak-celebration-frame">
-        <div className="streak-celebration-sparks" aria-hidden="true"><i>✦</i><i>✧</i><i>✦</i><i>✧</i><i>✦</i><i>✧</i></div>
-        <div className="streak-celebration-flame"><Flame size={34}/></div>
-        <p className="streak-celebration-eyebrow">DAILY STANDARD COMPLETE</p>
+    {streakCelebration && <div className="unlock-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="streak-celebration-title">
+      <div className="unlock-celebration-panel streak-unlock-panel">
+        <div className="unlock-celebration-overline">THE PATH OF DISCIPLINE</div>
+        <div className="unlock-celebration-emblem streak-unlock-emblem" aria-hidden="true"><Flame size={48}/><span>✦</span></div>
+        <div className="unlock-celebration-kicker">Daily standard complete</div>
         <h2 id="streak-celebration-title">Another day, kept.</h2>
-        <p className="streak-celebration-subtitle">Five promises. All honoured.</p>
-        <div className="streak-number-ring"><span className="streak-number">{streakCelebration.count}</span><span className="streak-days-label">DAY STREAK</span></div>
-        <p className="streak-celebration-message">{streakCelebration.count===1?"The first day of consistency.":"Your discipline is becoming a habit."}</p>
-        <button type="button" className="streak-celebration-continue" onClick={()=>setStreakCelebration(null)}>Continue</button>
+        <p>Five promises. All honoured.</p>
+        <p className="unlock-celebration-level streak-unlock-count">{streakCelebration.count} DAY STREAK</p>
+        <p>{streakCelebration.count===1?"The first day of consistency.":"Your discipline is becoming a habit."}</p>
+        <button type="button" className="unlock-celebration-continue" onClick={()=>setStreakCelebration(null)}>Continue</button>
       </div>
     </div>}
     {unlockCelebration && <div className="unlock-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="unlock-celebration-title">
