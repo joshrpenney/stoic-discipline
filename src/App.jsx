@@ -458,8 +458,11 @@ export default function App() {
   const MAX_COMMITMENTS_PER_DAY = 5;
   const isDueOn = (habit, date) => { if (habit.nonNegotiable) return true; const schedule = Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.length ? habit.daysOfWeek : [0,1,2,3,4,5,6]; return schedule.includes(date.getDay()); };
   const getFullScheduleDays = (schedule, excludeId = null) => (schedule || [])
-    .filter(day => flexibleHabits.filter(h => h.id !== excludeId && (h.daysOfWeek || []).includes(day)).length >= MAX_COMMITMENTS_PER_DAY)
-    .map(day => ({ day, label: WEEKDAYS.find(item => item.value === day)?.label || "Day", count: flexibleHabits.filter(h => h.id !== excludeId && (h.daysOfWeek || []).includes(day)).length }));
+    .map(day => {
+      const count = flexibleHabits.filter(h => h.id !== excludeId && (Array.isArray(h.daysOfWeek) && h.daysOfWeek.length ? h.daysOfWeek : [0,1,2,3,4,5,6]).includes(day)).length;
+      return { day, label: WEEKDAYS.find(item => item.value === day)?.label || "Day", count };
+    })
+    .filter(item => item.count >= MAX_COMMITMENTS_PER_DAY);
   const dueHabits = activeHabits.filter(h => isDueOn(h, new Date()));
   const dueNonNegotiables = dueHabits.filter(h => h.nonNegotiable);
   const doneNonNegotiables = dueNonNegotiables.filter(h => checks[h.id]).length;
@@ -1273,16 +1276,6 @@ export default function App() {
       <nav className="bottom-nav member-profile-bottom-nav">{[["Reading",BookOpen],["Performance",Trophy],["Non-negotiables",ShieldCheck],["Today",Target],["Profile",Star]].map(([label,Icon])=><button type="button" key={label} className={"nav-item "+(activeTab===label?"active":"")} onClick={()=>{setSelectedMemberProfile(null);setShowMemberRanksPage(false);setActiveTab(label);window.scrollTo({top:0,behavior:"smooth"});}}><span className="nav-icon-wrap"><Icon size={21}/></span><span>{label}</span></button>)}</nav>
     </main>;
     return <main className="app-shell">
-    {fullDaysAlert.length > 0 && <div className="unlock-celebration-backdrop schedule-cap-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-cap-title">
-      <section className="unlock-celebration-panel schedule-cap-panel">
-        <div className="unlock-celebration-overline">COMMITMENT LIMIT REACHED</div>
-        <div className="schedule-cap-emblem" aria-hidden="true">5/5</div>
-        <h2 id="schedule-cap-title">{fullDaysAlert.length === 1 ? fullDaysAlert[0].label + " is full" : "Selected days are full"}</h2>
-        <p>{fullDaysAlert.length === 1 ? fullDaysAlert[0].label + " already has " + fullDaysAlert[0].count + "/5 scheduled commitments allocated. You can't add another commitment to this day." : "These days have reached their limit of five scheduled commitments:"}</p>
-        {fullDaysAlert.length > 1 && <ul className="schedule-cap-day-list">{fullDaysAlert.map(item=><li key={item.day}><strong>{item.label}</strong><span>{item.count}/5 allocated</span></li>)}</ul>}
-        <button type="button" className="unlock-celebration-continue" onClick={()=>setFullDaysAlert([])}>Understood</button>
-      </section>
-    </div>}
       <header className="topbar">
         <button className="topbar-quiet-button" title="Back to community" aria-label="Back to community" onClick={() => setSelectedMemberProfile(null)}><ArrowLeft size={18}/></button>
         <div className="brand"><div className="brand-small">S</div><div><strong>STOIC</strong><span>MEMBER PROFILE</span></div></div>
@@ -1327,6 +1320,17 @@ export default function App() {
   }
 
   return <main className="app-shell">
+    {fullDaysAlert.length > 0 && <div className="unlock-celebration-backdrop schedule-cap-backdrop" role="dialog" aria-modal="true" aria-labelledby="schedule-cap-title">
+      <section className="unlock-celebration-panel schedule-cap-panel">
+        <div className="unlock-celebration-overline">COMMITMENT LIMIT REACHED</div>
+        <div className="schedule-cap-emblem" aria-hidden="true">5/5</div>
+        <h2 id="schedule-cap-title">{fullDaysAlert.length === 1 ? fullDaysAlert[0].label + " is full" : "Selected days are full"}</h2>
+        <p>{fullDaysAlert.length === 1 ? fullDaysAlert[0].label + " already has " + fullDaysAlert[0].count + "/5 scheduled commitments allocated. You can't add another commitment to this day." : "These days have reached their limit of five scheduled commitments:"}</p>
+        {fullDaysAlert.length > 1 && <ul className="schedule-cap-day-list">{fullDaysAlert.map(item=><li key={item.day}><strong>{item.label}</strong><span>{item.count}/5 allocated</span></li>)}</ul>}
+        <button type="button" className="unlock-celebration-continue" onClick={()=>setFullDaysAlert([])}>Understood</button>
+      </section>
+    </div>}
+
     {streakCelebration && <div className="unlock-celebration-backdrop" role="dialog" aria-modal="true" aria-labelledby="streak-celebration-title">
       <div className="unlock-celebration-panel streak-unlock-panel">
         <div className="unlock-celebration-overline">THE PATH OF DISCIPLINE</div>
