@@ -1456,7 +1456,7 @@ export default function App() {
         <div><span className="eyebrow">CURRENT RANK</span><strong>{levelInfo.name} · Level {levelInfo.level}</strong><small>{levelInfo.next?`${levelInfo.remaining.toLocaleString()} XP to Level ${levelInfo.next.level}`:"Highest rank reached"}</small></div>
         <b>{levelInfo.xp.toLocaleString()} XP</b>
       </div>
-    </section>    <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2><p className="muted commitment-limit-summary">{nonNegotiableHabits.length}/5 daily non-negotiables · {flexibleHabits.length}/{MAX_FLEXIBLE_COMMITMENTS} scheduled commitments</p></div></section>
+    </section>    <section className="section-heading"><div><p className="eyebrow">YOUR COMMITMENTS</p><h2>Today's checklist</h2></div></section>
     {error && <div className="error-banner">{error}</div>}
     {notice && <p className="notice">{notice}</p>}
     <div className="commitment-groups">
