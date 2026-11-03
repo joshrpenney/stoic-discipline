@@ -207,26 +207,17 @@ export default function Training({user,db}) {
       <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">YOUR RUNNING RECORD</p><h2>Running overview</h2></div><span className="performance-status">{activitiesLoading?"Loading…":runActivities.length+" runs"}</span></div>
         {activitiesLoading?<p className="performance-empty">Loading your imported runs…</p>:runActivities.length?(()=>{
-          const totalKm=runActivities.reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
           const now=new Date();
+          const yearStart=new Date(now.getFullYear(),0,1);
+          const yearKm=runActivities.filter(a=>new Date(a.startDate)>=yearStart&&new Date(a.startDate)<=now).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
           const monday=new Date(now);monday.setHours(0,0,0,0);monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
-          const weekKm=runActivities.filter(a=>new Date(a.startDate)>=monday).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
-          const weeks=Array.from({length:8},(_,i)=>{
-            const start=new Date(monday);start.setDate(start.getDate()-(7*(7-i)));
-            const end=new Date(start);end.setDate(end.getDate()+7);
-            const km=runActivities.filter(a=>{const d=new Date(a.startDate);return d>=start&&d<end;}).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
-            return {label:start.toLocaleDateString("en-GB",{day:"numeric",month:"short"}),km};
-          });
-          const maxKm=Math.max(1,...weeks.map(w=>w.km));
+          const weekKm=runActivities.filter(a=>new Date(a.startDate)>=monday&&new Date(a.startDate)<=now).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
           const pace=a=>a.distance>0&&a.movingTime>0?timeLabel(Math.round(a.movingTime/(a.distance/1000)))+"/km":"—";
           return <>
             <div className="performance-running-stats">
-              <article><small>TOTAL DISTANCE</small><strong>{totalKm.toLocaleString("en-GB",{maximumFractionDigits:0})} km</strong><span>Last four years</span></article>
-              <article><small>THIS WEEK</small><strong>{weekKm.toFixed(1)} km</strong><span>{runActivities.filter(a=>new Date(a.startDate)>=monday).length} runs</span></article>
+              <article><small>THIS YEAR</small><strong>{yearKm.toLocaleString("en-GB",{maximumFractionDigits:0})} km</strong><span>{now.getFullYear()} year to date</span></article>
+              <article><small>THIS WEEK</small><strong>{weekKm.toFixed(1)} km</strong><span>{runActivities.filter(a=>{const d=new Date(a.startDate);return d>=monday&&d<=now;}).length} runs</span></article>
               <article><small>ACTIVITIES</small><strong>{runActivities.length}</strong><span>Imported from Strava</span></article>
-            </div>
-            <div className="performance-mileage-chart"><div className="performance-chart-title"><strong>Weekly distance</strong><small>Previous 8 weeks · km</small></div>
-              <div className="performance-mileage-bars">{weeks.map((w,i)=><div className="performance-mileage-bar" key={w.label+i}><div className="performance-mileage-track"><span style={{height:(w.km/maxKm*100)+"%"}}/></div><b>{w.km?w.km.toFixed(0):"0"}</b><small>{w.label}</small></div>)}</div>
             </div>
             <div className="performance-recent-runs"><div className="performance-chart-title"><strong>Recent runs</strong><small>Latest Strava activities</small></div>
               {runActivities.slice(0,6).map(a=><article key={a.id}><div><strong>{a.name||"Run"}</strong><small>{new Date(a.startDate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · {a.sportType||"Run"}</small></div><div><b>{(Number(a.distance||0)/1000).toFixed(2)} km</b><small>{pace(a)}</small></div></article>)}
