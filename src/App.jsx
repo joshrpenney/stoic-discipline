@@ -595,11 +595,11 @@ export default function App() {
       try {
         // The old Personal Growth mastery was awarded after only three setup
         // milestones. Revoke it and its XP where the new full collection is not met.
-        const oldGrowthMastery = achievementRecords.find(item => item.id === "growth-master-of-self");
-        const currentGrowthMastery = achievements.find(item => item.id === "growth-master-of-self");
+        const oldGrowthMastery = achievementRecords.find(item => item.id === "mastery-growth");
+        const currentGrowthMastery = achievements.find(item => item.id === "mastery-growth");
         if (oldGrowthMastery && currentGrowthMastery && currentGrowthMastery.progress < currentGrowthMastery.goal) {
           await runTransaction(db, async transaction => {
-            const achievementRef = doc(db, "users", user.uid, "achievements", "growth-master-of-self");
+            const achievementRef = doc(db, "users", user.uid, "achievements", "mastery-growth");
             const progressionRef = doc(db, "users", user.uid, "progression", "summary");
             const [saved, progressionSnap] = await Promise.all([transaction.get(achievementRef), transaction.get(progressionRef)]);
             if (!saved.exists()) return;
