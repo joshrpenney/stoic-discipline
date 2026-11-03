@@ -1671,3 +1671,26 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 :root[data-theme="light"] .performance-running-stats article,:root[data-theme="light"] .performance-mileage-chart,:root[data-theme="light"] .performance-recent-runs{background:#fff;border-color:#e5dfd2}
 :root[data-theme="light"] .performance-running-stats strong,:root[data-theme="light"] .performance-chart-title strong,:root[data-theme="light"] .performance-recent-runs article strong{color:#28251f}
 @media(max-width:360px){.performance-running-stats{gap:5px}.performance-running-stats article{padding:10px 6px}.performance-running-stats small{font-size:6px}.performance-mileage-bars{gap:3px}}
+
+
+/* All-time running records and performance summary */
+.performance-alltime-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0}
+.performance-alltime-summary>div{display:grid;gap:6px;min-width:0;padding:13px;border:1px solid #403a2e;border-radius:11px;background:#211f1b}
+.performance-alltime-summary small{font-size:8px;line-height:1.4;letter-spacing:1px;color:#b89b64;font-weight:700}
+.performance-alltime-summary strong{font:600 21px 'Playfair Display',Georgia,serif;color:#eee6d7;font-variant-numeric:tabular-nums}
+.performance-alltime-summary span{font-size:9px;color:#9d9689;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.performance-alltime-prs{margin-top:14px;padding:15px;border:1px solid #655336;border-radius:13px;background:linear-gradient(145deg,#28241c,#1d1c19)}
+.performance-alltime-prs .performance-chart-title{margin-bottom:7px}
+.performance-alltime-prs .performance-chart-title>div{display:grid;gap:4px}
+.performance-alltime-prs .performance-chart-title strong{font:500 19px 'Playfair Display',Georgia,serif;color:#eee6d7}
+.performance-alltime-prs .performance-chart-title small{font-size:9px;color:#a69b86}
+.performance-alltime-prs article{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-top:1px solid #403a2e}
+.performance-alltime-prs article>div{display:grid;gap:4px}
+.performance-alltime-prs article strong{font-size:12px;color:#eee6d7}
+.performance-alltime-prs article small{font-size:9px;color:#9d9689}
+.performance-alltime-prs article>b{font:600 20px 'Playfair Display',Georgia,serif;color:#d7b873;font-variant-numeric:tabular-nums}
+.performance-alltime-prs .training-primary{width:100%;justify-content:center;margin-top:12px}
+:root[data-theme='light'] .performance-alltime-summary>div{background:#f8f4eb;border-color:#ddd0b8}
+:root[data-theme='light'] .performance-alltime-summary strong,:root[data-theme='light'] .performance-alltime-prs .performance-chart-title strong,:root[data-theme='light'] .performance-alltime-prs article strong{color:#302b22}
+:root[data-theme='light'] .performance-alltime-prs{background:#f8f4eb;border-color:#d5c39d}
+@media(max-width:360px){.performance-alltime-summary>div{padding:10px}.performance-alltime-summary strong{font-size:18px}}
