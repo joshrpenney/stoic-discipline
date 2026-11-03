@@ -1637,9 +1637,9 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
   .standard-code-copy p{font-size:10px}
 }
 
-/* Roman numeral markers with gold chevrons for the five promises */
-.standard-code-number{position:relative;width:48px;flex:0 0 48px;height:54px;display:flex;align-items:center;justify-content:center;border:0;border-radius:0;background:transparent;box-shadow:none;color:#e6c77f;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;letter-spacing:0;text-shadow:0 0 8px rgba(220,177,91,.35)}
-.standard-code-number::before,.standard-code-number::after{position:absolute;left:50%;transform:translateX(-50%);color:#d9ad58;font-family:Arial,sans-serif;font-size:30px;font-weight:400;line-height:14px;height:14px;text-shadow:0 0 7px rgba(225,177,75,.55);pointer-events:none}
-.standard-code-number::before{content:'⌃';top:0}
-.standard-code-number::after{content:'⌄';bottom:0}
-@media(max-width:420px){.standard-code-number{width:40px;flex-basis:40px;height:49px;font-size:17px}.standard-code-number::before,.standard-code-number::after{font-size:27px}}
+/* Laurel sprigs frame each Roman numeral in a restrained Roman-inspired style */
+.standard-code-number{position:relative;width:58px;flex:0 0 58px;height:54px;display:flex;align-items:center;justify-content:center;border:0;border-radius:0;background:transparent;box-shadow:none;color:#e6c77f;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;letter-spacing:0;text-shadow:0 0 8px rgba(220,177,91,.35)}
+.standard-code-number::before,.standard-code-number::after{content:'';position:absolute;top:7px;width:13px;height:40px;pointer-events:none;background:linear-gradient(145deg,transparent 46%,#a87932 48%,#e8c875 51%,transparent 55%),radial-gradient(ellipse 4px 7px at 30% 15%,#f3d994 0 62%,#b98537 75%,transparent 80%),radial-gradient(ellipse 4px 7px at 78% 30%,#e8c477 0 62%,#a97931 75%,transparent 80%),radial-gradient(ellipse 4px 7px at 28% 46%,#f0d18a 0 62%,#ad7c35 75%,transparent 80%),radial-gradient(ellipse 4px 7px at 78% 62%,#e8c477 0 62%,#a97931 75%,transparent 80%),radial-gradient(ellipse 4px 7px at 28% 79%,#f0d18a 0 62%,#ad7c35 75%,transparent 80%);filter:drop-shadow(0 0 3px rgba(214,168,83,.28))}
+.standard-code-number::before{left:0;transform:rotate(-13deg)}
+.standard-code-number::after{right:0;transform:scaleX(-1) rotate(-13deg)}
+@media(max-width:420px){.standard-code-number{width:50px;flex-basis:50px;height:49px;font-size:17px}.standard-code-number::before,.standard-code-number::after{top:6px;width:11px;height:36px}}
