@@ -181,6 +181,7 @@ export default function App() {
   const [privacyBusy, setPrivacyBusy] = useState(false);
   const [selectedMemberProfile, setSelectedMemberProfile] = useState(null);
   const [showMemberRanksPage, setShowMemberRanksPage] = useState(false);
+  const [memberAchievementFilter, setMemberAchievementFilter] = useState("All");
   const [showMemberLibrary, setShowMemberLibrary] = useState(false);
   const [showMemberStandards, setShowMemberStandards] = useState(false);
   const [showMemberCalendar, setShowMemberCalendar] = useState(false);
@@ -581,7 +582,10 @@ export default function App() {
       return { ...item, group: item.category, icon: iconMap[item.icon] || Award, progress: complete ? 1 : 0, unlocked: !!record, progressLabel: (complete ? 1 : 0) + "/1", earnedAt: record?.unlockedAt || null, xpReward: RARITY[item.rarity]?.xp || 0, active: item.metric === "mastery:all" ? true : activeCategory[item.category] };
     });
     const has365DayGateway = earnedIds.has("discipline-streak-365");
-    return [...base, ...mastery].filter(item => item.active && (!item.requires365DayStreak || has365DayGateway));
+    return [...base, ...mastery].filter(item => item.active).map(item => {
+      const secret = item.requires365DayStreak && !has365DayGateway && !earnedIds.has(item.id);
+      return secret ? { ...item, title: "????", detail: "Unlocks once you achieve a 365-day streak.", rarity: "SECRET", xpReward: 0, progress: 0, goal: 1, progressLabel: "Locked until 365-day streak", secret: true } : item;
+    });
   }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs, trainingData, achievementRecords, nonNegotiableHabits.length, flexibleHabits.length]);
 
   // Existing users keep their historical accomplishments. The first migration
@@ -1356,7 +1360,8 @@ export default function App() {
           </section>
           <section className="rank-list-section">
             <div className="reading-list-heading"><div><p className="eyebrow">PROOF OF PRACTICE</p><h2>Achievements</h2></div><span className="book-count-finished">{memberUnlocked}</span></div>
-            {memberAchievements.length ? <div className="achievement-grid">{memberAchievements.map((a,index)=>{const pct=Math.round((Number(a.progress||0)/Math.max(1,Number(a.goal)||1))*100);return <article className={"achievement "+(a.unlocked?"unlocked":"locked")+" achievement-group-"+String(a.group||"Discipline").toLowerCase()} key={a.title}><div className="achievement-icon"><span className="achievement-medal-ring"/><Award size={20}/><span className="achievement-medal-number">{String(index+1).padStart(2,"0")}</span></div><div className="achievement-copy"><strong>{a.title}</strong><span>{a.detail}</span><div className="achievement-progress-track"><span style={{width:pct+"%"}}/></div><small className="achievement-progress-label">{Number(a.progress)||0} / {Number(a.goal)||0} {a.unlocked?"· Earned":"· "+pct+"%"}</small></div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>LOCKED</span>}</div></article>})}</div> : <p className="settings-description member-reading-empty">Achievement details will appear here once this member's shared progress has refreshed.</p>}
+            <div className="achievement-category-filters" role="group" aria-label="Filter achievements">{["All",...ACHIEVEMENT_CATEGORIES.map(category=>category.id)].map(category=><button type="button" key={category} className={memberAchievementFilter===category?"selected":""} onClick={()=>setMemberAchievementFilter(category)}>{category==="All"?"All":category}</button>)}</div>
+            {memberAchievements.length ? <div className="achievement-grid">{memberAchievements.filter(a=>memberAchievementFilter==="All"||a.category===memberAchievementFilter).map((a,index)=>{const pct=Math.round((Number(a.progress||0)/Math.max(1,Number(a.goal)||1))*100);const secret=a.secret===true;return <article className={"achievement "+(a.unlocked?"unlocked":"locked")+" achievement-rarity-"+String(a.rarity||"bronze").toLowerCase().replace(/[^a-z]+/g,"-")} key={a.id||a.title}><div className="achievement-icon"><span className="achievement-medal-ring"/><Award size={20}/><span className="achievement-medal-number">{String(index+1).padStart(2,"0")}</span></div><div className="achievement-copy"><strong>{a.title}</strong><span>{a.detail}</span>{!secret&&<><div className="achievement-meta"><small>{a.rarity}</small><small>{Number(a.xpReward)||0} XP</small></div><div className="achievement-progress-track"><span style={{width:pct+"%"}}/></div><small className="achievement-progress-label">{Number(a.progress)||0} / {Number(a.goal)||0} {a.unlocked?"· Earned":"· "+pct+"%"}</small></>}</div><div className="achievement-status">{a.unlocked?<Check size={16}/>:<span>{secret?"SECRET":"LOCKED"}</span>}</div></article>})}</div> : <p className="settings-description member-reading-empty">Achievement details will appear here once this member's shared progress has refreshed.</p>}
           </section>
         </> : <div className="empty community-empty"><h3>Progress is private</h3><p>This member has chosen not to share their discipline progress.</p></div>}
       </section>
