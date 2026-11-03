@@ -197,6 +197,38 @@ export default {
         }, 200, origin);
       }
 
+      if (url.pathname.startsWith("/strava/activities/") && request.method === "GET") {
+        const saved = await getStravaToken(uid, env);
+        if (!saved) return json({ error: "Connect your Strava account first." }, 404, origin);
+        const activityId = url.pathname.split("/").pop();
+        if (!/^\\d+$/.test(activityId)) return json({ error: "Invalid activity ID." }, 400, origin);
+        const response = await fetch(`${STRAVA_API}/activities/${activityId}?include_all_efforts=true`, {
+          headers: { authorization: `Bearer ${saved.access_token}` }
+        });
+        const data = await response.json();
+        if (!response.ok) return json({ error: data.message || "Strava could not return this activity's best efforts." }, response.status, origin);
+        return json({
+          id: data.id,
+          name: data.name,
+          sportType: data.sport_type || data.type,
+          startDate: data.start_date,
+          distance: data.distance,
+          movingTime: data.moving_time,
+          elapsedTime: data.elapsed_time,
+          totalElevationGain: data.total_elevation_gain,
+          averageHeartrate: data.average_heartrate ?? null,
+          maxHeartrate: data.max_heartrate ?? null,
+          bestEfforts: Array.isArray(data.best_efforts) ? data.best_efforts.map(effort => ({
+            name: effort.name,
+            distance: effort.distance,
+            elapsedTime: effort.elapsed_time,
+            movingTime: effort.moving_time,
+            startDate: effort.start_date,
+            prRank: effort.pr_rank ?? null
+          })) : []
+        }, 200, origin);
+      }
+
       if (url.pathname === "/strava/activities" && request.method === "GET") {
         const saved = await getStravaToken(uid, env);
         if (!saved) return json({ error: "Connect your Strava account first." }, 404, origin);
