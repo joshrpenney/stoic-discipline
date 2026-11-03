@@ -1637,3 +1637,9 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
   .standard-code-copy p{font-size:10px}
 }
 
+/* Roman numeral markers with gold chevrons for the five promises */
+.standard-code-number{position:relative;width:48px;flex:0 0 48px;height:54px;display:flex;align-items:center;justify-content:center;border:0;border-radius:0;background:transparent;box-shadow:none;color:#e6c77f;font-family:'Playfair Display',Georgia,serif;font-size:19px;font-weight:700;letter-spacing:0;text-shadow:0 0 8px rgba(220,177,91,.35)}
+.standard-code-number::before,.standard-code-number::after{position:absolute;left:50%;transform:translateX(-50%);color:#d9ad58;font-family:Arial,sans-serif;font-size:30px;font-weight:400;line-height:14px;height:14px;text-shadow:0 0 7px rgba(225,177,75,.55);pointer-events:none}
+.standard-code-number::before{content:'⌃';top:0}
+.standard-code-number::after{content:'⌄';bottom:0}
+@media(max-width:420px){.standard-code-number{width:40px;flex-basis:40px;height:49px;font-size:17px}.standard-code-number::before,.standard-code-number::after{font-size:27px}}
