@@ -54,7 +54,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
   { id:"growth-word", title:"A Man of His Word", detail:"Complete 100 daily or scheduled commitments.", category:"Personal Growth", rarity:"Gold", metric:"growthCompletions", goal:100, icon:"Shield" },
   { id:"growth-relentless", title:"Relentless Progress", detail:"Complete 250 daily or scheduled commitments.", category:"Personal Growth", rarity:"Platinum", metric:"growthCompletions", goal:250, icon:"Flame" },
   { id:"growth-intentional", title:"Intentional Living", detail:"Complete commitments in at least four different non-training categories.", category:"Personal Growth", rarity:"Platinum", metric:"growthCategories", goal:4, icon:"Target" },
-  { id:"growth-master-of-self", title:"Master of Self", detail:"Earn every standard Personal Growth achievement.", category:"Personal Growth", rarity:"Mastery", metric:"mastery:Personal Growth", goal:1, icon:"Crown", mastery:true },
+  { id:"mastery-growth", title:"Master of Self", detail:"Earn every standard Personal Growth achievement.", category:"Personal Growth", rarity:"Mastery", metric:"mastery:Personal Growth", goal:1, icon:"Crown", mastery:true },
   { id:"growth-1000-commitments", title:"A Thousand Acts", detail:"Complete 1,000 daily or scheduled commitments. Available after earning Unbreakable.", category:"Personal Growth", rarity:"Legendary", metric:"growthCompletions", goal:1000, icon:"Gem", requires365DayStreak:true },
 
   { id:"mastery-discipline", title:"Master of Discipline", detail:"Earn every available standard Discipline achievement.", category:"Discipline", rarity:"Mastery", metric:"mastery:Discipline", goal:1, icon:"Crown", mastery:true },
