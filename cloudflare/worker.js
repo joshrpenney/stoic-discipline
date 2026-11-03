@@ -133,7 +133,7 @@ export default {
           return new Response("This Strava connection request has expired. Return to Stoic Discipline and try again.", { status: 400 });
         }
         await env.STRAVA_TOKENS.delete(`state:${state}`);
-        const appUrl = new URL(env.APP_ORIGIN || "https://joshrpenney.github.io");
+        const appUrl = new URL(env.APP_URL || "https://joshrpenney.github.io/stoic-discipline/");
         if (error || !code) {
           appUrl.searchParams.set("strava", "denied");
           return Response.redirect(appUrl.toString(), 302);
