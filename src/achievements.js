@@ -27,7 +27,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
   { id:"discipline-streak-100", title:"Iron Will", detail:"Keep a 100-day non-negotiable streak.", category:"Discipline", rarity:"Gold", metric:"streak", goal:100, icon:"Flame" },
   { id:"discipline-streak-365", title:"Unbreakable", detail:"Keep a 365-day non-negotiable streak.", category:"Discipline", rarity:"Platinum", metric:"streak", goal:365, icon:"Crown" },
   { id:"discipline-streak-730", title:"The Second Year", detail:"Keep a 730-day non-negotiable streak. Unlocked after earning Unbreakable.", category:"Discipline", rarity:"Platinum", metric:"streak", goal:730, icon:"Sunrise", requires365DayStreak:true },
-  { id:"discipline-streak-1000", title:"The Disciplined Few", detail:"Keep a 1,000-day non-negotiable streak.", category:"Discipline", rarity:"Legendary", metric:"streak", goal:1000, icon:"Infinity" },
+  { id:"discipline-streak-1000", title:"The Disciplined Few", detail:"Keep a 1,000-day non-negotiable streak. Available after earning Unbreakable.", category:"Discipline", rarity:"Legendary", metric:"streak", goal:1000, icon:"Infinity", requires365DayStreak:true },
   { id:"discipline-streak-1825", title:"A Life of Discipline", detail:"Keep a 1,825-day non-negotiable streak. Unlocked after earning Unbreakable.", category:"Discipline", rarity:"Legendary", metric:"streak", goal:1825, icon:"Landmark", requires365DayStreak:true },
   { id:"discipline-streak-3650", title:"The Stoic Path", detail:"Keep a 3,650-day non-negotiable streak. Unlocked after earning Unbreakable.", category:"Discipline", rarity:"Legendary", metric:"streak", goal:3650, icon:"Gem", requires365DayStreak:true },
 
