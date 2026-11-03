@@ -643,7 +643,10 @@ export default function App() {
   useEffect(() => {
     if (!user || !db || !achievementSystemReady || !achievementRecordsReady || !progressionReady) return;
     if (Number(progression.legacyAchievementXpMigrationVersion) >= 1) return;
-    const legacyRecords = achievementRecords.filter(item => item.legacyImported && !item.legacyXpCredited);
+    const legacyCandidateIds = [...new Set([
+      ...achievementRecords.filter(item => item.legacyImported).map(item => item.id),
+      ...achievements.filter(item => item.progress >= item.goal).map(item => item.id)
+    ])];
     (async () => {
       try {
         const progressionRef = doc(db, "users", user.uid, "progression", "summary");
@@ -651,11 +654,11 @@ export default function App() {
           const progressionSnap = await transaction.get(progressionRef);
           const current = progressionSnap.exists() ? progressionSnap.data() : {};
           if (Number(current.legacyAchievementXpMigrationVersion) >= 1) return;
-          const refs = legacyRecords.map(item => doc(db, "users", user.uid, "achievements", item.id));
+          const refs = legacyCandidateIds.map(id => doc(db, "users", user.uid, "achievements", id));
           const savedRecords = await Promise.all(refs.map(ref => transaction.get(ref)));
           let legacyXp = 0;
           savedRecords.forEach((saved, index) => {
-            if (!saved.exists() || saved.data().legacyXpCredited) return;
+            if (!saved.exists() || !saved.data().legacyImported || saved.data().legacyXpCredited) return;
             legacyXp += Math.max(0, Number(saved.data().xpReward) || 0);
             transaction.set(refs[index], { legacyXpCredited: true }, { merge: true });
           });
