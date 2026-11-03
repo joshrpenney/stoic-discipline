@@ -715,6 +715,10 @@ export default function App() {
 
   useEffect(() => {
     if (!user || !progressionReady) { previousUnlockState.current = null; return; }
+    // Do not compare or overwrite acknowledged unlocks until the achievement
+    // collection and its initial migration have both finished loading. Otherwise
+    // a temporary empty achievement list during login can replay old celebrations.
+    if (!achievementRecordsReady || !achievementSystemReady || !achievementInputsReady) return;
     const current = { level: levelInfo.level, achievements: achievements.filter(item => item.unlocked).map(item => item.title), xp: Number(progression.totalXp) || 0, actions: Number(progression.totalActions) || 0 };
     const saved = progression.acknowledgedUnlocks;
     if (!saved || typeof saved !== "object") {
@@ -746,7 +750,7 @@ export default function App() {
       setDoc(doc(db, "users", user.uid, "progression", "summary"), { acknowledgedUnlocks: current }, { merge: true })
         .catch(e => setError("Could not save progression history: " + e.message));
     }
-  }, [user, progressionReady, progression.totalXp, progression.totalActions, progression.acknowledgedUnlocks, levelInfo.level, levelInfo.name, achievements]);
+  }, [user, progressionReady, achievementRecordsReady, achievementSystemReady, achievementInputsReady, progression.totalXp, progression.totalActions, progression.acknowledgedUnlocks, levelInfo.level, levelInfo.name, achievements]);
 
   const ledgerStats = useMemo(() => {
     const logs = new Map(dailyLogs.map(log => [log.date || log.id, log]));
