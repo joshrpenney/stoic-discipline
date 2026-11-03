@@ -1644,3 +1644,30 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 .standard-code-laurel .laurel-stem{fill:none;stroke:#d6a94f;stroke-width:1.5;stroke-linecap:round}
 .standard-code-laurel .laurel-leaf{fill:#d9ad58;stroke:#f1d18a;stroke-width:.65;stroke-linejoin:round}
 @media(max-width:420px){.standard-code-number{width:54px;flex-basis:54px;height:52px;font-size:16px}}
+
+
+/* Strava running overview */
+.performance-running-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.performance-running-stats article{display:grid;gap:6px;min-width:0;padding:12px 9px;border:1px solid #3d3930;border-radius:10px;background:#211f1c}
+.performance-running-stats small{font-size:7px;letter-spacing:1px;color:#b89b64;font-weight:700}
+.performance-running-stats strong{font:600 clamp(16px,4.5vw,22px) 'Playfair Display',Georgia,serif;color:#eee6d7;white-space:nowrap}
+.performance-running-stats span{font-size:8px;color:var(--muted,#aaa08f)}
+.performance-mileage-chart,.performance-recent-runs{margin-top:14px;padding:14px;border:1px solid #3d3930;border-radius:11px;background:#211f1c}
+.performance-chart-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:13px}
+.performance-chart-title strong{font:500 16px 'Playfair Display',Georgia,serif;color:var(--text,#eee8dc)}
+.performance-chart-title small{font-size:8px;color:var(--muted,#aaa08f)}
+.performance-mileage-bars{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px;height:118px}
+.performance-mileage-bar{display:grid;grid-template-rows:1fr auto auto;gap:5px;min-width:0;text-align:center}
+.performance-mileage-track{display:flex;align-items:flex-end;justify-content:center;height:75px;border-bottom:1px solid #4a4234}
+.performance-mileage-track span{display:block;width:65%;min-height:2px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#d5b777,#80653b)}
+.performance-mileage-bar b{font-size:8px;color:#d5b777;font-weight:600}
+.performance-mileage-bar small{font-size:7px;color:var(--muted,#aaa08f);white-space:nowrap}
+.performance-recent-runs article{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #37332b}
+.performance-recent-runs article>div{display:grid;gap:4px;min-width:0}
+.performance-recent-runs article>div:last-child{text-align:right;white-space:nowrap}
+.performance-recent-runs article strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--text,#eee8dc)}
+.performance-recent-runs article b{font-size:11px;color:#d5b777}
+.performance-recent-runs article small{font-size:8px;color:var(--muted,#aaa08f)}
+:root[data-theme="light"] .performance-running-stats article,:root[data-theme="light"] .performance-mileage-chart,:root[data-theme="light"] .performance-recent-runs{background:#fff;border-color:#e5dfd2}
+:root[data-theme="light"] .performance-running-stats strong,:root[data-theme="light"] .performance-chart-title strong,:root[data-theme="light"] .performance-recent-runs article strong{color:#28251f}
+@media(max-width:360px){.performance-running-stats{gap:5px}.performance-running-stats article{padding:10px 6px}.performance-running-stats small{font-size:6px}.performance-mileage-bars{gap:3px}}
