@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { arrayUnion, doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
+import { arrayUnion, doc, onSnapshot, setDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { ArrowRight, Dumbbell, Footprints, Plus, Save, Target, Trophy, X } from "lucide-react";
 
 const STRENGTH_GOALS = ["Bench press","Squat","Deadlift","Overhead press","Pull-ups","Push-ups","Custom strength exercise"];
@@ -31,6 +31,9 @@ export default function Training({user,db}) {
   const [notice,setNotice]=useState("");
   const [strava,setStrava]=useState({loading:true,connected:false,athlete:null});
   const [stravaBusy,setStravaBusy]=useState(false);
+  const [importBusy,setImportBusy]=useState(false);
+  const [importProgress,setImportProgress]=useState({count:0,page:0});
+  const [importSummary,setImportSummary]=useState(null);
   const [category,setCategory]=useState("Strength");
   const [showAdd,setShowAdd]=useState(false);
   const [showSettings,setShowSettings]=useState(false);
@@ -80,6 +83,38 @@ export default function Training({user,db}) {
       if(!response.ok||!data.url)throw new Error(data.error||"Could not start Strava connection.");
       window.location.assign(data.url);
     }catch(e){setError(e.message||"Could not connect to Strava.");setStravaBusy(false);}
+  };
+  const importStravaHistory=async()=>{
+    if(!strava.connected||importBusy)return;
+    setImportBusy(true);setError("");setNotice("");setImportProgress({count:0,page:0});
+    try{
+      const token=await user.getIdToken();
+      const after=Math.floor(Date.now()/1000)-4*365.25*24*60*60;
+      let page=1,total=0,hasMore=true;
+      while(hasMore){
+        const response=await fetch(STRAVA_API+"/strava/activities?after="+after+"&page="+page,{headers:{Authorization:"Bearer "+token}});
+        const data=await response.json();
+        if(!response.ok)throw new Error(data.error||"Strava could not return your running history.");
+        const activities=Array.isArray(data.activities)?data.activities:[];
+        if(activities.length){
+          const batch=writeBatch(db);
+          activities.forEach(activity=>{
+            const activityRef=doc(db,"users",user.uid,"trainingActivities",String(activity.id));
+            batch.set(activityRef,{...activity,source:"strava",importedAt:serverTimestamp()},{merge:true});
+          });
+          await batch.commit();
+          total+=activities.length;
+        }
+        setImportProgress({count:total,page});
+        hasMore=!!data.hasMore;
+        page+=1;
+        if(page>100)throw new Error("Import paused after 100 pages. Please contact support before trying again.");
+      }
+      await setDoc(doc(db,"users",user.uid,"training","stravaSync"),{lastImportedAt:serverTimestamp(),fourYearImportAfter:after,activityCount:total,source:"strava"},{merge:true});
+      setImportSummary({count:total,completedAt:new Date().toISOString()});
+      setNotice("Running history imported. "+total+" activities added or updated.");
+    }catch(e){setError("Running history import stopped: "+(e.message||"Unknown error")+". You can safely try again; activities are matched by Strava ID.");}
+    finally{setImportBusy(false);}
   };
   useEffect(()=>onSnapshot(ref,snap=>{
     const data=snap.exists()?snap.data():{};
@@ -151,7 +186,10 @@ export default function Training({user,db}) {
         <div className="performance-section-heading"><div><p className="eyebrow">RUNNING DATA</p><h2>Strava connection</h2></div><span className="performance-status">{strava.loading?"Checking…":strava.connected?"Connected":"Not connected"}</span></div>
         <p className="muted">{strava.connected?(strava.athlete?.firstname?"Connected to "+strava.athlete.firstname+(strava.athlete.lastname?" "+strava.athlete.lastname:"")+".":"Your Strava account is connected."):"Connect Strava to bring your running history and personal bests into Stoic Discipline. Strength training will continue to be logged here manually."}</p>
         {!strava.connected&&<button type="button" className="training-primary" disabled={strava.loading||stravaBusy} onClick={connectStrava}>{stravaBusy?"Connecting…":"Connect Strava"}</button>}
-        {strava.connected&&<p className="performance-input-hint">Your running activities will be imported separately. No strength workouts will be taken from Strava.</p>}
+        {strava.connected&&<p className="performance-input-hint">Import your running history from the last four years. Activities are matched by Strava ID, so repeating the import will update existing records rather than create duplicates. Strength workouts are never imported.</p>
+        <button type="button" className="training-primary" disabled={importBusy} onClick={importStravaHistory}>{importBusy?"Importing running history…":"Import four years of running history"}</button>
+        {importBusy&&<p className="performance-input-hint">Imported {importProgress.count} activities · page {importProgress.page}</p>}
+        {importSummary&&!importBusy&&<p className="performance-input-hint">Last import: {importSummary.count} activities.</p>}}
       </section>
       <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">WHAT YOU ARE WORKING TOWARDS</p><h2>Your current standards</h2></div><button type="button" onClick={()=>setShowSettings(true)}>Manage <ArrowRight size={14}/></button></div>
