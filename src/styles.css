@@ -1535,3 +1535,105 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 
 .tutorial-panel{padding:18px 15px}.tutorial-video-wrap{overflow:hidden;border:1px solid #625337;border-radius:11px;background:#090909;line-height:0}.tutorial-video-wrap video{display:block;width:100%;height:auto;max-height:65vh;background:#090909}.tutorial-video-meta{display:flex;justify-content:space-between;gap:10px;margin:11px 2px 14px;color:#cbb278;font-size:9px;font-weight:700;letter-spacing:1.5px}.tutorial-footnote{margin-bottom:10px}.tutorial-open-link{display:inline-flex;align-items:center;gap:8px;color:#d3b979;font-size:11px;text-decoration:none}.tutorial-open-link svg{transform:rotate(180deg)}
 :root[data-theme="light"] .tutorial-video-wrap{border-color:#d5c39d}:root[data-theme="light"] .tutorial-video-meta,:root[data-theme="light"] .tutorial-open-link{color:#8b6b32}
+
+/* The Standard: give the five promises a stronger Roman-inspired presence */
+.standard-code-list{gap:12px}
+.standard-code-item{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:88px;
+  padding:16px 15px;
+  gap:13px;
+  border:1px solid rgba(201,165,95,.48);
+  border-radius:14px;
+  background:
+    linear-gradient(105deg,rgba(183,145,76,.13),transparent 25%,transparent 75%,rgba(183,145,76,.08)),
+    radial-gradient(ellipse at 50% 0%,rgba(207,174,112,.10),transparent 65%),
+    linear-gradient(145deg,#28251f 0%,#1d1c1a 48%,#24211b 100%);
+  box-shadow:inset 0 1px 0 rgba(255,235,190,.13),inset 0 -1px 0 rgba(0,0,0,.65),0 7px 18px rgba(0,0,0,.24),0 0 13px rgba(177,137,65,.08);
+  transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease;
+}
+.standard-code-item::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  left:12px;
+  right:12px;
+  top:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(238,202,132,.9),transparent);
+  box-shadow:0 0 9px rgba(220,176,94,.65);
+}
+.standard-code-item::after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  opacity:.18;
+  pointer-events:none;
+  background:repeating-linear-gradient(135deg,transparent 0 18px,rgba(230,211,174,.035) 19px,transparent 20px 36px);
+}
+.standard-code-number{
+  width:43px;
+  flex:0 0 43px;
+  height:43px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(207,174,112,.48);
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(184,145,72,.19),rgba(31,29,24,.92) 72%);
+  color:#e0c17e;
+  font-family:'Playfair Display',Georgia,serif;
+  font-size:16px;
+  letter-spacing:.02em;
+  box-shadow:inset 0 1px 5px rgba(255,226,164,.08),0 0 10px rgba(191,151,77,.12);
+}
+.standard-code-icon{
+  width:48px;
+  height:48px;
+  flex:0 0 48px;
+  border:1px solid rgba(213,177,105,.56);
+  border-radius:13px;
+  color:#e2c17d;
+  background:linear-gradient(145deg,rgba(199,158,82,.24),rgba(91,69,35,.16));
+  box-shadow:inset 0 1px 0 rgba(255,236,190,.12),0 0 12px rgba(190,145,66,.12);
+}
+.standard-code-icon svg{width:22px;height:22px;filter:drop-shadow(0 1px 3px rgba(226,190,119,.22))}
+.standard-code-copy h3{
+  color:#f4eee2;
+  font-size:15px;
+  font-weight:700;
+  letter-spacing:.005em;
+  line-height:1.35;
+}
+.standard-code-copy p{
+  color:#b5aa94;
+  font-size:11px;
+  letter-spacing:.015em;
+  margin-top:5px;
+}
+.standard-code-mark{
+  color:#d5b675;
+  opacity:.95;
+  filter:drop-shadow(0 0 5px rgba(205,164,91,.28));
+}
+.standard-code-item:focus-within{
+  outline:2px solid rgba(218,184,119,.65);
+  outline-offset:3px;
+}
+.standard-principle{
+  border-color:rgba(195,164,105,.42);
+  background:
+    radial-gradient(ellipse at 100% 0%,rgba(183,147,78,.12),transparent 55%),
+    linear-gradient(145deg,rgba(183,147,78,.10),#1c1b19 70%);
+}
+@media(max-width:420px){
+  .standard-code-list{gap:10px}
+  .standard-code-item{min-height:82px;padding:13px 11px;gap:10px;border-radius:13px}
+  .standard-code-number{width:37px;height:37px;flex-basis:37px;font-size:14px}
+  .standard-code-icon{width:42px;height:42px;flex-basis:42px;border-radius:11px}
+  .standard-code-copy h3{font-size:14px}
+  .standard-code-copy p{font-size:10px}
+}
+
