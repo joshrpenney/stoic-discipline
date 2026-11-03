@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { arrayUnion, doc, onSnapshot, setDoc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { arrayUnion, collection, doc, limit, onSnapshot, orderBy, query, setDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { ArrowRight, Dumbbell, Footprints, Plus, Save, Target, Trophy, X } from "lucide-react";
 
 const STRENGTH_GOALS = ["Bench press","Squat","Deadlift","Overhead press","Pull-ups","Push-ups","Custom strength exercise"];
@@ -34,6 +34,8 @@ export default function Training({user,db}) {
   const [importBusy,setImportBusy]=useState(false);
   const [importProgress,setImportProgress]=useState({count:0,page:0});
   const [importSummary,setImportSummary]=useState(null);
+  const [runActivities,setRunActivities]=useState([]);
+  const [activitiesLoading,setActivitiesLoading]=useState(true);
   const [category,setCategory]=useState("Strength");
   const [showAdd,setShowAdd]=useState(false);
   const [showSettings,setShowSettings]=useState(false);
@@ -123,6 +125,15 @@ export default function Training({user,db}) {
     setLoading(false);
   },e=>{setError("Your performance goals could not be loaded: "+e.message);setLoading(false);}),[user.uid]);
 
+  useEffect(()=>{
+    const activitiesRef=collection(db,"users",user.uid,"trainingActivities");
+    const activitiesQuery=query(activitiesRef,orderBy("startDate","desc"),limit(500));
+    return onSnapshot(activitiesQuery,snap=>{
+      setRunActivities(snap.docs.map(item=>({id:item.id,...item.data()})));
+      setActivitiesLoading(false);
+    },e=>{setActivitiesLoading(false);setError("Your imported running history could not be loaded: "+e.message);});
+  },[db,user.uid]);
+
   const saveGoals=async(next,nextAchievements=achievements,newCelebration=null)=>{
     setSaving(true);setError("");setNotice("");
     try{await setDoc(ref,{performanceGoals:next,performanceAchievements:nextAchievements,achievementFeatures:arrayUnion("Physical Excellence"),updatedAt:serverTimestamp()},{merge:true});setGoals(next);setAchievements(nextAchievements);setNotice("Performance goals saved.");setShowAdd(false);setEditing(null);if(newCelebration)setCelebration(newCelebration);}
@@ -192,6 +203,36 @@ export default function Training({user,db}) {
           {importBusy&&<p className="performance-input-hint">Imported {importProgress.count} activities · page {importProgress.page}</p>}
           {importSummary&&!importBusy&&<p className="performance-input-hint">Last import: {importSummary.count} activities.</p>}
         </>}
+      </section>
+      <section className="performance-dashboard-section">
+        <div className="performance-section-heading"><div><p className="eyebrow">YOUR RUNNING RECORD</p><h2>Running overview</h2></div><span className="performance-status">{activitiesLoading?"Loading…":runActivities.length+" runs"}</span></div>
+        {activitiesLoading?<p className="performance-empty">Loading your imported runs…</p>:runActivities.length?(()=>{
+          const totalKm=runActivities.reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
+          const now=new Date();
+          const monday=new Date(now);monday.setHours(0,0,0,0);monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
+          const weekKm=runActivities.filter(a=>new Date(a.startDate)>=monday).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
+          const weeks=Array.from({length:8},(_,i)=>{
+            const start=new Date(monday);start.setDate(start.getDate()-(7*(7-i)));
+            const end=new Date(start);end.setDate(end.getDate()+7);
+            const km=runActivities.filter(a=>{const d=new Date(a.startDate);return d>=start&&d<end;}).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
+            return {label:start.toLocaleDateString("en-GB",{day:"numeric",month:"short"}),km};
+          });
+          const maxKm=Math.max(1,...weeks.map(w=>w.km));
+          const pace=a=>a.distance>0&&a.movingTime>0?timeLabel(Math.round(a.movingTime/(a.distance/1000)))+"/km":"—";
+          return <>
+            <div className="performance-running-stats">
+              <article><small>TOTAL DISTANCE</small><strong>{totalKm.toLocaleString("en-GB",{maximumFractionDigits:0})} km</strong><span>Last four years</span></article>
+              <article><small>THIS WEEK</small><strong>{weekKm.toFixed(1)} km</strong><span>{runActivities.filter(a=>new Date(a.startDate)>=monday).length} runs</span></article>
+              <article><small>ACTIVITIES</small><strong>{runActivities.length}</strong><span>Imported from Strava</span></article>
+            </div>
+            <div className="performance-mileage-chart"><div className="performance-chart-title"><strong>Weekly distance</strong><small>Previous 8 weeks · km</small></div>
+              <div className="performance-mileage-bars">{weeks.map((w,i)=><div className="performance-mileage-bar" key={w.label+i}><div className="performance-mileage-track"><span style={{height:(w.km/maxKm*100)+"%"}}/></div><b>{w.km?w.km.toFixed(0):"0"}</b><small>{w.label}</small></div>)}</div>
+            </div>
+            <div className="performance-recent-runs"><div className="performance-chart-title"><strong>Recent runs</strong><small>Latest Strava activities</small></div>
+              {runActivities.slice(0,6).map(a=><article key={a.id}><div><strong>{a.name||"Run"}</strong><small>{new Date(a.startDate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · {a.sportType||"Run"}</small></div><div><b>{(Number(a.distance||0)/1000).toFixed(2)} km</b><small>{pace(a)}</small></div></article>)}
+            </div>
+          </>;
+        })():<p className="performance-empty">No running activities found yet. Import your Strava history to see your mileage and recent runs here.</p>}
       </section>
       <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">WHAT YOU ARE WORKING TOWARDS</p><h2>Your current standards</h2></div><button type="button" onClick={()=>setShowSettings(true)}>Manage <ArrowRight size={14}/></button></div>
