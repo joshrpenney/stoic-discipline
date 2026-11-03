@@ -552,7 +552,7 @@ export default function App() {
     const activeCategory = {
       "Discipline": true,
       "Knowledge": startedBooks > 0 || achievementRecords.some(item => item.category === "Knowledge"),
-      "Physical Excellence": Boolean((trainingData.achievementFeatures || []).includes("Physical Excellence") || (trainingData.performanceGoals || []).length || (trainingData.performanceAchievements || []).length || achievementRecords.some(item => item.category === "Physical Excellence")),
+      "Physical Excellence": Boolean(trainingDone > 0 || (trainingData.achievementFeatures || []).includes("Physical Excellence") || (trainingData.performanceGoals || []).length || (trainingData.performanceAchievements || []).length || achievementRecords.some(item => item.category === "Physical Excellence")),
       "Personal Growth": true
     };
     const metrics = {
