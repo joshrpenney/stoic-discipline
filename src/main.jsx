@@ -3,6 +3,16 @@ import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import "./styles.css";
 
+function AppBootReady() {
+  useEffect(() => {
+    document.documentElement.dataset.appReady = "true";
+    return () => {
+      delete document.documentElement.dataset.appReady;
+    };
+  }, []);
+  return null;
+}
+
 function OpeningSplash() {
   const [visible, setVisible] = useState(true);
   const [leaving, setLeaving] = useState(false);
@@ -33,6 +43,7 @@ function OpeningSplash() {
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <>
+      <AppBootReady />
       <OpeningSplash />
       <App />
     </>
