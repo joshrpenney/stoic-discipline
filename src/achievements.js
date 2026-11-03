@@ -47,7 +47,7 @@ export const ACHIEVEMENT_DEFINITIONS = [
   { id:"physical-first-record", title:"Getting Stronger", detail:"Record your first personal best.", category:"Physical Excellence", rarity:"Silver", metric:"personalBests", goal:1, icon:"Trophy" },
   { id:"physical-500-sessions", title:"Forged Over Time", detail:"Complete 500 training or movement sessions. Available after earning Unbreakable.", category:"Physical Excellence", rarity:"Legendary", metric:"trainingDone", goal:500, icon:"Dumbbell", requires365DayStreak:true },
 
-  { id:"growth-architect", title:"The Architect", detail:"Create your first scheduled commitment.", category:"Personal Growth", rarity:"Bronze", metric:"scheduledCommitments", goal:1, icon:"Compass" },
+  { id:"growth-architect", title:"The Architect", detail:"Create your first scheduled commitment.", category:"Personal Growth", rarity:"Bronze", metric:"createdScheduledCommitments", goal:1, icon:"Compass" },
   { id:"growth-beyond-intention", title:"Beyond Intention", detail:"Complete 10 daily or scheduled commitments.", category:"Personal Growth", rarity:"Bronze", metric:"growthCompletions", goal:10, icon:"Flag" },
   { id:"growth-priorities", title:"Master of Priorities", detail:"Complete at least one commitment on all seven weekdays.", category:"Personal Growth", rarity:"Silver", metric:"growthWeekdays", goal:7, icon:"CalendarCheck" },
   { id:"growth-excellence", title:"The Pursuit of Excellence", detail:"Complete 50 daily or scheduled commitments.", category:"Personal Growth", rarity:"Silver", metric:"growthCompletions", goal:50, icon:"Medal" },
