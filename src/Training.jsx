@@ -6,6 +6,7 @@ const STRENGTH_GOALS = ["Bench press","Squat","Deadlift","Overhead press","Pull-
 const strengthUnit = name => ["Pull-ups","Push-ups"].includes(name) ? "reps" : "kg";
 const formatValue = (value,unit) => `${value}${unit==="kg"?"kg":unit==="reps"?" reps":""}`;
 const RUNNING_GOALS = ["5K time","10K time","Half-marathon time","Marathon time","Custom distance"];
+const STRAVA_API = "https://stoic-strava-api.joshrpenney.workers.dev";
 const newId = () => globalThis.crypto?.randomUUID?.() || String(Date.now());
 
 function seconds(value) {
@@ -28,6 +29,8 @@ export default function Training({user,db}) {
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
+  const [strava,setStrava]=useState({loading:true,connected:false,athlete:null});
+  const [stravaBusy,setStravaBusy]=useState(false);
   const [category,setCategory]=useState("Strength");
   const [showAdd,setShowAdd]=useState(false);
   const [showSettings,setShowSettings]=useState(false);
@@ -39,6 +42,45 @@ export default function Training({user,db}) {
   const [targetDate,setTargetDate]=useState("");
   const ref=doc(db,"users",user.uid,"training","data");
 
+  useEffect(()=>{
+    let active=true;
+    const checkStrava=async()=>{
+      try{
+        const token=await user.getIdToken();
+        const response=await fetch(STRAVA_API+"/strava/status",{headers:{Authorization:"Bearer "+token}});
+        const data=await response.json();
+        if(!response.ok) throw new Error(data.error||"Could not check Strava connection.");
+        if(active)setStrava({loading:false,connected:!!data.connected,athlete:data.athlete||null});
+      }catch(e){if(active)setStrava({loading:false,connected:false,athlete:null});}
+    };
+    checkStrava();
+    return()=>{active=false;};
+  },[user.uid]);
+
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const result=params.get("strava");
+    if(!result)return;
+    if(result==="connected"){
+      setNotice("Strava connected successfully. Your running data is ready to import.");
+      setStrava(current=>({...current,connected:true,loading:false}));
+    }else if(result==="denied")setError("Strava connection was cancelled. You can try again whenever you are ready.");
+    else if(result==="error")setError("Strava could not complete the connection. Please try again.");
+    params.delete("strava");
+    const query=params.toString();
+    window.history.replaceState(window.history.state,"",window.location.pathname+(query?"?"+query:"")+window.location.hash);
+  },[]);
+
+  const connectStrava=async()=>{
+    setStravaBusy(true);setError("");setNotice("");
+    try{
+      const token=await user.getIdToken();
+      const response=await fetch(STRAVA_API+"/strava/connect",{headers:{Authorization:"Bearer "+token}});
+      const data=await response.json();
+      if(!response.ok||!data.url)throw new Error(data.error||"Could not start Strava connection.");
+      window.location.assign(data.url);
+    }catch(e){setError(e.message||"Could not connect to Strava.");setStravaBusy(false);}
+  };
   useEffect(()=>onSnapshot(ref,snap=>{
     const data=snap.exists()?snap.data():{};
     setGoals(Array.isArray(data.performanceGoals)?data.performanceGoals.map(g=>g.name==="Pull-ups"?{...g,unit:"reps"}:g):[]);
@@ -105,7 +147,13 @@ export default function Training({user,db}) {
         {!runningGoals.length&&<p className="performance-empty">No running goals yet. Add a distance or race time to work towards.</p>}
       </section>
     </> : <>
-            <section className="performance-dashboard-section">
+            <section className="performance-dashboard-section strava-connection-panel">
+        <div className="performance-section-heading"><div><p className="eyebrow">RUNNING DATA</p><h2>Strava connection</h2></div><span className="performance-status">{strava.loading?"Checking…":strava.connected?"Connected":"Not connected"}</span></div>
+        <p className="muted">{strava.connected?(strava.athlete?.firstname?"Connected to "+strava.athlete.firstname+(strava.athlete.lastname?" "+strava.athlete.lastname:"")+".":"Your Strava account is connected."):"Connect Strava to bring your running history and personal bests into Stoic Discipline. Strength training will continue to be logged here manually."}</p>
+        {!strava.connected&&<button type="button" className="training-primary" disabled={strava.loading||stravaBusy} onClick={connectStrava}>{stravaBusy?"Connecting…":"Connect Strava"}</button>}
+        {strava.connected&&<p className="performance-input-hint">Your running activities will be imported separately. No strength workouts will be taken from Strava.</p>}
+      </section>
+      <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">WHAT YOU ARE WORKING TOWARDS</p><h2>Your current standards</h2></div><button type="button" onClick={()=>setShowSettings(true)}>Manage <ArrowRight size={14}/></button></div>
         {goals.length ? <div className="performance-dashboard-goals">{goals.map(goal=><article key={goal.id} className="performance-mini-goal"><div><span>{goal.category==="Strength"?"STRENGTH":"RUNNING"}</span><strong>{goal.name}</strong></div><div className="performance-mini-values"><div><small>CURRENT</small><b>{formatValue(goal.current,goal.unit)}</b></div><ArrowRight size={14}/><div><small>TARGET</small><b>{formatValue(goal.target,goal.unit)}</b></div></div></article>)}</div> : <p className="performance-empty">No active targets yet. Open Performance settings to choose the strength or running targets you want to pursue.</p>}
       </section>
