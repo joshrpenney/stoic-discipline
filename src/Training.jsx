@@ -186,10 +186,12 @@ export default function Training({user,db}) {
         <div className="performance-section-heading"><div><p className="eyebrow">RUNNING DATA</p><h2>Strava connection</h2></div><span className="performance-status">{strava.loading?"Checking…":strava.connected?"Connected":"Not connected"}</span></div>
         <p className="muted">{strava.connected?(strava.athlete?.firstname?"Connected to "+strava.athlete.firstname+(strava.athlete.lastname?" "+strava.athlete.lastname:"")+".":"Your Strava account is connected."):"Connect Strava to bring your running history and personal bests into Stoic Discipline. Strength training will continue to be logged here manually."}</p>
         {!strava.connected&&<button type="button" className="training-primary" disabled={strava.loading||stravaBusy} onClick={connectStrava}>{stravaBusy?"Connecting…":"Connect Strava"}</button>}
-        {strava.connected&&<p className="performance-input-hint">Import your running history from the last four years. Activities are matched by Strava ID, so repeating the import will update existing records rather than create duplicates. Strength workouts are never imported.</p>
-        <button type="button" className="training-primary" disabled={importBusy} onClick={importStravaHistory}>{importBusy?"Importing running history…":"Import four years of running history"}</button>
-        {importBusy&&<p className="performance-input-hint">Imported {importProgress.count} activities · page {importProgress.page}</p>}
-        {importSummary&&!importBusy&&<p className="performance-input-hint">Last import: {importSummary.count} activities.</p>}}
+        {strava.connected&&<>
+          <p className="performance-input-hint">Import your running history from the last four years. Activities are matched by Strava ID, so repeating the import will update existing records rather than create duplicates. Strength workouts are never imported.</p>
+          <button type="button" className="training-primary" disabled={importBusy} onClick={importStravaHistory}>{importBusy?"Importing running history…":"Import four years of running history"}</button>
+          {importBusy&&<p className="performance-input-hint">Imported {importProgress.count} activities · page {importProgress.page}</p>}
+          {importSummary&&!importBusy&&<p className="performance-input-hint">Last import: {importSummary.count} activities.</p>}
+        </>}
       </section>
       <section className="performance-dashboard-section">
         <div className="performance-section-heading"><div><p className="eyebrow">WHAT YOU ARE WORKING TOWARDS</p><h2>Your current standards</h2></div><button type="button" onClick={()=>setShowSettings(true)}>Manage <ArrowRight size={14}/></button></div>
