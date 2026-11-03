@@ -12,6 +12,36 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // GitHub Pages can briefly serve a cached HTML shell after deployment.
+      // If its module bundle fails to start, retry once with a fresh document URL.
+      (function () {
+        var root = document.getElementById("root");
+        var retryKey = "stoic-boot-retry";
+        var observer = new MutationObserver(function () {
+          if (root && root.childNodes.length) {
+            try { sessionStorage.removeItem(retryKey); } catch (_) {}
+            observer.disconnect();
+          }
+        });
+        if (root) observer.observe(root, { childList: true, subtree: true });
+        window.setTimeout(function () {
+          if (root && root.childNodes.length) return;
+          var alreadyRetried = false;
+          try { alreadyRetried = sessionStorage.getItem(retryKey) === "1"; } catch (_) {}
+          if (!alreadyRetried) {
+            try { sessionStorage.setItem(retryKey, "1"); } catch (_) {}
+            var freshUrl = new URL(window.location.href);
+            freshUrl.searchParams.set("boot", String(Date.now()));
+            window.location.replace(freshUrl.toString());
+            return;
+          }
+          if (root && !root.childNodes.length) {
+            root.innerHTML = '<div style="min-height:70vh;display:grid;place-items:center;padding:24px;background:#151515;color:#e9e2d0;text-align:center;font-family:Arial,sans-serif"><div><h2>Stoic Discipline could not start</h2><p style="color:#aaa">The page did not finish loading. Please try again.</p><button onclick="sessionStorage.removeItem(\'stoic-boot-retry\');location.reload()" style="padding:12px 20px;border:1px solid #c7ad70;border-radius:8px;background:#c7ad70;color:#151515;font-weight:700">Try again</button></div></div>';
+          }
+        }, 8000);
+      })();
+    </script>
     <script type="module" src="./src/main.jsx"></script>
   </body>
 </html>
