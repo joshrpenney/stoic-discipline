@@ -201,7 +201,7 @@ export default {
         const saved = await getStravaToken(uid, env);
         if (!saved) return json({ error: "Connect your Strava account first." }, 404, origin);
         const activityId = url.pathname.split("/").pop();
-        if (!/^\\d+$/.test(activityId)) return json({ error: "Invalid activity ID." }, 400, origin);
+        if (!/^\d+$/.test(activityId)) return json({ error: "Invalid activity ID." }, 400, origin);
         const response = await fetch(`${STRAVA_API}/activities/${activityId}?include_all_efforts=true`, {
           headers: { authorization: `Bearer ${saved.access_token}` }
         });
