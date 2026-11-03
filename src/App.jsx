@@ -638,6 +638,39 @@ export default function App() {
     return () => { cancelled = true; };
   }, [user, db, progressionReady, achievementRecordsReady, achievementInputsReady, achievementSystemReady, progression.achievementSystemVersion, progression.acknowledgedUnlocks, progression.totalXp, progression.totalActions, levelInfo.level, achievements]);
 
+  // Older achievements were imported into the collection without retroactive XP.
+  // Credit those legacy honours once so the profile total matches the earned awards.
+  useEffect(() => {
+    if (!user || !db || !achievementSystemReady || !achievementRecordsReady || !progressionReady) return;
+    if (Number(progression.legacyAchievementXpMigrationVersion) >= 1) return;
+    const legacyRecords = achievementRecords.filter(item => item.legacyImported && !item.legacyXpCredited);
+    (async () => {
+      try {
+        const progressionRef = doc(db, "users", user.uid, "progression", "summary");
+        await runTransaction(db, async transaction => {
+          const progressionSnap = await transaction.get(progressionRef);
+          const current = progressionSnap.exists() ? progressionSnap.data() : {};
+          if (Number(current.legacyAchievementXpMigrationVersion) >= 1) return;
+          const refs = legacyRecords.map(item => doc(db, "users", user.uid, "achievements", item.id));
+          const savedRecords = await Promise.all(refs.map(ref => transaction.get(ref)));
+          let legacyXp = 0;
+          savedRecords.forEach((saved, index) => {
+            if (!saved.exists() || saved.data().legacyXpCredited) return;
+            legacyXp += Math.max(0, Number(saved.data().xpReward) || 0);
+            transaction.set(refs[index], { legacyXpCredited: true }, { merge: true });
+          });
+          transaction.set(progressionRef, {
+            totalXp: Math.max(0, Number(current.totalXp) || 0) + legacyXp,
+            legacyAchievementXpMigrationVersion: 1,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        });
+      } catch (e) {
+        setError("Could not reconcile your earlier achievement XP: " + e.message);
+      }
+    })();
+  }, [user, db, achievementSystemReady, achievementRecordsReady, progressionReady, progression.legacyAchievementXpMigrationVersion, achievementRecords]);
+
   // Unlocks are permanent Firestore records. A transaction awards the XP once,
   // even if multiple app sessions notice the same milestone at the same time.
   useEffect(() => {
