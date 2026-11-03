@@ -7,6 +7,7 @@
   "vars": {
     "STRAVA_CLIENT_ID": "293857",
     "APP_ORIGIN": "https://joshrpenney.github.io",
+    "APP_URL": "https://joshrpenney.github.io/stoic-discipline/",
     "FIREBASE_PROJECT_ID": "stoic-discipline"
   },
   "kv_namespaces": [
