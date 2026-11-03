@@ -36,6 +36,8 @@ export default function Training({user,db}) {
   const [importSummary,setImportSummary]=useState(null);
   const [runActivities,setRunActivities]=useState([]);
   const [activitiesLoading,setActivitiesLoading]=useState(true);
+  const [prSyncBusy,setPrSyncBusy]=useState(false);
+  const [prSyncProgress,setPrSyncProgress]=useState({done:0,total:0});
   const [category,setCategory]=useState("Strength");
   const [showAdd,setShowAdd]=useState(false);
   const [showSettings,setShowSettings]=useState(false);
@@ -134,6 +136,31 @@ export default function Training({user,db}) {
     },e=>{setActivitiesLoading(false);setError("Your imported running history could not be loaded: "+e.message);});
   },[db,user.uid]);
 
+  const syncStravaBestEfforts=async()=>{
+    if(prSyncBusy||!strava.connected||!runActivities.length)return;
+    setPrSyncBusy(true);setError("");setNotice("");
+    setPrSyncProgress({done:0,total:runActivities.length});
+    try{
+      const token=await user.getIdToken();
+      let completed=0;
+      for(const activity of runActivities){
+        if(activity.bestEffortsLoaded){completed++;setPrSyncProgress({done:completed,total:runActivities.length});continue;}
+        const response=await fetch(STRAVA_API+"/strava/activities/"+encodeURIComponent(activity.id),{headers:{Authorization:"Bearer "+token}});
+        const data=await response.json();
+        if(!response.ok)throw new Error(data.error||"Strava could not return detailed activity records.");
+        await setDoc(doc(db,"users",user.uid,"trainingActivities",String(activity.id)),{
+          bestEfforts:Array.isArray(data.bestEfforts)?data.bestEfforts:[],
+          bestEffortsLoaded:true,
+          detailedElevationGain:Number(data.totalElevationGain)||Number(activity.totalElevationGain)||0
+        },{merge:true});
+        completed++;
+        setPrSyncProgress({done:completed,total:runActivities.length});
+      }
+      setNotice("Personal-best data refreshed from "+completed+" running activities.");
+    }catch(e){setError("Personal-best sync stopped: "+(e.message||"Unknown error")+". You can run it again safely.");}
+    finally{setPrSyncBusy(false);}
+  };
+
   const saveGoals=async(next,nextAchievements=achievements,newCelebration=null)=>{
     setSaving(true);setError("");setNotice("");
     try{await setDoc(ref,{performanceGoals:next,performanceAchievements:nextAchievements,achievementFeatures:arrayUnion("Physical Excellence"),updatedAt:serverTimestamp()},{merge:true});setGoals(next);setAchievements(nextAchievements);setNotice("Performance goals saved.");setShowAdd(false);setEditing(null);if(newCelebration)setCelebration(newCelebration);}
@@ -213,11 +240,34 @@ export default function Training({user,db}) {
           const monday=new Date(now);monday.setHours(0,0,0,0);monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
           const weekKm=runActivities.filter(a=>new Date(a.startDate)>=monday&&new Date(a.startDate)<=now).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
           const pace=a=>a.distance>0&&a.movingTime>0?timeLabel(Math.round(a.movingTime/(a.distance/1000)))+"/km":"—";
+          const totalKm=runActivities.reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
+          const longestRun=runActivities.reduce((best,a)=>Number(a.distance)>Number(best?.distance||0)?a:best,null);
+          const fastestRun=runActivities.filter(a=>Number(a.distance)>=3000&&Number(a.movingTime)>0).reduce((best,a)=>!best||Number(a.movingTime)/Number(a.distance)<Number(best.movingTime)/Number(best.distance)?a:best,null);
+          const highestClimb=runActivities.reduce((best,a)=>Number(a.totalElevationGain)>Number(best?.totalElevationGain||0)?a:best,null);
+          const prNames=[{key:"5k",label:"5K"},{key:"10k",label:"10K"},{key:"half-marathon",label:"Half-marathon"},{key:"marathon",label:"Marathon"}];
+          const personalBests=prNames.map(pr=>{
+            const candidates=runActivities.flatMap(a=>(Array.isArray(a.bestEfforts)?a.bestEfforts:[]).filter(e=>String(e.name||"").toLowerCase()===pr.key&&Number(e.elapsedTime)>0).map(e=>({...e,activityName:a.name,activityDate:a.startDate})));
+            return {...pr,best:candidates.sort((a,b)=>Number(a.elapsedTime)-Number(b.elapsedTime))[0]||null};
+          });
+          const detailsLoaded=runActivities.filter(a=>a.bestEffortsLoaded).length;
           return <>
             <div className="performance-running-stats">
               <article><small>THIS YEAR</small><strong>{yearKm.toLocaleString("en-GB",{maximumFractionDigits:0})} km</strong><span>{now.getFullYear()} year to date</span></article>
               <article><small>THIS WEEK</small><strong>{weekKm.toFixed(1)} km</strong><span>{runActivities.filter(a=>{const d=new Date(a.startDate);return d>=monday&&d<=now;}).length} runs</span></article>
               <article><small>ACTIVITIES</small><strong>{runActivities.length}</strong><span>Imported from Strava</span></article>
+            </div>
+            <div className="performance-alltime-summary">
+              <div><small>IMPORTED RUNNING DISTANCE</small><strong>{totalKm.toLocaleString("en-GB",{maximumFractionDigits:1})} km</strong></div>
+              <div><small>LONGEST RUN</small><strong>{longestRun?(Number(longestRun.distance)/1000).toFixed(2)+" km":"—"}</strong><span>{longestRun?.name||""}</span></div>
+              <div><small>FASTEST AVERAGE PACE · RUNS 3KM+</small><strong>{fastestRun?pace(fastestRun):"—"}</strong><span>{fastestRun?.name||""}</span></div>
+              <div><small>BIGGEST CLIMB</small><strong>{highestClimb?Math.round(Number(highestClimb.totalElevationGain)||0)+" m":"—"}</strong><span>{highestClimb?.name||""}</span></div>
+            </div>
+            <div className="performance-alltime-prs">
+              <div className="performance-chart-title"><div><strong>All-time personal bests</strong><small>Strava best efforts in your imported history</small></div></div>
+              {personalBests.map(pr=><article key={pr.key}><div><strong>{pr.label}</strong><small>{pr.best?new Date(pr.best.startDate||pr.best.activityDate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"No recorded effort yet"}</small></div><b>{pr.best?timeLabel(pr.best.elapsedTime):"—"}</b></article>)}
+              <button type="button" className="training-primary" disabled={prSyncBusy||!strava.connected} onClick={syncStravaBestEfforts}>{prSyncBusy?"Checking detailed Strava records…":detailsLoaded===runActivities.length?"Refresh personal-best data":"Calculate all-time personal bests"}</button>
+              {prSyncBusy&&<small className="performance-input-hint">Checking activity {prSyncProgress.done} of {prSyncProgress.total}…</small>}
+              <small className="performance-input-hint">Records are based on Strava's official best-effort data. The current import covers the last four years, so older runs are not included yet.</small>
             </div>
             <div className="performance-recent-runs"><div className="performance-chart-title"><strong>Recent runs</strong><small>Latest Strava activities</small></div>
               {runActivities.slice(0,6).map(a=><article key={a.id}><div><strong>{a.name||"Run"}</strong><small>{new Date(a.startDate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · {a.sportType||"Run"}</small></div><div><b>{(Number(a.distance||0)/1000).toFixed(2)} km</b><small>{pace(a)}</small></div></article>)}
