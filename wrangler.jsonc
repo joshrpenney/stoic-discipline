@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stoic-strava-api",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": true,
+  "vars": {
+    "STRAVA_CLIENT_ID": "293857",
+    "APP_ORIGIN": "https://joshrpenney.github.io",
+    "FIREBASE_PROJECT_ID": "stoic-discipline"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "STRAVA_TOKENS",
+      "id": "a807890b2e924f4b968b33eb89190147"
+    }
+  ]
+}
