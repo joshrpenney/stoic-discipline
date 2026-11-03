@@ -11,35 +11,51 @@
     <title>STOIC — Discipline Journal</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-fallback" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#151515;color:#c7ad70;font-family:Arial,sans-serif;letter-spacing:5px;font-size:13px">
+        <div style="width:54px;height:54px;border:1px solid #8f7848;display:grid;place-items:center;font-family:Georgia,serif;font-size:34px;letter-spacing:0">S</div>
+        <div>STOIC DISCIPLINE</div>
+        <div style="width:34px;height:2px;background:#c7ad70;opacity:.7"></div>
+        <div style="color:#8d8980;font-size:11px;letter-spacing:2px">OPENING YOUR JOURNAL</div>
+      </div>
+    </div>
     <script>
-      // GitHub Pages can briefly serve a cached HTML shell after deployment.
-      // If its module bundle fails to start, retry once with a fresh document URL.
       (function () {
         var root = document.getElementById("root");
+        var ready = false;
         var retryKey = "stoic-boot-retry";
+        function showFailure(message) {
+          if (ready || !root) return;
+          root.innerHTML = '<div style="min-height:100vh;display:grid;place-items:center;padding:28px;background:#151515;color:#e9e2d0;text-align:center;font-family:Arial,sans-serif"><div><div style="color:#c7ad70;letter-spacing:4px">STOIC DISCIPLINE</div><h2>Unable to open your journal</h2><p style="color:#aaa;line-height:1.6">' + message + '</p><button onclick="sessionStorage.removeItem(\'stoic-boot-retry\');location.reload()" style="padding:13px 22px;border:1px solid #c7ad70;border-radius:8px;background:#c7ad70;color:#151515;font-weight:700">Try again</button></div></div>';
+        }
+        window.addEventListener("error", function (event) {
+          if (event.target && event.target !== window) showFailure("A required app file could not be loaded. Please try again.");
+          else if (event.message) showFailure("The app encountered a startup error. Please try again.");
+        }, true);
+        window.addEventListener("unhandledrejection", function () {
+          showFailure("The app could not finish starting. Please try again.");
+        });
         var observer = new MutationObserver(function () {
-          if (root && root.childNodes.length) {
+          if (document.documentElement.dataset.appReady === "true") {
+            ready = true;
             try { sessionStorage.removeItem(retryKey); } catch (_) {}
             observer.disconnect();
           }
         });
-        if (root) observer.observe(root, { childList: true, subtree: true });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-app-ready"] });
         window.setTimeout(function () {
-          if (root && root.childNodes.length) return;
-          var alreadyRetried = false;
-          try { alreadyRetried = sessionStorage.getItem(retryKey) === "1"; } catch (_) {}
-          if (!alreadyRetried) {
+          if (document.documentElement.dataset.appReady === "true") return;
+          var retried = false;
+          try { retried = sessionStorage.getItem(retryKey) === "1"; } catch (_) {}
+          if (!retried) {
             try { sessionStorage.setItem(retryKey, "1"); } catch (_) {}
-            var freshUrl = new URL(window.location.href);
-            freshUrl.searchParams.set("boot", String(Date.now()));
-            window.location.replace(freshUrl.toString());
-            return;
+            var url = new URL(location.href);
+            url.searchParams.set("boot", String(Date.now()));
+            location.replace(url.toString());
+          } else {
+            showFailure("The app did not finish loading. Check your connection and try again.");
           }
-          if (root && !root.childNodes.length) {
-            root.innerHTML = '<div style="min-height:70vh;display:grid;place-items:center;padding:24px;background:#151515;color:#e9e2d0;text-align:center;font-family:Arial,sans-serif"><div><h2>Stoic Discipline could not start</h2><p style="color:#aaa">The page did not finish loading. Please try again.</p><button onclick="sessionStorage.removeItem(\'stoic-boot-retry\');location.reload()" style="padding:12px 20px;border:1px solid #c7ad70;border-radius:8px;background:#c7ad70;color:#151515;font-weight:700">Try again</button></div></div>';
-          }
-        }, 8000);
+        }, 7000);
       })();
     </script>
     <script type="module" src="./src/main.jsx"></script>
