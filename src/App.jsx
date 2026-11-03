@@ -638,33 +638,45 @@ export default function App() {
     return () => { cancelled = true; };
   }, [user, db, progressionReady, achievementRecordsReady, achievementInputsReady, achievementSystemReady, progression.achievementSystemVersion, progression.acknowledgedUnlocks, progression.totalXp, progression.totalActions, levelInfo.level, achievements]);
 
-  // Older achievements were imported into the collection without retroactive XP.
-  // Credit those legacy honours once so the profile total matches the earned awards.
+  // Reconcile legacy achievement XP against the current catalogue. Older versions
+  // could credit retired achievements and stale reward values; this migration
+  // removes that excess and leaves activity XP untouched.
   useEffect(() => {
     if (!user || !db || !achievementSystemReady || !achievementRecordsReady || !progressionReady) return;
-    if (Number(progression.legacyAchievementXpMigrationVersion) >= 1) return;
-    const legacyCandidateIds = [...new Set([
-      ...achievementRecords.filter(item => item.legacyImported).map(item => item.id),
-      ...achievements.filter(item => item.progress >= item.goal).map(item => item.id)
-    ])];
+    if (Number(progression.legacyAchievementXpMigrationVersion) >= 2) return;
+    const currentDefinitions = new Map(ACHIEVEMENT_DEFINITIONS.map(item => [item.id, item]));
     (async () => {
       try {
         const progressionRef = doc(db, "users", user.uid, "progression", "summary");
+        const refs = achievementRecords.map(item => doc(db, "users", user.uid, "achievements", item.id));
         await runTransaction(db, async transaction => {
           const progressionSnap = await transaction.get(progressionRef);
           const current = progressionSnap.exists() ? progressionSnap.data() : {};
-          if (Number(current.legacyAchievementXpMigrationVersion) >= 1) return;
-          const refs = legacyCandidateIds.map(id => doc(db, "users", user.uid, "achievements", id));
+          if (Number(current.legacyAchievementXpMigrationVersion) >= 2) return;
           const savedRecords = await Promise.all(refs.map(ref => transaction.get(ref)));
-          let legacyXp = 0;
+          let previouslyCredited = 0;
+          let correctlyCredited = 0;
+          const updates = [];
           savedRecords.forEach((saved, index) => {
-            if (!saved.exists() || !saved.data().legacyImported || saved.data().legacyXpCredited) return;
-            legacyXp += Math.max(0, Number(saved.data().xpReward) || 0);
-            transaction.set(refs[index], { legacyXpCredited: true }, { merge: true });
+            if (!saved.exists()) return;
+            const record = saved.data();
+            if (!record.legacyImported) return;
+            const definition = currentDefinitions.get(record.id);
+            if (record.legacyXpCredited) {
+              previouslyCredited += Math.max(0, Number(record.xpReward) || 0);
+            }
+            if (!definition) return;
+            const correctReward = RARITY[definition.rarity]?.xp || 0;
+            correctlyCredited += correctReward;
+            updates.push({ ref: refs[index], xpReward: correctReward });
           });
+          const adjustment = correctlyCredited - previouslyCredited;
+          updates.forEach(update => transaction.set(update.ref, {
+            xpReward: update.xpReward, legacyXpCredited: true
+          }, { merge: true }));
           transaction.set(progressionRef, {
-            totalXp: Math.max(0, Number(current.totalXp) || 0) + legacyXp,
-            legacyAchievementXpMigrationVersion: 1,
+            totalXp: Math.max(0, (Number(current.totalXp) || 0) + adjustment),
+            legacyAchievementXpMigrationVersion: 2,
             updatedAt: serverTimestamp()
           }, { merge: true });
         });
