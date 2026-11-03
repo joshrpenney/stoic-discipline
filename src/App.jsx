@@ -5,7 +5,7 @@ import {
 } from "firebase/auth";
 import {
   addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, where, startAt, endAt, limit,
-  serverTimestamp, setDoc, updateDoc, runTransaction
+  serverTimestamp, setDoc, updateDoc, runTransaction, writeBatch
 } from "firebase/firestore";
 import { Activity, BookOpen, Check, Circle, Dumbbell, Flame, LogOut, Plus, ShieldCheck, Sunrise, Moon, Footprints, Target, Trash2, Trophy, Award, Star, Sparkles, Settings, Pencil, ArrowLeft, ChevronRight, ChevronDown, Users, UserPlus, UserCheck, Search, RefreshCw, Bell, X, Shield, Swords, Flame as FlameRank, Mountain, Eye, Compass, Crown, Sun, Gem, Infinity as InfinityIcon, Landmark, CalendarCheck, Bookmark, CalendarDays, Library, GraduationCap, ScrollText, Brain, BookMarked, Medal, Timer, Route, Flag } from "lucide-react";
 import { auth, db, firebaseConfigured } from "./firebase";
@@ -1048,6 +1048,44 @@ export default function App() {
     finally { setBusy(false); }
   }
 
+  async function setTestStreakTo364() {
+    if (!user || !db || user.displayName !== "Josh Test") return;
+    if (!window.confirm("Set the Josh Test account to a 364-day streak? This creates 364 consecutive completed test days ending yesterday. Today's activity is left untouched, and XP totals are not changed.")) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      const nonNegotiables = habits.filter(item => item.active !== false && item.nonNegotiable);
+      if (!nonNegotiables.length) throw new Error("Add at least one active non-negotiable before setting the test streak.");
+      const dueIds = nonNegotiables.map(item => item.id);
+      const logsRef = collection(db, "users", user.uid, "dailyLogs");
+      const existingSnap = await getDocs(logsRef);
+      const existingByDate = new Map(existingSnap.docs.map(item => [item.id, item.data()]));
+      const batch = writeBatch(db);
+      const cursor = new Date(); cursor.setHours(12,0,0,0);
+      for (let day = 1; day <= 364; day++) {
+        const date = new Date(cursor);
+        date.setDate(date.getDate() - day);
+        const key = dayKey(date);
+        const previous = existingByDate.get(key) || {};
+        const completed = { ...(previous.completed || {}) };
+        dueIds.forEach(id => { completed[id] = true; });
+        batch.set(doc(db, "users", user.uid, "dailyLogs", key), {
+          ...previous,
+          date: key,
+          completed,
+          dueNonNegotiableIds: dueIds,
+          testStreakSeed: true,
+          updatedAt: serverTimestamp()
+        });
+      }
+      await batch.commit();
+      setNotice("Josh Test is now set to a 364-day streak. Complete today's non-negotiables to reach 365 and unlock the hidden achievements.");
+    } catch (e) {
+      setError("Could not set the test streak: " + e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function resetTestDay() {
     if (!user || !db || user.displayName !== "Josh Test") return;
     if (!window.confirm("Reset today's test activity? This reverses today's commitment XP and actions and reopens any books completed today. Earned achievements remain permanent. Historical days are untouched.")) return;
@@ -1724,7 +1762,7 @@ export default function App() {
           </section>
           <p className="settings-note">Changes apply to your daily checklist and Non-negotiables page. Past completion records and earned XP are retained when you archive a commitment.</p>
         </>}
-        {settingsSection === "menu" && user?.displayName === "Josh Test" && <section className="settings-panel test-reset-panel"><p className="eyebrow">TEST ACCOUNT ONLY</p><h2>Daily test reset</h2><p className="settings-description">Undo today's test activity so you can repeat commitment, rank and streak celebrations. Earned achievement honours remain permanent. Previous days are unchanged.</p><button type="button" className="secondary" disabled={busy} onClick={resetTestDay}><RefreshCw size={16}/>{busy?"Resetting…":"Reset today's test activity"}</button></section>}
+        {settingsSection === "menu" && user?.displayName === "Josh Test" && <section className="settings-panel test-reset-panel"><p className="eyebrow">TEST ACCOUNT ONLY</p><h2>365-day achievement test</h2><p className="settings-description">Set this test account to 364 consecutive days. Complete today's non-negotiables to reach 365 and test the hidden achievement unlock. XP totals are left unchanged.</p><button type="button" className="secondary" disabled={busy} onClick={setTestStreakTo364}><Flame size={16}/>{busy?"Preparing test streak…":"Set test streak to 364 days"}</button></section>}
         {settingsSection === "menu" && <div className="settings-panel reading-pace-panel"><p className="eyebrow">READING PREFERENCES</p><h2>Reading pace</h2><p className="settings-description">Set your personal reading speed. The app uses it to estimate how long books will take.</p><div className="settings-reading-pace"><label htmlFor="personal-reading-wpm">Words per minute</label><input id="personal-reading-wpm" type="number" min="20" max="2000" value={readingWpm} onChange={e=>setReadingWpm(Math.max(20,Math.min(2000,Number(e.target.value)||20)))}/><small>Current estimate: {wordsPerPage} words per page.</small></div></div>}
 
       </>}
