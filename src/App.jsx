@@ -539,6 +539,16 @@ export default function App() {
     }).length;
     const pagesRead = books.reduce((total, book) => total + (book.finishedAt ? Number(book.pageCount) || 0 : Math.max(0, (Number(book.currentPage) || 1) - 1)), 0);
     const personalBests = (trainingData.performanceAchievements || []).filter(item => !item.milestone).length;
+    const habitsById = new Map(habits.map(habit => [habit.id, habit]));
+    const completedGrowthEntries = dailyLogs.flatMap(log => Object.entries(log.completed || {})
+      .filter(([id, done]) => done === true && habitsById.has(id))
+      .map(([id]) => ({ habit: habitsById.get(id), date: log.date || log.id })))
+      .filter(entry => entry.habit.category !== "Training & Movement");
+    const growthWeekdays = new Set(completedGrowthEntries.map(entry => {
+      const date = new Date(entry.date + "T12:00:00");
+      return Number.isNaN(date.getTime()) ? null : date.getDay();
+    }).filter(day => day !== null)).size;
+    const growthCategories = new Set(completedGrowthEntries.map(entry => entry.habit.category || "Other")).size;
     const activeCategory = {
       "Discipline": true,
       "Knowledge": startedBooks > 0 || achievementRecords.some(item => item.category === "Knowledge"),
@@ -548,7 +558,11 @@ export default function App() {
     const metrics = {
       actions, qualifyingDays, streak, startedBooks, finishedBooks, pagesRead, trainingDone, personalBests,
       nonNegotiables: nonNegotiableHabits.length,
-      scheduledCommitments: flexibleHabits.length
+      scheduledCommitments: flexibleHabits.length,
+      createdScheduledCommitments: habits.filter(habit => !habit.nonNegotiable).length,
+      growthCompletions: completedGrowthEntries.length,
+      growthWeekdays,
+      growthCategories
     };
     const earnedIds = new Set(achievementRecords.map(item => item.id));
     const iconMap = { Star, ShieldCheck, Flame, Crown, BookOpen, Library, GraduationCap, Dumbbell, Trophy, Target, Compass, Landmark, CalendarCheck, Bookmark, ScrollText, Brain, BookMarked, Footprints, Medal, Timer, Route, Sunrise, Flag, Infinity: InfinityIcon, Shield, Mountain, Gem };
@@ -567,17 +581,43 @@ export default function App() {
       const record = achievementRecords.find(saved => saved.id === item.id);
       return { ...item, group: item.category, icon: iconMap[item.icon] || Award, progress: complete ? 1 : 0, unlocked: !!record, progressLabel: (complete ? 1 : 0) + "/1", earnedAt: record?.unlockedAt || null, xpReward: RARITY[item.rarity]?.xp || 0, active: item.metric === "mastery:all" ? true : activeCategory[item.category] };
     });
-    return [...base, ...mastery].filter(item => item.active);
+    const has365DayGateway = earnedIds.has("discipline-streak-365");
+    return [...base, ...mastery].filter(item => item.active && (!item.requires365DayStreak || has365DayGateway));
   }, [progression.totalActions, progression.totalXp, streak, books, habits, dailyLogs, trainingData, achievementRecords, nonNegotiableHabits.length, flexibleHabits.length]);
 
   // Existing users keep their historical accomplishments. The first migration
   // records anything already achieved without granting retroactive XP.
   useEffect(() => {
     if (!user || !db || !progressionReady || !achievementRecordsReady || !achievementInputsReady || achievementSystemReady) return;
-    if (Number(progression.achievementSystemVersion) === 1) { setAchievementSystemReady(true); return; }
+    if (Number(progression.achievementSystemVersion) === 2) { setAchievementSystemReady(true); return; }
     let cancelled = false;
     (async () => {
       try {
+        // The old Personal Growth mastery was awarded after only three setup
+        // milestones. Revoke it and its XP where the new full collection is not met.
+        const oldGrowthMastery = achievementRecords.find(item => item.id === "growth-master-of-self");
+        const currentGrowthMastery = achievements.find(item => item.id === "growth-master-of-self");
+        if (oldGrowthMastery && currentGrowthMastery && currentGrowthMastery.progress < currentGrowthMastery.goal) {
+          await runTransaction(db, async transaction => {
+            const achievementRef = doc(db, "users", user.uid, "achievements", "growth-master-of-self");
+            const progressionRef = doc(db, "users", user.uid, "progression", "summary");
+            const [saved, progressionSnap] = await Promise.all([transaction.get(achievementRef), transaction.get(progressionRef)]);
+            if (!saved.exists()) return;
+            const p = progressionSnap.exists() ? progressionSnap.data() : {};
+            const xpToReverse = Math.max(0, Number(saved.data().xpReward) || 1000);
+            const acknowledged = p.acknowledgedUnlocks || {};
+            transaction.delete(achievementRef);
+            transaction.set(progressionRef, {
+              totalXp: Math.max(0, (Number(p.totalXp) || 0) - xpToReverse),
+              acknowledgedUnlocks: {
+                ...acknowledged,
+                achievements: (Array.isArray(acknowledged.achievements) ? acknowledged.achievements : []).filter(title => title !== "Master of Self")
+              },
+              updatedAt: serverTimestamp()
+            }, { merge: true });
+          });
+          return;
+        }
         const alreadyEarned = achievements.filter(item => item.progress >= item.goal && !item.mastery);
         await Promise.all(alreadyEarned.map(item => setDoc(doc(db, "users", user.uid, "achievements", item.id), {
           id: item.id, title: item.title, detail: item.detail, category: item.category,
@@ -591,7 +631,7 @@ export default function App() {
           actions: Number(progression.totalActions) || 0
         };
         await setDoc(doc(db, "users", user.uid, "progression", "summary"), {
-          achievementSystemVersion: 1, acknowledgedUnlocks: acknowledged, updatedAt: serverTimestamp()
+          achievementSystemVersion: 2, acknowledgedUnlocks: acknowledged, updatedAt: serverTimestamp()
         }, { merge: true });
         if (!cancelled) { previousUnlockState.current = acknowledged; setAchievementSystemReady(true); }
       } catch (e) { if (!cancelled) setError("Could not prepare your achievement collection: " + e.message); }
@@ -618,7 +658,7 @@ export default function App() {
           rarity: item.rarity, xpReward: item.xpReward, progressAtUnlock: item.goal,
           legacyImported: false, unlockedAt: serverTimestamp()
         });
-        transaction.set(progressionRef, { totalXp, totalActions: Number(p.totalActions) || 0, xpSystemVersion: 2, achievementSystemVersion: 1, updatedAt: serverTimestamp() }, { merge: true });
+        transaction.set(progressionRef, { totalXp, totalActions: Number(p.totalActions) || 0, xpSystemVersion: 2, achievementSystemVersion: 2, updatedAt: serverTimestamp() }, { merge: true });
         return true;
       }).catch(e => setError("Could not unlock " + item.title + ": " + e.message))
         .finally(() => achievementAwardingRef.current.delete(item.id));
