@@ -542,13 +542,12 @@ export default function App() {
     const habitsById = new Map(habits.map(habit => [habit.id, habit]));
     const completedGrowthEntries = dailyLogs.flatMap(log => Object.entries(log.completed || {})
       .filter(([id, done]) => done === true && habitsById.has(id))
-      .map(([id]) => ({ habit: habitsById.get(id), date: log.date || log.id })))
-      .filter(entry => entry.habit.category !== "Training & Movement");
+      .map(([id]) => ({ habit: habitsById.get(id), date: log.date || log.id })));
     const growthWeekdays = new Set(completedGrowthEntries.map(entry => {
       const date = new Date(entry.date + "T12:00:00");
       return Number.isNaN(date.getTime()) ? null : date.getDay();
     }).filter(day => day !== null)).size;
-    const growthCategories = new Set(completedGrowthEntries.map(entry => entry.habit.category || "Other")).size;
+    const growthCategories = new Set(completedGrowthEntries.filter(entry => entry.habit.category !== "Training & Movement").map(entry => entry.habit.category || "Other")).size;
     const activeCategory = {
       "Discipline": true,
       "Knowledge": startedBooks > 0 || achievementRecords.some(item => item.category === "Knowledge"),
