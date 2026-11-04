@@ -240,7 +240,6 @@ export default function Training({user,db}) {
           const monday=new Date(now);monday.setHours(0,0,0,0);monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
           const weekKm=runActivities.filter(a=>new Date(a.startDate)>=monday&&new Date(a.startDate)<=now).reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
           const pace=a=>a.distance>0&&a.movingTime>0?timeLabel(Math.round(a.movingTime/(a.distance/1000)))+"/km":"—";
-          const totalKm=runActivities.reduce((sum,a)=>sum+(Number(a.distance)||0),0)/1000;
           const longestRun=runActivities.reduce((best,a)=>Number(a.distance)>Number(best?.distance||0)?a:best,null);
           const fastestRun=runActivities.filter(a=>Number(a.distance)>=3000&&Number(a.movingTime)>0).reduce((best,a)=>!best||Number(a.movingTime)/Number(a.distance)<Number(best.movingTime)/Number(best.distance)?a:best,null);
           const highestClimb=runActivities.reduce((best,a)=>Number(a.totalElevationGain)>Number(best?.totalElevationGain||0)?a:best,null);
@@ -257,7 +256,6 @@ export default function Training({user,db}) {
               <article><small>ACTIVITIES</small><strong>{runActivities.length}</strong><span>Imported from Strava</span></article>
             </div>
             <div className="performance-alltime-summary">
-              <div><small>IMPORTED RUNNING DISTANCE</small><strong>{totalKm.toLocaleString("en-GB",{maximumFractionDigits:1})} km</strong></div>
               <div><small>LONGEST RUN</small><strong>{longestRun?(Number(longestRun.distance)/1000).toFixed(2)+" km":"—"}</strong><span>{longestRun?.name||""}</span></div>
               <div><small>FASTEST AVERAGE PACE · RUNS 3KM+</small><strong>{fastestRun?pace(fastestRun):"—"}</strong><span>{fastestRun?.name||""}</span></div>
               <div><small>BIGGEST CLIMB</small><strong>{highestClimb?Math.round(Number(highestClimb.totalElevationGain)||0)+" m":"—"}</strong><span>{highestClimb?.name||""}</span></div>
