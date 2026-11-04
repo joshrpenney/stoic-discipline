@@ -1967,3 +1967,175 @@ button:focus:not(:focus-visible), a:focus:not(:focus-visible), [role="button"]:f
 :root[data-theme="lavender"] .progress-card,:root[data-theme="lavender"] .level-card,:root[data-theme="lavender"] .nonneg-overview{background:linear-gradient(135deg,#e6e1f1,#fcfbff 78%);border-color:#d0c8e4}
 :root[data-theme="lavender"] .level-copy h2,:root[data-theme="lavender"] .level-copy p:last-child,:root[data-theme="lavender"] .level-foot,:root[data-theme="lavender"] .progress-heading h2,:root[data-theme="lavender"] .progress-foot{color:#49415f}
 :root[data-theme="lavender"] .habit,:root[data-theme="lavender"] .achievement,:root[data-theme="lavender"] .book-item,:root[data-theme="lavender"] .settings-habit,:root[data-theme="lavender"] .add-form,:root[data-theme="lavender"] .book-form,:root[data-theme="lavender"] .tab-summary{background:#fcfbff;border-color:#dfd9ed;color:#2e293a}
+
+
+/* Light palettes: replace leftover charcoal surfaces with theme-matched soft cards.
+   These overrides intentionally apply only to the three light themes. */
+:root[data-theme="light"]{
+  --soft-card:#fffdf8;--soft-card-alt:#f5efe3;--soft-icon:#eee5d4;--soft-icon-strong:#e8dcc4;
+  --soft-border:#e2d5bd;--soft-ink:#393329;--soft-muted:#827969;--soft-accent:#96733c;
+  --soft-completed:#e8eee6;--soft-completed-ink:#536b57;--soft-tint:#f1e7d4;
+}
+:root[data-theme="rose"]{
+  --soft-card:#fff9fa;--soft-card-alt:#f8e9ec;--soft-icon:#f0dce1;--soft-icon-strong:#e9cbd3;
+  --soft-border:#e8cfd5;--soft-ink:#49343b;--soft-muted:#927780;--soft-accent:#a66576;
+  --soft-completed:#e7efe8;--soft-completed-ink:#58745f;--soft-tint:#f3e1e5;
+}
+:root[data-theme="lavender"]{
+  --soft-card:#fcfaff;--soft-card-alt:#eeeaf7;--soft-icon:#e4def1;--soft-icon-strong:#d9d0eb;
+  --soft-border:#dcd4eb;--soft-ink:#39334b;--soft-muted:#817891;--soft-accent:#796b9d;
+  --soft-completed:#e6eee9;--soft-completed-ink:#557366;--soft-tint:#e9e3f3;
+}
+:root[data-theme="light"] .habit,
+:root[data-theme="rose"] .habit,
+:root[data-theme="lavender"] .habit,
+:root[data-theme="light"] .achievement,
+:root[data-theme="rose"] .achievement,
+:root[data-theme="lavender"] .achievement,
+:root[data-theme="light"] .book-item,
+:root[data-theme="rose"] .book-item,
+:root[data-theme="lavender"] .book-item,
+:root[data-theme="light"] .settings-habit,
+:root[data-theme="rose"] .settings-habit,
+:root[data-theme="lavender"] .settings-habit,
+:root[data-theme="light"] .add-form,
+:root[data-theme="rose"] .add-form,
+:root[data-theme="lavender"] .add-form,
+:root[data-theme="light"] .book-form,
+:root[data-theme="rose"] .book-form,
+:root[data-theme="lavender"] .book-form,
+:root[data-theme="light"] .tab-summary,
+:root[data-theme="rose"] .tab-summary,
+:root[data-theme="lavender"] .tab-summary,
+:root[data-theme="light"] .commitment-group,
+:root[data-theme="rose"] .commitment-group,
+:root[data-theme="lavender"] .commitment-group,
+:root[data-theme="light"] .commitment-group-panel,
+:root[data-theme="rose"] .commitment-group-panel,
+:root[data-theme="lavender"] .commitment-group-panel,
+:root[data-theme="light"] .nonneg-group-panel,
+:root[data-theme="rose"] .nonneg-group-panel,
+:root[data-theme="lavender"] .nonneg-group-panel,
+:root[data-theme="light"] .today-page .today-nonneg-card,
+:root[data-theme="rose"] .today-page .today-nonneg-card,
+:root[data-theme="lavender"] .today-page .today-nonneg-card,
+:root[data-theme="light"] .today-page .principle-card,
+:root[data-theme="rose"] .today-page .principle-card,
+:root[data-theme="lavender"] .today-page .principle-card,
+:root[data-theme="light"] .today-page .progress-card,
+:root[data-theme="rose"] .today-page .progress-card,
+:root[data-theme="lavender"] .today-page .progress-card,
+:root[data-theme="light"] .today-page .level-card,
+:root[data-theme="rose"] .today-page .level-card,
+:root[data-theme="lavender"] .today-page .level-card,
+:root[data-theme="light"] .nonneg-page .nonneg-habit,
+:root[data-theme="rose"] .nonneg-page .nonneg-habit,
+:root[data-theme="lavender"] .nonneg-page .nonneg-habit,
+:root[data-theme="light"] .nonneg-page .nonneg-reminder,
+:root[data-theme="rose"] .nonneg-page .nonneg-reminder,
+:root[data-theme="lavender"] .nonneg-page .nonneg-reminder,
+:root[data-theme="light"] .today-summary-card,
+:root[data-theme="rose"] .today-summary-card,
+:root[data-theme="lavender"] .today-summary-card,
+:root[data-theme="light"] .weekly-commitment-overview,
+:root[data-theme="rose"] .weekly-commitment-overview,
+:root[data-theme="lavender"] .weekly-commitment-overview,
+:root[data-theme="light"] .performance-alltime-prs,
+:root[data-theme="rose"] .performance-alltime-prs,
+:root[data-theme="lavender"] .performance-alltime-prs,
+:root[data-theme="light"] .performance-celebration,
+:root[data-theme="rose"] .performance-celebration,
+:root[data-theme="lavender"] .performance-celebration,
+:root[data-theme="light"] .streak-celebration-frame,
+:root[data-theme="rose"] .streak-celebration-frame,
+:root[data-theme="lavender"] .streak-celebration-frame,
+:root[data-theme="light"] .unlock-celebration-panel,
+:root[data-theme="rose"] .unlock-celebration-panel,
+:root[data-theme="lavender"] .unlock-celebration-panel{
+  background:var(--soft-card)!important;border-color:var(--soft-border)!important;color:var(--soft-ink)!important;
+  box-shadow:0 5px 18px rgba(55,42,35,.055);
+}
+:root[data-theme="light"] .habit-icon,:root[data-theme="rose"] .habit-icon,:root[data-theme="lavender"] .habit-icon,
+:root[data-theme="light"] .achievement-icon,:root[data-theme="rose"] .achievement-icon,:root[data-theme="lavender"] .achievement-icon,
+:root[data-theme="light"] .standard-code-icon,:root[data-theme="rose"] .standard-code-icon,:root[data-theme="lavender"] .standard-code-icon,
+:root[data-theme="light"] .today-training-entry-icon,:root[data-theme="rose"] .today-training-entry-icon,:root[data-theme="lavender"] .today-training-entry-icon,
+:root[data-theme="light"] .performance-category-icon,:root[data-theme="rose"] .performance-category-icon,:root[data-theme="lavender"] .performance-category-icon,
+:root[data-theme="light"] .performance-achievement-icon,:root[data-theme="rose"] .performance-achievement-icon,:root[data-theme="lavender"] .performance-achievement-icon,
+:root[data-theme="light"] .command-domain-icon,:root[data-theme="rose"] .command-domain-icon,:root[data-theme="lavender"] .command-domain-icon,
+:root[data-theme="light"] .command-record-icon,:root[data-theme="rose"] .command-record-icon,:root[data-theme="lavender"] .command-record-icon{
+  background:var(--soft-icon)!important;border-color:var(--soft-border)!important;color:var(--soft-accent)!important;box-shadow:none!important;
+}
+:root[data-theme="light"] .habit.completed,:root[data-theme="rose"] .habit.completed,:root[data-theme="lavender"] .habit.completed,
+:root[data-theme="light"] .nonneg-habit.completed,:root[data-theme="rose"] .nonneg-habit.completed,:root[data-theme="lavender"] .nonneg-habit.completed,
+:root[data-theme="light"] .achievement.unlocked,:root[data-theme="rose"] .achievement.unlocked,:root[data-theme="lavender"] .achievement.unlocked{
+  background:var(--soft-completed)!important;border-color:#cbd9ca!important;
+}
+:root[data-theme="light"] .habit.completed .habit-icon,:root[data-theme="rose"] .habit.completed .habit-icon,:root[data-theme="lavender"] .habit.completed .habit-icon,
+:root[data-theme="light"] .nonneg-habit.completed .habit-icon,:root[data-theme="rose"] .nonneg-habit.completed .habit-icon,:root[data-theme="lavender"] .nonneg-habit.completed .habit-icon{
+  background:#dce9dc!important;color:var(--soft-completed-ink)!important;
+}
+:root[data-theme="light"] .standard-code-item,:root[data-theme="rose"] .standard-code-item,:root[data-theme="lavender"] .standard-code-item{
+  background:linear-gradient(135deg,var(--soft-card),var(--soft-card-alt))!important;
+  border-color:var(--soft-border)!important;box-shadow:0 5px 16px rgba(55,42,35,.07)!important;
+}
+:root[data-theme="light"] .standard-code-number,:root[data-theme="rose"] .standard-code-number,:root[data-theme="lavender"] .standard-code-number{
+  color:var(--soft-accent)!important;text-shadow:none!important;
+}
+:root[data-theme="light"] .standard-code-number .laurel-leaf,:root[data-theme="rose"] .standard-code-number .laurel-leaf,:root[data-theme="lavender"] .standard-code-number .laurel-leaf{fill:var(--soft-accent)!important;stroke:var(--soft-accent)!important}
+:root[data-theme="light"] .standard-code-copy h3,:root[data-theme="rose"] .standard-code-copy h3,:root[data-theme="lavender"] .standard-code-copy h3{color:var(--soft-ink)!important}
+:root[data-theme="light"] .standard-code-copy p,:root[data-theme="rose"] .standard-code-copy p,:root[data-theme="lavender"] .standard-code-copy p{color:var(--soft-muted)!important}
+:root[data-theme="light"] .standard-code-mark,:root[data-theme="rose"] .standard-code-mark,:root[data-theme="lavender"] .standard-code-mark{color:var(--soft-accent)!important;filter:none!important}
+:root[data-theme="light"] .standard-principle,:root[data-theme="rose"] .standard-principle,:root[data-theme="lavender"] .standard-principle{
+  background:linear-gradient(145deg,var(--soft-card-alt),var(--soft-card))!important;border-color:var(--soft-border)!important;
+}
+:root[data-theme="light"] .profile-stats article,:root[data-theme="rose"] .profile-stats article,:root[data-theme="lavender"] .profile-stats article,
+:root[data-theme="light"] .performance-running-stats article,:root[data-theme="rose"] .performance-running-stats article,:root[data-theme="lavender"] .performance-running-stats article,
+:root[data-theme="light"] .performance-mileage-chart,:root[data-theme="rose"] .performance-mileage-chart,:root[data-theme="lavender"] .performance-mileage-chart,
+:root[data-theme="light"] .performance-recent-runs,:root[data-theme="rose"] .performance-recent-runs,:root[data-theme="lavender"] .performance-recent-runs,
+:root[data-theme="light"] .performance-alltime-summary>div,:root[data-theme="rose"] .performance-alltime-summary>div,:root[data-theme="lavender"] .performance-alltime-summary>div{
+  background:var(--soft-card)!important;border-color:var(--soft-border)!important;color:var(--soft-accent)!important;
+}
+:root[data-theme="light"] .profile-stats strong,:root[data-theme="rose"] .profile-stats strong,:root[data-theme="lavender"] .profile-stats strong,
+:root[data-theme="light"] .achievement strong,:root[data-theme="rose"] .achievement strong,:root[data-theme="lavender"] .achievement strong,
+:root[data-theme="light"] .book-info strong,:root[data-theme="rose"] .book-info strong,:root[data-theme="lavender"] .book-info strong,
+:root[data-theme="light"] .performance-running-stats strong,:root[data-theme="rose"] .performance-running-stats strong,:root[data-theme="lavender"] .performance-running-stats strong,
+:root[data-theme="light"] .performance-chart-title strong,:root[data-theme="rose"] .performance-chart-title strong,:root[data-theme="lavender"] .performance-chart-title strong,
+:root[data-theme="light"] .performance-recent-runs article strong,:root[data-theme="rose"] .performance-recent-runs article strong,:root[data-theme="lavender"] .performance-recent-runs article strong{
+  color:var(--soft-ink)!important;
+}
+:root[data-theme="light"] .book-form input,:root[data-theme="rose"] .book-form input,:root[data-theme="lavender"] .book-form input,
+:root[data-theme="light"] .page-input-label input,:root[data-theme="rose"] .page-input-label input,:root[data-theme="lavender"] .page-input-label input,
+:root[data-theme="light"] .finish-date-label input,:root[data-theme="rose"] .finish-date-label input,:root[data-theme="lavender"] .finish-date-label input,
+:root[data-theme="light"] .auth-form input,:root[data-theme="rose"] .auth-form input,:root[data-theme="lavender"] .auth-form input,
+:root[data-theme="light"] .add-form input,:root[data-theme="rose"] .add-form input,:root[data-theme="lavender"] .add-form input,
+:root[data-theme="light"] .add-form select,:root[data-theme="rose"] .add-form select,:root[data-theme="lavender"] .add-form select{
+  background:var(--soft-card)!important;color:var(--soft-ink)!important;border-color:var(--soft-border)!important;color-scheme:light!important;
+}
+:root[data-theme="light"] .book-form label,:root[data-theme="rose"] .book-form label,:root[data-theme="lavender"] .book-form label,
+:root[data-theme="light"] .book-dates>span,:root[data-theme="rose"] .book-dates>span,:root[data-theme="lavender"] .book-dates>span,
+:root[data-theme="light"] .finish-date-label,:root[data-theme="rose"] .finish-date-label,:root[data-theme="lavender"] .finish-date-label,
+:root[data-theme="light"] .book-info span,:root[data-theme="rose"] .book-info span,:root[data-theme="lavender"] .book-info span,
+:root[data-theme="light"] .book-info small,:root[data-theme="rose"] .book-info small,:root[data-theme="lavender"] .book-info small{
+  color:var(--soft-muted)!important;
+}
+:root[data-theme="light"] .nonneg-ring,:root[data-theme="rose"] .nonneg-ring,:root[data-theme="lavender"] .nonneg-ring,
+:root[data-theme="light"] .today-summary-ring,:root[data-theme="rose"] .today-summary-ring,:root[data-theme="lavender"] .today-summary-ring{
+  background:radial-gradient(closest-side,var(--soft-card) 80%,transparent 82%),conic-gradient(var(--gold) var(--completion),var(--soft-icon) 0)!important;
+  color:var(--soft-accent)!important;
+}
+:root[data-theme="light"] .nonneg-progress,:root[data-theme="rose"] .nonneg-progress,:root[data-theme="lavender"] .nonneg-progress,
+:root[data-theme="light"] .progress-track,:root[data-theme="rose"] .progress-track,:root[data-theme="lavender"] .progress-track,
+:root[data-theme="light"] .level-track,:root[data-theme="rose"] .level-track,:root[data-theme="lavender"] .level-track{
+  background:var(--soft-icon)!important;
+}
+:root[data-theme="light"] .nonneg-heading h2,:root[data-theme="rose"] .nonneg-heading h2,:root[data-theme="lavender"] .nonneg-heading h2,
+:root[data-theme="light"] .level-copy h2,:root[data-theme="rose"] .level-copy h2,:root[data-theme="lavender"] .level-copy h2,
+:root[data-theme="light"] .progress-heading h2,:root[data-theme="rose"] .progress-heading h2,:root[data-theme="lavender"] .progress-heading h2{
+  color:var(--soft-ink)!important;
+}
+:root[data-theme="light"] .bottom-nav,:root[data-theme="rose"] .bottom-nav,:root[data-theme="lavender"] .bottom-nav{
+  background:rgba(255,252,247,.96)!important;border-top-color:var(--soft-border)!important;
+}
+:root[data-theme="light"] .nav-today .nav-icon-wrap,:root[data-theme="rose"] .nav-today .nav-icon-wrap,:root[data-theme="lavender"] .nav-today .nav-icon-wrap{
+  background:linear-gradient(145deg,var(--gold-bright),var(--gold))!important;border-color:var(--soft-ink)!important;color:#fffdf8!important;
+}
