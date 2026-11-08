@@ -164,6 +164,10 @@ export default function App() {
   const [editingIsNonNegotiable, setEditingIsNonNegotiable] = useState(true);
   const [editingSchedule, setEditingSchedule] = useState([0,1,2,3,4,5,6]);
   const [notice, setNotice] = useState("");
+  const [showStreakRecovery, setShowStreakRecovery] = useState(false);
+  const [confirmStreakRecovery, setConfirmStreakRecovery] = useState(false);
+  const [streakRecoveryUsed, setStreakRecoveryUsed] = useState(false);
+  const [streakRecoveryBusy, setStreakRecoveryBusy] = useState(false);
   const [xpToast, setXpToast] = useState(null);
   const [unlockCelebration, setUnlockCelebration] = useState(null);
   const [streakCelebration, setStreakCelebration] = useState(null);
@@ -1144,6 +1148,63 @@ export default function App() {
     } finally { setBusy(false); }
   }
 
+  useEffect(() => {
+    if (!user || !db) { setStreakRecoveryUsed(false); return; }
+    return onSnapshot(doc(db,"users",user.uid,"settings","streakRecovery"), snapshot => {
+      setStreakRecoveryUsed(snapshot.exists() && snapshot.data().used === true);
+    }, e => setError("Could not check streak recovery status: " + e.message));
+  }, [user]);
+
+  async function recoverMissedStreakDay() {
+    if (!user || !db || !confirmStreakRecovery || streakRecoveryBusy || streakRecoveryUsed) return;
+    const previousDate = new Date();
+    previousDate.setDate(previousDate.getDate() - 1);
+    const recoveryDate = dayKey(previousDate);
+    const nonNegotiableIds = nonNegotiableHabits.map(h => h.id);
+    if (nonNegotiableIds.length !== 5) {
+      setError("Streak recovery requires exactly five active non-negotiables. Please check your personal standard first.");
+      return;
+    }
+    setStreakRecoveryBusy(true); setError(""); setNotice("");
+    const logRef = doc(db,"users",user.uid,"dailyLogs",recoveryDate);
+    const recoveryRef = doc(db,"users",user.uid,"settings","streakRecovery");
+    try {
+      await runTransaction(db, async transaction => {
+        const recoverySnap = await transaction.get(recoveryRef);
+        if (recoverySnap.exists() && recoverySnap.data().used === true) throw new Error("Your one-time streak recovery has already been used.");
+        const logSnap = await transaction.get(logRef);
+        const existing = logSnap.exists() ? logSnap.data() : {};
+        const savedDue = Array.isArray(existing.dueNonNegotiableIds) && existing.dueNonNegotiableIds.length
+          ? existing.dueNonNegotiableIds : nonNegotiableIds;
+        if (savedDue.length !== 5) throw new Error("The previous day's non-negotiable record does not match your five-item standard. No changes were made.");
+        const completed = { ...(existing.completed || {}) };
+        savedDue.forEach(id => { completed[id] = true; });
+        const scheduledDue = Array.isArray(existing.dueHabitIds) && existing.dueHabitIds.length
+          ? existing.dueHabitIds
+          : activeHabits.filter(h => h.nonNegotiable || (Array.isArray(h.daysOfWeek) && h.daysOfWeek.length ? h.daysOfWeek : [0,1,2,3,4,5,6]).includes(previousDate.getDay())).map(h => h.id);
+        transaction.set(logRef, {
+          ...existing,
+          date: recoveryDate,
+          completed,
+          dueHabitIds: scheduledDue,
+          dueNonNegotiableIds: savedDue,
+          streakRecovery: { used: true, recoveredAt: serverTimestamp(), reason: "Forgot to record completed non-negotiables" },
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        transaction.set(recoveryRef, {
+          used: true, recoveredDate: recoveryDate, recoveredAt: serverTimestamp(),
+          reason: "Forgot to record completed non-negotiables"
+        });
+      });
+      setStreakRecoveryUsed(true);
+      setShowStreakRecovery(false);
+      setConfirmStreakRecovery(false);
+      setNotice("Streak restored. Your XP and achievements have not been changed.");
+    } catch (e) {
+      setError("Could not restore your streak: " + e.message);
+    } finally { setStreakRecoveryBusy(false); }
+  }
+
   async function toggleHabit(habit) {
     if (!user || !db) return;
     setError(""); setNotice("");
@@ -1670,6 +1731,17 @@ export default function App() {
         
         
         <div className="profile-stats"><article><Star size={22}/><strong>{levelInfo.xp.toLocaleString()}</strong><span>total XP</span></article><article className="profile-streak-stat"><Flame size={22}/><strong>{streak}</strong><span>day streak</span></article><article><Trophy size={22}/><strong>{achievements.filter(a=>a.unlocked).length}</strong><span>achievements</span></article></div>
+        <section className="settings-panel streak-recovery-panel">
+          <p className="eyebrow">A RARE EXCEPTION</p>
+          <h2>Streak recovery</h2>
+          <p className="settings-description">{streakRecoveryUsed ? "Your one-time streak recovery has already been used." : "Forgot to record a day when you genuinely kept all five non-negotiables? You can correct yesterday's record once. This does not award XP or achievements."}</p>
+          {!streakRecoveryUsed && <button type="button" className="secondary" onClick={()=>{setShowStreakRecovery(v=>!v);setConfirmStreakRecovery(false);}} disabled={streakRecoveryBusy}>{showStreakRecovery?"Close recovery":"Review streak recovery"}</button>}
+          {showStreakRecovery && !streakRecoveryUsed && <div className="streak-recovery-confirm">
+            <p><strong>Yesterday only:</strong> this will mark your five non-negotiables as completed for {new Date(Date.now()-86400000).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}. Other commitments, XP and achievements will not be changed.</p>
+            <label className="streak-recovery-attest"><input type="checkbox" checked={confirmStreakRecovery} onChange={e=>setConfirmStreakRecovery(e.target.checked)}/> I confirm I completed all five non-negotiables yesterday and only forgot to record them.</label>
+            <div className="form-actions"><button type="button" className="secondary" onClick={()=>{setShowStreakRecovery(false);setConfirmStreakRecovery(false);}}>Cancel</button><button type="button" className="primary" disabled={!confirmStreakRecovery||streakRecoveryBusy} onClick={recoverMissedStreakDay}>{streakRecoveryBusy?"Restoring…":"Restore streak"}</button></div>
+          </div>}
+        </section>
 <button type="button" className="level-card rank-open-card" onClick={()=>{setShowRanksPage(true);window.scrollTo({top:0,behavior:"smooth"});}} aria-label="Open all ranks and achievements"><div className="rank-open-card-copy"><p className="eyebrow">CURRENT RANK</p><h2>Level {levelInfo.level} · {levelInfo.name}</h2><p className="rank-actions-completed">{Number(progression.totalActions||0).toLocaleString()} actions completed</p></div><div className="rank-open-card-action"><span>Ranks & achievements</span><ChevronRight size={20}/></div></button>
 <section className="community-section profile-library-section level-card profile-library-card"><button type="button" className="profile-collapse-toggle" aria-expanded={showProfileLibrary} onClick={()=>setShowProfileLibrary(v=>!v)}><span><p className="eyebrow">YOUR READING JOURNEY</p><strong>Library</strong><small>{books.filter(b=>!!b.finishedAt).length} read · {books.filter(b=>!b.finishedAt).length} currently reading</small></span><ChevronDown className={showProfileLibrary?"is-open":""} size={21}/></button>{showProfileLibrary && <div className="profile-collapse-content"><section className="book-section"><div className="reading-list-heading"><div><p className="eyebrow">IN PROGRESS</p><h2>Currently reading</h2></div><span className="book-count-finished">{books.filter(b=>!b.finishedAt).length}</span></div><div className="book-list">{books.filter(b=>!b.finishedAt).map((book,i)=><article className="book-item book-progress-item" key={book.id}><div className="book-cover">{book.cover?<img src={book.cover} alt={book.title+" book cover"}/>:<BookOpen size={21}/>}<span>{String(i+1).padStart(2,"0")}</span></div><div className="book-info"><strong>{book.title}</strong><span>{book.author||"Author not added"}</span><div className="book-dates"><span><small>STARTED</small>{book.startedAt?new Date(book.startedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"Not recorded"}</span><span><small>CURRENT PAGE</small>{Number(book.currentPage)||1}{book.pageCount?" / "+book.pageCount:""}</span></div></div></article>)}{!books.some(b=>!b.finishedAt)&&<div className="empty"><BookOpen size={25}/><p>No books currently in progress.</p></div>}</div></section><section className="book-section completed-book-section"><div className="reading-list-heading"><div><p className="eyebrow">A LIBRARY OF FINISHED IDEAS</p><h2>Books read</h2></div><span className="book-count-finished">{books.filter(b=>!!b.finishedAt).length}</span></div><div className="book-list">{books.filter(b=>!!b.finishedAt).map((book,i)=><article className="book-item completed-book-item" key={book.id}><div className={"book-cover completed-cover"+(book.cover?" has-book-cover":"")}>{book.cover?<img src={book.cover} alt={book.title+" book cover"} loading="lazy"/>:<Check size={21}/>}</div><div className="book-info"><strong>{book.title}</strong><span>{book.author||"Author not added"}</span><div className="book-dates"><span><small>FINISHED</small>{new Date(book.finishedAt+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</span></div></div></article>)}{!books.some(b=>!!b.finishedAt)&&<div className="empty"><BookOpen size={25}/><p>Your finished books will appear here.</p></div>}</div></section></div>}</section>
 <section className="consistency-card profile-collapsible profile-library-card"><button type="button" className="profile-collapse-toggle" aria-expanded={showProfileCalendar} onClick={()=>setShowProfileCalendar(v=>!v)}><span><p className="eyebrow">SHOWING UP</p><strong>Consistency calendar</strong><small>{consistencyDays.monthLabel}</small></span><ChevronDown className={showProfileCalendar?"is-open":""} size={21}/></button>{showProfileCalendar && <div className="profile-collapse-content"><p className="muted">Your current month at a glance. Gold means every scheduled commitment was completed; darker squares are incomplete. The outlined square marks today.</p><div className="consistency-weekdays">{["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(day=><span key={day}>{day}</span>)}</div><div className="consistency-grid">{consistencyDays.days.map(day=>day.blank?<div className="consistency-day blank" key={day.key} aria-hidden="true"/>:<div key={day.key} title={`${day.key}${day.isToday?" · Today":""}${day.future?" · Upcoming":day.isComplete?" · Complete":" · Incomplete"}`} className={`consistency-day ${day.isComplete?"full":"incomplete"} ${day.isToday?"today":""} ${day.future?"future":""}`} aria-label={`${day.key}${day.isToday?", today":""}: ${day.future?"upcoming":day.isComplete?"complete":"incomplete"}`}><span>{day.number}</span></div>)}</div><div className="consistency-legend"><span><i className="incomplete"/> Incomplete</span><span><i className="full"/> Complete</span><span><i className="today-key"/> Today</span></div></div>}</section>
